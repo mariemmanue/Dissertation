@@ -6,14 +6,21 @@ import dataclasses # Python module that provides a decorator and functions for c
 from torch.utils.data import Dataset # PyTorch utility to define custom datasets
 from typing import List, Union, Dict
 import sys # Allows interaction with the system, specifically to read command-line arguments.
+import os
+import pandas as pd
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Command-line Arguments
-gen_method = sys.argv[1]  # 'CGEdit' or 'CGEdit-ManualGen'
-lang = sys.argv[2]  # 'AAE' or 'IndE'
+gen_method = sys.argv[1]
 
 # Model Name Selection
 model_name = 'roberta-base'
-out_dir = model_name + "_" + gen_method + "_" + lang # defines an output directory name based on the model, generation method, and language
+out_dir = model_name + "_" + gen_method # defines an output directory name based on the model, generation method, and language
+
+# Ensure the directory exists before saving
+save_path = "./models/" + out_dir
+os.makedirs(save_path, exist_ok=True)  # Creates the folder if it doesn't exist
 
 # Multitask Model Definition
 class MultitaskModel(transformers.PreTrainedModel): # subclass of transformers.PreTrainedModel for multitask learning
@@ -30,9 +37,11 @@ class MultitaskModel(transformers.PreTrainedModel): # subclass of transformers.P
         has them share the same encoder transformer.
         """
         taskmodels_dict = {} # Stores individual classification heads
-        shared_encoder = transformers.AutoModel.from_pretrained( # Loads a pre-trained BERT model
-            model_name,
-            config=transformers.AutoConfig.from_pretrained(model_name))
+        shared_encoder = transformers.AutoModel.from_pretrained(model_name, add_pooling_layer=False)
+        # shared_encoder = transformers.AutoModel.from_pretrained( # Loads a pre-trained BERT model
+        #     model_name,
+        #     config=transformers.AutoConfig.from_pretrained(model_name))
+        shared_encoder.train()
 
         for task_name in head_type_list:
             head = torch.nn.Linear(768, 2) # Creates a linear layer (768 -> 2) for each task in head_type_list and stores it
@@ -42,7 +51,9 @@ class MultitaskModel(transformers.PreTrainedModel): # subclass of transformers.P
 
 # Forward Pass
     def forward(self, inputs, **kwargs):
-        x = self.encoder(inputs)  # pass thru encoder once, Feeds input tokens through BERT
+        """Forward pass through RoBERTa encoder and task-specific heads."""
+        x = self.encoder(inputs["input_ids"], attention_mask=inputs["attention_mask"])
+        # x = self.encoder(inputs)  # pass thru encoder once, Feeds input tokens through BERT
         x = x.last_hidden_state[:, 0, :]  # get CLS, Extracts the [CLS] token (first token) representation
         out_list = []
         for task_name, head in self.taskmodels_dict.items():  # pass thru each head, Passes [CLS] embedding through each task-specific classifier
@@ -82,19 +93,29 @@ class CustomDataset(Dataset):
 
 # Training Function
 def trainM(tokenizer, train_f):
-    # Load data
-    features_dict = {"input_ids": [], "labels": []} # 	Initializes feature storage
+    features_dict = {"input_ids": [], "labels": []}
 
-    with open(train_f) as r:
-        for line in r:
-            linesplit = line.strip().split("\t") # Reads a tab-separated file.
-            tokenized = tokenizer.encode(linesplit[0], max_length=64, pad_to_max_length=True, truncation=True) # Tokenizes input text.
-            features_dict["input_ids"].append(torch.LongTensor(tokenized))
-            features_dict["labels"].append(torch.tensor([float(x) for x in linesplit[1:]], dtype=torch.long)) # Converts labels to tensors
-# Stacks tensors and wraps them in CustomDataset
+    # Read the file, ensuring we correctly parse the header
+    df = pd.read_csv(train_f, sep="\t")
+
+    # Extract text (input sentences)
+    examples = df["example"].tolist()
+
+    # Extract labels as a list of lists (binary values)
+    labels = df.iloc[:, 1:].values.tolist()  # Skip the "example" column
+
+    for text, label in zip(examples, labels):
+        # Tokenize text
+        tokenized = tokenizer.encode(text, max_length=64, padding="max_length", truncation=True)
+
+        # Store input tokens and labels
+        features_dict["input_ids"].append(torch.LongTensor(tokenized))
+        features_dict["labels"].append(torch.tensor(label, dtype=torch.long))  # Labels are already numeric
+
+    # Convert lists to PyTorch tensors
     features_dict["input_ids"] = torch.stack(features_dict["input_ids"])
     features_dict["labels"] = torch.stack(features_dict["labels"])
-    features_dict = CustomDataset(features_dict["input_ids"], features_dict["labels"])
+    dataset = CustomDataset(features_dict["input_ids"], features_dict["labels"])
 
     # Train, Initializes a trainer with training arguments
     trainer = MultitaskTrainer(
@@ -109,8 +130,11 @@ def trainM(tokenizer, train_f):
             per_device_train_batch_size=64,
             save_steps=500,
         ),
-        train_dataset=features_dict,
+        train_dataset=dataset,
     )
+    # Debugging: Print one sample
+    print("Example training sample:", dataset[0])
+
     trainer.train()
     torch.save({'model_state_dict': multitask_model.state_dict()},
                "./models/" + out_dir + "/final.pt") # Trains the model and saves the final checkpoint
@@ -118,7 +142,8 @@ def trainM(tokenizer, train_f):
 
 if __name__ == "__main__": # Ensures the script runs only when executed directly
 
-    train_file = "./data/" + gen_method + "/" + lang + ".tsv" # Constructs the training file pat
+    train_file = script_dir + "/" + gen_method + ".tsv"
+    # If gen_method == 'CGEdit-ManualGen' and lang == 'AAE', the script will look for ./data/CGEdit-ManualGen/AAE.tsv
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # Determines whether to use GPU or CPU
 
     head_type_list = [ # Defines task types
@@ -139,6 +164,7 @@ if __name__ == "__main__": # Ensures the script runs only when executed directly
         head_type_list=head_type_list
     )
     multitask_model.to(device) # Creates and moves the model to the appropriate device in case GPU is available
+    multitask_model.train()
 
     ## Train on contrast set, Loads a tokenizer and starts training
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
