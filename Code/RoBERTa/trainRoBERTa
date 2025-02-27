@@ -12,7 +12,7 @@ gen_method = sys.argv[1]  # 'CGEdit' or 'CGEdit-ManualGen'
 lang = sys.argv[2]  # 'AAE' or 'IndE'
 
 # Model Name Selection
-model_name = 'bert-base-cased'
+model_name = 'roberta-base'
 out_dir = model_name + "_" + gen_method + "_" + lang # defines an output directory name based on the model, generation method, and language
 
 # Multitask Model Definition
@@ -38,59 +38,65 @@ class MultitaskModel(transformers.PreTrainedModel): # subclass of transformers.P
             head = torch.nn.Linear(768, 2) # Creates a linear layer (768 -> 2) for each task in head_type_list and stores it
             taskmodels_dict[task_name] = head
 
-        return cls(encoder=shared_encoder, taskmodels_dict=taskmodels_dict)
+        return cls(encoder=shared_encoder, taskmodels_dict=taskmodels_dict) # Returns an instance of MultitaskModel.
 
+# Forward Pass
     def forward(self, inputs, **kwargs):
-        x = self.encoder(inputs)  # pass thru encoder once
-        x = x.last_hidden_state[:, 0, :]  # get CLS
+        x = self.encoder(inputs)  # pass thru encoder once, Feeds input tokens through BERT
+        x = x.last_hidden_state[:, 0, :]  # get CLS, Extracts the [CLS] token (first token) representation
         out_list = []
-        for task_name, head in self.taskmodels_dict.items():  # pass thru each head
-            out_list.append(self.taskmodels_dict[task_name](x))
+        for task_name, head in self.taskmodels_dict.items():  # pass thru each head, Passes [CLS] embedding through each task-specific classifier
+            out_list.append(self.taskmodels_dict[task_name](x)) # Stacks outputs into a single tensor
         return torch.vstack(out_list)
 
-
+# Multitask Trainer
 class MultitaskTrainer(transformers.Trainer):
+    # Extends transformers.Trainer to compute loss manually, default Trainer assumes a single output per input (single task)
+    # dataset stores labels as a 2D tensor: (batch_size, num_tasks), where each row corresponds
+    # to an input example and each column corresponds to a different task
+    # Since PyTorch’s loss function expects labels in a 1D format, we transpose to reorder dimensions if needed.
     def compute_loss(self, model, inputs, return_outputs=False):
-        labels = torch.transpose(inputs["labels"], 0, 1)
+        labels = torch.transpose(inputs["labels"], 0, 1) # Transposes label dimensions and flattens them.
         labels = torch.flatten(labels)
-        outputs = model(inputs["input_ids"])  # Forward pass
+        outputs = model(inputs["input_ids"])  # Forward pass, Feeds input tokens into the model
         loss_fct = nn.CrossEntropyLoss()
-        loss = loss_fct(outputs, labels)
+        loss = loss_fct(outputs, labels) # Computes loss using cross-entropy between all predictions and their corresponding labels.
 
-        return (loss, outputs) if return_outputs else loss
+        return (loss, outputs) if return_outputs else loss # Returns loss and optionally model outputs.
 
-
+# Custom Dataset
+# not using default because current dataset is tab-separated text data with multiple labels per input, requiring custom preprocessing.
 class CustomDataset(Dataset):
-    def __init__(self, text, labels):
+    def __init__(self, text, labels): # Stores text and label data.
         self.labels = labels
         self.text = text
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.labels) # Returns dataset size.
 
     def __getitem__(self, idx):
         label = self.labels[idx]
         text = self.text[idx]
         sample = {"input_ids": text, "labels": label}
-        return sample
+        return sample # Returns a dictionary containing a single example
 
-
+# Training Function
 def trainM(tokenizer, train_f):
-    ## Load data
-    features_dict = {"input_ids": [], "labels": []}
+    # Load data
+    features_dict = {"input_ids": [], "labels": []} # 	Initializes feature storage
 
     with open(train_f) as r:
         for line in r:
-            lineSplit = line.strip().split("\t")
-            tokenized = tokenizer.encode(lineSplit[0], max_length=64, pad_to_max_length=True, truncation=True)
+            linesplit = line.strip().split("\t") # Reads a tab-separated file.
+            tokenized = tokenizer.encode(linesplit[0], max_length=64, pad_to_max_length=True, truncation=True) # Tokenizes input text.
             features_dict["input_ids"].append(torch.LongTensor(tokenized))
-            features_dict["labels"].append(torch.tensor([float(x) for x in lineSplit[1:]], dtype=torch.long))
-
+            features_dict["labels"].append(torch.tensor([float(x) for x in linesplit[1:]], dtype=torch.long)) # Converts labels to tensors
+# Stacks tensors and wraps them in CustomDataset
     features_dict["input_ids"] = torch.stack(features_dict["input_ids"])
     features_dict["labels"] = torch.stack(features_dict["labels"])
     features_dict = CustomDataset(features_dict["input_ids"], features_dict["labels"])
 
-    ## Train
+    # Train, Initializes a trainer with training arguments
     trainer = MultitaskTrainer(
         model=multitask_model,
         args=transformers.TrainingArguments(
@@ -107,39 +113,34 @@ def trainM(tokenizer, train_f):
     )
     trainer.train()
     torch.save({'model_state_dict': multitask_model.state_dict()},
-               "./models/" + out_dir + "/final.pt")
+               "./models/" + out_dir + "/final.pt") # Trains the model and saves the final checkpoint
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # Ensures the script runs only when executed directly
 
-    train_file = "./data/" + gen_method + "/" + lang + ".tsv"
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    train_file = "./data/" + gen_method + "/" + lang + ".tsv" # Constructs the training file pat
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # Determines whether to use GPU or CPU
 
-    if lang == 'AAE':
-        head_type_list = [
-            "zero-poss",
-            "zero-copula",
-            "double-tense",
-            "be-construction", "resultant-done",
-            "finna", "come", "double-modal",
-            "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint",
-            "zero-3sg-pres-s", "is-was-gen",
-            "zero-pl-s",
-            "double-object",
-            "wh-qu"]
-    elif lang == 'IndE':
-        head_type_list = [
-            "foc_self", "foc_only", "left_dis", "non_init_exis",
-            "obj_front", "inv_tag", "cop_omis", "res_obj_pron",
-            "res_sub_pron", "top_non_arg_con"]
+    head_type_list = [ # Defines task types
+        "zero-poss",
+        "zero-copula",
+        "double-tense",
+        "be-construction", "resultant-done",
+        "finna", "come", "double-modal",
+        "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint",
+        "zero-3sg-pres-s", "is-was-gen",
+        "zero-pl-s",
+        "double-object",
+        "wh-qu"]
+
 
     multitask_model = MultitaskModel.create(
         model_name=model_name,
         head_type_list=head_type_list
     )
-    multitask_model.to(device)
+    multitask_model.to(device) # Creates and moves the model to the appropriate device in case GPU is available
 
-    ## Train on contrast set
+    ## Train on contrast set, Loads a tokenizer and starts training
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
     trainM(tokenizer, train_file)
 
