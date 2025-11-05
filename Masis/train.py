@@ -79,7 +79,12 @@ def trainM(tokenizer, train_f):
     with open(train_f) as r:
         for line in r:
             lineSplit = line.strip().split("\t")
-            tokenized = tokenizer.encode(lineSplit[0], max_length=64, pad_to_max_length=True, truncation=True)
+            tokenized = tokenizer.encode(
+                lineSplit[0],
+                max_length=64,
+                padding="max_length",
+                truncation=True,
+            )
             features_dict["input_ids"].append(torch.LongTensor(tokenized))
             features_dict["labels"].append(torch.tensor([float(x) for x in lineSplit[1:]], dtype=torch.long))
 

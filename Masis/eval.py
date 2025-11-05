@@ -79,7 +79,12 @@ def testM(tokenizer, model, test_f):
     with open(test_f) as r: 
         for line in r:
             if len(line.split()) < 2: continue
-            tokenized = tokenizer.encode(line.strip(), max_length=64, pad_to_max_length=True, truncation=True)
+            tokenized = tokenizer.encode(
+                line.strip(),
+                max_length=64,
+                padding="max_length",
+                truncation=True,
+            )
             features_dict["input_ids"].append(torch.LongTensor(tokenized))
 
     features_dict["input_ids"] = torch.stack(features_dict["input_ids"])
