@@ -39,8 +39,8 @@ class MultitaskModel(transformers.PreTrainedModel):
         
         return cls(encoder=shared_encoder, taskmodels_dict=taskmodels_dict)
 
-    def forward(self, inputs, **kwargs):
-        x = self.encoder(inputs)                # pass thru encoder once
+    def forward(self, input_ids=None, **kwargs):
+        x = self.encoder(input_ids)
         x = x.last_hidden_state[:,0,:]          # get CLS
         out_list = []
         for task_name,head in self.taskmodels_dict.items(): # pass thru each head
@@ -101,19 +101,21 @@ def trainM(tokenizer, train_f):
 
     ## Train
     trainer = MultitaskTrainer(
-            model = multitask_model,
-            args=transformers.TrainingArguments(
-                output_dir="./models/"+out_dir,
-                overwrite_output_dir=True,
-                learning_rate=1e-4,
-                do_train=True,
-                warmup_steps=300,  # 2 steps per epoch when batch_size=64
-                num_train_epochs=500,
-                per_device_train_batch_size=64,
-                save_steps=500,
-            ),
-            train_dataset=features_dict,
+        model=multitask_model,
+        args=transformers.TrainingArguments(
+            output_dir="./models/"+out_dir,
+            overwrite_output_dir=True,
+            learning_rate=1e-4,
+            do_train=True,
+            warmup_steps=300,
+            num_train_epochs=500,
+            per_device_train_batch_size=64,
+            save_steps=500,
+            remove_unused_columns=False,   # 👈 add this
+        ),
+        train_dataset=features_dict,
     )
+
     trainer.train()
     torch.save({'model_state_dict': multitask_model.state_dict()}, 
             "./models/"+out_dir+"/final.pt")
