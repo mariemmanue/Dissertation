@@ -166,13 +166,14 @@ if __name__ == "__main__":
             learning_rate=1e-4,
             do_train=True,
             warmup_steps=300,
-            num_train_epochs=500,
-            per_device_train_batch_size=64,
+            num_train_epochs=20,          # 👈 was 500
+            per_device_train_batch_size=32,  # 👈 was 64; safer on cluster
             save_steps=500,
-            remove_unused_columns=False,  # important with custom forward
+            remove_unused_columns=False,
         ),
         train_dataset=dataset,
     )
+
 
     trainer.train()
 
