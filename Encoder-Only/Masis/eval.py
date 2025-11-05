@@ -138,9 +138,9 @@ if __name__ == "__main__":
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
 
-    # 👇 THIS is the key change: load from ./models/...
     ckpt_path = f"./models/{model_dir}/final.pt"
-    checkpoint = torch.load(ckpt_path, map_location=device)
+    # checkpoint = torch.load(ckpt_path, map_location=device)
+    checkpoint = torch.load("./models/masis-final.pt", map_location=device)
 
     multitask_model.load_state_dict(checkpoint['model_state_dict'])
     multitask_model.to(device)
