@@ -75,10 +75,14 @@ class CustomDataset(Dataset):
 def trainM(tokenizer, train_f):
     ## Load data
     features_dict = { "input_ids": [], "labels": [] }
-
     with open(train_f) as r:
-        for line in r:
+        for i, line in enumerate(r):
             lineSplit = line.strip().split("\t")
+
+            # skip header rows that have strings instead of 0/1
+            if i == 0 and not lineSplit[1].isdigit():
+                continue
+
             tokenized = tokenizer.encode(
                 lineSplit[0],
                 max_length=64,
@@ -86,7 +90,10 @@ def trainM(tokenizer, train_f):
                 truncation=True,
             )
             features_dict["input_ids"].append(torch.LongTensor(tokenized))
-            features_dict["labels"].append(torch.tensor([float(x) for x in lineSplit[1:]], dtype=torch.long))
+            # convert label strings like "0" "1" to ints
+            features_dict["labels"].append(
+                torch.tensor([int(x) for x in lineSplit[1:]], dtype=torch.long)
+            )
 
     features_dict["input_ids"] = torch.stack(features_dict["input_ids"])
     features_dict["labels"] = torch.stack(features_dict["labels"])
