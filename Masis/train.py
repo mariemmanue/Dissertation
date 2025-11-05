@@ -48,10 +48,12 @@ class MultitaskModel(transformers.PreTrainedModel):
         return torch.vstack(out_list)
 
 class MultitaskTrainer(transformers.Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        # labels: [batch, num_feats] -> [num_feats, batch] -> flatten
         labels = torch.transpose(inputs["labels"], 0, 1)
         labels = torch.flatten(labels)
-        outputs = model(inputs["input_ids"])     # Forward pass
+
+        outputs = model(inputs["input_ids"])
         loss_fct = nn.CrossEntropyLoss()
         loss = loss_fct(outputs, labels)
 
@@ -73,14 +75,13 @@ class CustomDataset(Dataset):
 
 
 def trainM(tokenizer, train_f):
-    ## Load data
     features_dict = { "input_ids": [], "labels": [] }
+
     with open(train_f) as r:
         for i, line in enumerate(r):
             lineSplit = line.strip().split("\t")
-
-            # skip header rows that have strings instead of 0/1
-            if i == 0 and not lineSplit[1].isdigit():
+            # skip header
+            if i == 0 and (len(lineSplit) > 1 and not lineSplit[1].isdigit()):
                 continue
 
             tokenized = tokenizer.encode(
@@ -90,7 +91,6 @@ def trainM(tokenizer, train_f):
                 truncation=True,
             )
             features_dict["input_ids"].append(torch.LongTensor(tokenized))
-            # convert label strings like "0" "1" to ints
             features_dict["labels"].append(
                 torch.tensor([int(x) for x in lineSplit[1:]], dtype=torch.long)
             )
@@ -99,7 +99,6 @@ def trainM(tokenizer, train_f):
     features_dict["labels"] = torch.stack(features_dict["labels"])
     features_dict = CustomDataset(features_dict["input_ids"], features_dict["labels"])
 
-    ## Train
     trainer = MultitaskTrainer(
         model=multitask_model,
         args=transformers.TrainingArguments(
@@ -111,14 +110,13 @@ def trainM(tokenizer, train_f):
             num_train_epochs=500,
             per_device_train_batch_size=64,
             save_steps=500,
-            remove_unused_columns=False,   # 👈 add this
+            remove_unused_columns=False,  # ← important
         ),
         train_dataset=features_dict,
     )
-
     trainer.train()
-    torch.save({'model_state_dict': multitask_model.state_dict()}, 
-            "./models/"+out_dir+"/final.pt")
+    torch.save({'model_state_dict': multitask_model.state_dict()},
+               "./models/"+out_dir+"/final.pt")
 
 
 if __name__ == "__main__":
