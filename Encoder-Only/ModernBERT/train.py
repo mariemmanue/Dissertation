@@ -177,40 +177,34 @@ def compute_metrics(eval_pred):
     macro_f1 = float(np.mean(f1s))
     return {"accuracy": acc, "eval_f1": macro_f1}
 
-
 if __name__ == "__main__":
+    import argparse
+    import os
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("gen_method", type=str)
+    parser.add_argument("lang", type=str)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--bs", type=int, default=32)
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--warmup", type=int, default=300)
+    parser.add_argument("--max_length", type=int, default=64)
+    args = parser.parse_args()
+
+    MODEL_NAME = "answerdotai/ModernBERT-large"
+    train_file = f"./data/{args.gen_method}/{args.lang}.tsv"
+    out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}"
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    head_type_list = load_head_list(lang)
-    model = MultitaskModel.create(MODEL_NAME, head_type_list)
-    model.to(device)
+    head_type_list = load_head_list(args.lang)
+    model = MultitaskModel.create(MODEL_NAME, head_type_list).to(device)
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_NAME)
+    dataset = build_dataset(tokenizer, train_file, max_length=args.max_length)
 
-    # get default hyperparams
-    default_lr = 1e-4
-    default_bs = 32
-    default_epochs = 20
-    default_warmup = 300
-    default_max_len = 64
-
-    if use_wandb:
-        wandb.init(project="aae-ddm-modernbert")
-        lr = wandb.config.get("learning_rate", default_lr)
-        bs = wandb.config.get("batch_size", default_bs)
-        epochs = wandb.config.get("epochs", default_epochs)
-        warmup = wandb.config.get("warmup_steps", default_warmup)
-        max_len = wandb.config.get("max_length", default_max_len)
-    else:
-        lr = default_lr
-        bs = default_bs
-        epochs = default_epochs
-        warmup = default_warmup
-        max_len = default_max_len
-
-    dataset = build_dataset(tokenizer, train_file, max_length=max_len)
-
-    # 90/10 split for val
+    # simple 90/10 split
+    from torch.utils.data import random_split
     val_size = max(1, int(0.1 * len(dataset)))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
@@ -218,19 +212,16 @@ if __name__ == "__main__":
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
         overwrite_output_dir=True,
-        learning_rate=lr,
+        learning_rate=args.lr,
         do_train=True,
         do_eval=True,
-        warmup_steps=warmup,
-        num_train_epochs=epochs,
-        per_device_train_batch_size=bs,
-        per_device_eval_batch_size=bs,
+        warmup_steps=args.warmup,
+        num_train_epochs=args.epochs,
+        per_device_train_batch_size=args.bs,
+        per_device_eval_batch_size=args.bs,
         save_steps=500,
         remove_unused_columns=False,
-        evaluation_strategy="epoch",
-        logging_strategy="steps",
-        logging_steps=50,
-        report_to=["wandb"] if use_wandb else [],
+        # ⬅ removed: evaluation_strategy, logging_strategy, logging_steps, report_to
     )
 
     trainer = MultitaskTrainer(
@@ -238,7 +229,7 @@ if __name__ == "__main__":
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        compute_metrics=compute_metrics,
+        compute_metrics=compute_metrics,  # we defined this earlier
     )
 
     trainer.train()
@@ -248,6 +239,3 @@ if __name__ == "__main__":
         {"model_state_dict": model.state_dict()},
         f"./models/{out_dir}/final.pt",
     )
-
-    if use_wandb:
-        wandb.finish()
