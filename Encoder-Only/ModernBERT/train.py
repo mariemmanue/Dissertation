@@ -211,7 +211,7 @@ if __name__ == "__main__":
     val_size = max(1, int(0.1 * len(dataset)))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
-
+    
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
         overwrite_output_dir=True,
@@ -225,10 +225,8 @@ if __name__ == "__main__":
         save_steps=500,
         remove_unused_columns=False,
         logging_steps=50,
-        evaluation_strategy="epoch",
-        report_to=["wandb"] if use_wandb else [],
-        run_name=out_dir if use_wandb else None,
     )
+
 
     trainer = MultitaskTrainer(
         model=model,
