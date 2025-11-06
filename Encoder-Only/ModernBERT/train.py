@@ -1,5 +1,4 @@
-import transformers, sys
-print("TRANSFORMERS VERSION (runtime):", transformers.__version__, file=sys.stderr)
+import transformers
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, random_split
