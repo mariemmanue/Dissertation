@@ -1,7 +1,20 @@
-import sys
-# make sure we import the conda env's site-packages FIRST
-sys.path.insert(0, "/nlp/scr/mtano/miniconda3/envs/cgedit/lib/python3.10/site-packages")
+import sys, os, site
 
+# make sure we look in the env's site-packages first
+site_dirs = []
+try:
+    site_dirs.extend(site.getsitepackages())
+except Exception:
+    pass
+site_dirs.append(site.getusersitepackages())
+
+for d in reversed(site_dirs):
+    if os.path.isdir(d):
+        sys.path.insert(0, d)
+
+import transformers
+print("USING TRANSFORMERS FROM:", transformers.__file__, file=sys.stderr)
+print("TRANSFORMERS VERSION:", transformers.__version__, file=sys.stderr)
 
 import transformers
 import torch
