@@ -1,9 +1,13 @@
+import sys
+# make sure we import the conda env's site-packages FIRST
+sys.path.insert(0, "/nlp/scr/mtano/miniconda3/envs/cgedit/lib/python3.10/site-packages")
+
+
 import transformers
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, random_split
 import os
-import sys
 import numpy as np
 
 MODEL_NAME = "answerdotai/ModernBERT-large"
