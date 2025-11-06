@@ -2,20 +2,13 @@ import transformers
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, random_split
-import sys
 import os
+import sys
 import numpy as np
 
-# ModernBERT wants transformers >= 4.48.0
 MODEL_NAME = "answerdotai/ModernBERT-large"
 
-gen_method = sys.argv[1]    # 'CGEdit' or 'CGEdit-ManualGen'
-lang = sys.argv[2]          # 'AAE' or 'IndE'
-
-train_file = f"./data/{gen_method}/{lang}.tsv"
-out_dir = MODEL_NAME.replace("/", "_") + f"_{gen_method}_{lang}"
-
-# try to init wandb
+# try wandb
 use_wandb = False
 try:
     import wandb
@@ -152,16 +145,11 @@ def build_dataset(tokenizer, train_f, max_length=64):
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
-    # logits: [num_tasks * batch, 2]
-    # labels: [num_tasks * batch]
-    preds = np.argmax(logits, axis=-1)
     labels = labels.reshape(-1)
-    preds = preds.reshape(-1)
+    preds = np.argmax(logits, axis=-1)
 
-    # accuracy
     acc = (preds == labels).mean()
 
-    # macro F1 (no sklearn)
     f1s = []
     for cls in [0, 1]:
         tp = np.sum((preds == cls) & (labels == cls))
@@ -177,9 +165,9 @@ def compute_metrics(eval_pred):
     macro_f1 = float(np.mean(f1s))
     return {"accuracy": acc, "eval_f1": macro_f1}
 
+
 if __name__ == "__main__":
     import argparse
-    import os
 
     parser = argparse.ArgumentParser()
     parser.add_argument("gen_method", type=str)
@@ -189,7 +177,24 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--warmup", type=int, default=300)
     parser.add_argument("--max_length", type=int, default=64)
+    parser.add_argument("--wandb_project", type=str, default="cgedit-aae")
     args = parser.parse_args()
+
+    # --- pull from wandb if running under a sweep ---
+    if use_wandb:
+        wandb.init(project=args.wandb_project)
+        cfg = wandb.config
+        lr = getattr(cfg, "learning_rate", args.lr)
+        bs = getattr(cfg, "batch_size", args.bs)
+        epochs = getattr(cfg, "epochs", args.epochs)          # <--- MATCH YAML
+        warmup = getattr(cfg, "warmup_steps", args.warmup)
+        max_len = getattr(cfg, "max_length", args.max_length)
+    else:
+        lr = args.lr
+        bs = args.bs
+        epochs = args.epochs
+        warmup = args.warmup
+        max_len = args.max_length
 
     MODEL_NAME = "answerdotai/ModernBERT-large"
     train_file = f"./data/{args.gen_method}/{args.lang}.tsv"
@@ -201,10 +206,8 @@ if __name__ == "__main__":
     model = MultitaskModel.create(MODEL_NAME, head_type_list).to(device)
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_NAME)
-    dataset = build_dataset(tokenizer, train_file, max_length=args.max_length)
+    dataset = build_dataset(tokenizer, train_file, max_length=max_len)
 
-    # simple 90/10 split
-    from torch.utils.data import random_split
     val_size = max(1, int(0.1 * len(dataset)))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
@@ -212,16 +215,19 @@ if __name__ == "__main__":
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
         overwrite_output_dir=True,
-        learning_rate=args.lr,
+        learning_rate=lr,
         do_train=True,
         do_eval=True,
-        warmup_steps=args.warmup,
-        num_train_epochs=args.epochs,
-        per_device_train_batch_size=args.bs,
-        per_device_eval_batch_size=args.bs,
+        warmup_steps=warmup,
+        num_train_epochs=epochs,
+        per_device_train_batch_size=bs,
+        per_device_eval_batch_size=bs,
         save_steps=500,
         remove_unused_columns=False,
-        # ⬅ removed: evaluation_strategy, logging_strategy, logging_steps, report_to
+        logging_steps=50,
+        evaluation_strategy="epoch",
+        report_to=["wandb"] if use_wandb else [],
+        run_name=out_dir if use_wandb else None,
     )
 
     trainer = MultitaskTrainer(
@@ -229,7 +235,7 @@ if __name__ == "__main__":
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        compute_metrics=compute_metrics,  # we defined this earlier
+        compute_metrics=compute_metrics,
     )
 
     trainer.train()
@@ -239,3 +245,6 @@ if __name__ == "__main__":
         {"model_state_dict": model.state_dict()},
         f"./models/{out_dir}/final.pt",
     )
+
+    if use_wandb:
+        wandb.finish()
