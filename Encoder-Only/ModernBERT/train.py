@@ -241,10 +241,7 @@ if __name__ == "__main__":
         per_device_eval_batch_size=bs,
         save_steps=500,
         remove_unused_columns=False,
-        logging_steps=50,
-        evaluation_strategy="epoch",       
-        report_to=["wandb"],               
-        run_name=out_dir,                  
+        logging_steps=50,             
     )
 
 
