@@ -120,7 +120,8 @@ def make_dataloader(dataset, batch_size=64):
 tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_NAME)
 model = MultitaskModel.create(MODEL_NAME, HEADS)
 ckpt = torch.load(args.model, map_location=device)
-model.load_state_dict(ckpt["model_state_dict"])
+state = ckpt["model_state_dict"]
+model.load_state_dict(state, strict=False)
 model.to(device)
 model.eval()
 
