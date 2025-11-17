@@ -29,7 +29,7 @@ from gpt_experiments import(
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python GPT_Experiments.py --file Run2.xlsx --sheet GPT-Exp1 --extended --context && \
+   python GPT_Experiments.py --file data/Run2.xlsx --sheet GPT-Exp1 --extended --context && \
    python evaluate.py" """
 
 feat_thresholds = {
