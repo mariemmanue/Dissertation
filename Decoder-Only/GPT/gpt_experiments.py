@@ -12,6 +12,11 @@ from openai import OpenAI
 import tiktoken
 import argparse
 
+# Initialize global variables
+total_input_tokens = 0
+total_output_tokens = 0
+api_call_count = 0
+
 # Ensure paths
 output_dir = "data/results"  # or any sub-directory
 os.makedirs(output_dir, exist_ok=True)
