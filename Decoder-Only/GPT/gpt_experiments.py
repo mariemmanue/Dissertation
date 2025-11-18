@@ -18,10 +18,8 @@ total_output_tokens = 0
 api_call_count = 0
 
 # Ensure paths
-output_dir = "data/results"  # or any sub-directory
-os.makedirs(output_dir, exist_ok=True)
 
-"""nlprun -q jag -p standard -r 8G -c 2 -t 0-2 \
+"""nlprun -q jag -p standard -r 20G -c 2 \
   -n gpt-exp-aae \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
@@ -30,8 +28,8 @@ os.makedirs(output_dir, exist_ok=True)
    conda activate cgedit && \
    export HF_HOME=/nlp/scr/mtano/hf_home && \
    python gpt_experiments.py \
-     --file data/Run2.xlsx \
-     --sheet GPT-Exp1 \
+     --file data/Run1.xlsx \
+     --sheet GPT-Exp2 \
      --extended \
      --context" """
 
@@ -44,7 +42,7 @@ os.makedirs(output_dir, exist_ok=True)
    conda activate cgedit && \
    export HF_HOME=/nlp/scr/mtano/hf_home && \
    python gpt_experiments.py \
-     --file data/Run2.xlsx \
+     --file data/Run1.xlsx \
      --sheet GPT-Exp1 \
      --extended" """
 
@@ -439,7 +437,12 @@ def main():
     parser.add_argument("--sheet", type=str, help="Sheet name for GPT experiment", required=True)
     parser.add_argument("--extended", action="store_true", help="Use extended feature set")
     parser.add_argument("--context", action="store_true", help="Use context in the experiments")
+    parser.add_argument("--output_dir", type=str, help="Output directory for results", required=True)
     args = parser.parse_args()
+
+    file_title = os.path.splitext(os.path.basename(args.file))[0]
+    output_dir = os.path.join(args.output_dir, file_title)
+    os.makedirs(output_dir, exist_ok=True)
 
     sheets = pd.read_excel(args.file, sheet_name=None)
     gold_df = sheets["Gold"]
