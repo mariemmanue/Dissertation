@@ -30,7 +30,7 @@ os.makedirs(output_dir, exist_ok=True)
      --extended \
      --context" """
 
-"""nlprun -q jag -p standard -r 8G -c 2 -t 0-2 \
+"""nlprun -q jag -p standard -r 20G -c 2 \
   -n gpt-exp-aae \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
@@ -444,7 +444,11 @@ def main():
 
     print(f"Number of sentences to evaluate: {len(eval_sentences)}")
 
-    openai_api_key = getpass.getpass("Enter OpenAI API key: ")
+    # Read the OpenAI API key from an environment variable
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise ValueError("Please set the OPENAI_API_KEY environment variable.")
+    
     client = OpenAI(api_key=openai_api_key)
     enc = tiktoken.get_encoding("p50k_base")
 
@@ -506,7 +510,7 @@ def main():
         with open(rats_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow([sentence] + [rats.get(feat, "") for feat in CURRENT_FEATURES])
-            
+
     # Write the predictions and rationales directly to the Excel file
     predictions_df = pd.DataFrame(results)
     rationales_df = pd.DataFrame(rationale_rows)
