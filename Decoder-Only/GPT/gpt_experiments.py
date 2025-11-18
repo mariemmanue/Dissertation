@@ -30,6 +30,18 @@ os.makedirs(output_dir, exist_ok=True)
      --extended \
      --context" """
 
+"""nlprun -q jag -p standard -r 8G -c 2 -t 0-2 \
+  -n gpt-exp-aae \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
+   mkdir -p slurm_logs data/results && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   export HF_HOME=/nlp/scr/mtano/hf_home && \
+   python gpt_experiments.py \
+     --file data/Run2.xlsx \
+     --sheet GPT-Exp1 \
+     --extended" """
 
 OPENAI_MODEL_NAME = "gpt-5"
 # tokenizer for logging
@@ -494,6 +506,13 @@ def main():
         with open(rats_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow([sentence] + [rats.get(feat, "") for feat in CURRENT_FEATURES])
+            
+    # Write the predictions and rationales directly to the Excel file
+    predictions_df = pd.DataFrame(results)
+    rationales_df = pd.DataFrame(rationale_rows)
+    
+    with pd.ExcelWriter(args.file, mode='a', if_sheet_exists='replace') as writer:
+        predictions_df.to_excel(writer, sheet_name=args.sheet, index=False)
 
     print_final_usage_summary()
 
