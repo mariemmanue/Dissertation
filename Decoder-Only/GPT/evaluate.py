@@ -37,6 +37,72 @@ def combine_wh_qu(df):
     return df
 
 
+
+def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
+    pred_df = pred_df.copy()
+    rationale_df = rationale_df.copy()
+    truth_df = truth_df.copy()
+
+    pred_df["sentence"] = pred_df["sentence"].str.strip()
+    rationale_df["sentence"] = rationale_df["sentence"].str.strip()
+    truth_df["sentence"] = truth_df["sentence"].str.strip()
+
+    merged = truth_df.merge(pred_df, on="sentence", suffixes=("_gold", "_pred"))
+    merged = merged.merge(rationale_df, on="sentence", how="left", suffixes=("", "_rat"))
+
+    rows = []
+    for _, row in merged.iterrows():
+        sent = row["sentence"]
+        for feat in features:
+            gold_col = f"{feat}_gold"
+            pred_col = f"{feat}_pred"
+            rat_col = feat
+
+            if gold_col not in row or pred_col not in row:
+                continue
+
+            gold_v = row.get(gold_col, None)
+            pred_v = row.get(pred_col, None)
+
+            # Skip row if any value is NaN
+            if pd.isna(gold_v) or pd.isna(pred_v):
+                continue
+
+            gold_v = int(gold_v)
+            pred_v = int(pred_v)
+
+            rationale = row.get(rat_col, "")
+            if pd.isna(rationale):
+                rationale = ""
+
+            if only_disagreements and gold_v == pred_v:
+                continue
+
+            rows.append({
+                "sentence": sent,
+                "feature": feat,
+                "gold": gold_v,
+                "pred": pred_v,
+                "model_rationale": rationale,
+            })
+
+    out_df = pd.DataFrame(rows)
+    if max_rows is not None:
+        out_df = out_df.head(max_rows)
+    return out_df
+
+def plot_per_feature_confusion_matrix(cm_data, model_name, features, save_path=None):
+    plt.figure(figsize=(14, 10))
+    sns.heatmap(cm_data, annot=True, fmt='d', cmap='Blues', xticklabels=["TP", "FP", "FN", "TN"], yticklabels=features)
+    plt.title(f'Confusion Matrix Per Feature for {model_name}')
+    plt.xlabel('Metric')
+    plt.ylabel('Feature')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+
 def plot_model_metrics(
     *,
     eval_dfs: Optional[List[pd.DataFrame]] = None,
@@ -126,122 +192,6 @@ def plot_model_metrics(
     else:
         raise ValueError("style must be 'bar' or 'heatmap'")
 
-def plot_overall_metrics(eval_dfs: List[pd.DataFrame], output_base: str):
-    # Extract overall F1 scores and confusion matrix values
-    overall_data = {
-        "Model": [],
-        "F1 Score": [],
-        "TP": [],
-        "TN": [],
-        "FP": [],
-        "FN": []
-    }
-
-    for df in eval_dfs:
-        if not df.empty:
-            model_name = df['model'].iloc[0]
-            overall_f1 = df['f1'].mean()
-            tp = df['TP'].sum()
-            tn = df['TN'].sum()
-            fp = df['FP'].sum()
-            fn = df['FN'].sum()
-
-            overall_data["Model"].append(model_name)
-            overall_data["F1 Score"].append(overall_f1)
-            overall_data["TP"].append(tp)
-            overall_data["TN"].append(tn)
-            overall_data["FP"].append(fp)
-            overall_data["FN"].append(fn)
-
-    overall_df = pd.DataFrame(overall_data)
-    overall_df.set_index("Model", inplace=True)
-
-    # Plot overall F1 scores
-    overall_f1_df = overall_df[['F1 Score']].sort_values(by='F1 Score', ascending=False)
-    ax_f1 = overall_f1_df.plot(kind='bar', figsize=(10, 8), legend=False)
-    ax_f1.set_ylabel('F1 Score')
-    ax_f1.set_title('Overall F1 Scores by Model')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_base, "Overall_F1_Scores.png"), dpi=300, bbox_inches='tight')
-    plt.show()
-
-    # Plot confusion matrix values as a heatmap
-    cm_data = overall_df[['TP', 'TN', 'FP', 'FN']]
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm_data, annot=True, fmt='d', cmap='Blues', cbar=False)
-    plt.title('Overall Confusion Matrix Values by Model')
-    plt.xlabel('Metric')
-    plt.ylabel('Model')
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_base, "Overall_Confusion_Matrix.png"), dpi=300, bbox_inches='tight')
-    plt.show()
-
-def plot_confusion_matrix(cm, labels, title, save_path=None):
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
-    plt.title(title)
-    plt.xlabel('Predicted')
-    plt.ylabel('Actual')
-    plt.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.show()
-
-def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
-    pred_df = pred_df.copy()
-    rationale_df = rationale_df.copy()
-    truth_df = truth_df.copy()
-
-    pred_df["sentence"] = pred_df["sentence"].str.strip()
-    rationale_df["sentence"] = rationale_df["sentence"].str.strip()
-    truth_df["sentence"] = truth_df["sentence"].str.strip()
-
-    merged = truth_df.merge(pred_df, on="sentence", suffixes=("_gold", "_pred"))
-    merged = merged.merge(rationale_df, on="sentence", how="left", suffixes=("", "_rat"))
-
-    rows = []
-    for _, row in merged.iterrows():
-        sent = row["sentence"]
-        for feat in features:
-            gold_col = f"{feat}_gold"
-            pred_col = f"{feat}_pred"
-            rat_col = feat
-
-            if gold_col not in row or pred_col not in row:
-                continue
-
-            gold_v = row.get(gold_col, None)
-            pred_v = row.get(pred_col, None)
-
-            # Skip row if any value is NaN
-            if pd.isna(gold_v) or pd.isna(pred_v):
-                continue
-
-            gold_v = int(gold_v)
-            pred_v = int(pred_v)
-
-            rationale = row.get(rat_col, "")
-            if pd.isna(rationale):
-                rationale = ""
-
-            if only_disagreements and gold_v == pred_v:
-                continue
-
-            rows.append({
-                "sentence": sent,
-                "feature": feat,
-                "gold": gold_v,
-                "pred": pred_v,
-                "model_rationale": rationale,
-            })
-
-    out_df = pd.DataFrame(rows)
-    if max_rows is not None:
-        out_df = out_df.head(max_rows)
-    return out_df
-
 def evaluate_model(model_df, truth_df, model_name, features, output_base):
     print(f"\n=== {model_name} Evaluation ===")
 
@@ -274,6 +224,8 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
         'TN': []
     }
     skipped_features = 0
+
+    cm_data = []
 
     for feat in available_features:
         merged = pd.merge(
@@ -319,13 +271,11 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
         summary['FN'].append(FN)
         summary['TN'].append(TN)
 
-        # Plot confusion matrix for each feature
-        plot_confusion_matrix(
-            cm,
-            labels=['1', '0'],
-            title=f'Confusion Matrix for {model_name} ({feat})',
-            save_path=os.path.join(output_base, f'{model_name}_{feat}_confusion_matrix.png')
-        )
+        cm_data.append([TP, FP, FN, TN])
+
+    # Convert to DataFrame and plot confusion matrix for per-feature counts
+    cm_df = pd.DataFrame(cm_data, columns=["TP", "FP", "FN", "TN"], index=available_features)
+    plot_per_feature_confusion_matrix(cm_df, model_name, available_features, save_path=os.path.join(output_base, f'{model_name}_confusion_matrix.png'))
 
     results = pd.DataFrame(summary)
     print("\n=== Summary Metrics ===")
@@ -339,8 +289,6 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
 
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
     return results
-
-
 
 
 def plot_aggregated_confusion_matrix(cm_data, model_name, save_path=None):
@@ -400,7 +348,7 @@ def evaluate_sheets(file_path):
 
     output_base = os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0])
     os.makedirs(output_base, exist_ok=True)
-    
+
     gold_df = try_load_sheet(sheets, 'Gold')
     if gold_df is None:  # Ensure 'Gold' sheet exists
         print(f"Gold sheet not found in {file_path}")
@@ -409,9 +357,11 @@ def evaluate_sheets(file_path):
     gold_df = combine_wh_qu(gold_df)  # Combine wh_qu features in gold
 
     bert_df_raw = try_load_sheet(sheets, 'BERT')
-    bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"]) if bert_df_raw is not None else None
-    if bert_df is not None:
+    if bert_df_raw is not None:
+        bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"])
         bert_df = combine_wh_qu(bert_df)  # Combine wh_qu features in BERT
+    else:
+        bert_df = None
 
     gpt_df1 = try_load_sheet(sheets, 'GPT-Exp1')
     gpt_df2 = try_load_sheet(sheets, 'GPT-Exp2')
@@ -461,22 +411,6 @@ def evaluate_sheets(file_path):
         gpt_df2.to_csv(os.path.join(output_base, 'GPT-Exp2_predictions.csv'), index=False)
     if gpt_df3 is not None:
         gpt_df3.to_csv(os.path.join(output_base, 'GPT-Exp3_predictions.csv'), index=False)
-
-    # Plot metrics: Comparing BERT and GPT Experiments
-    if not gpt_eval1.empty and not bert_eval.empty:
-        plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT1_vs_BERT_f1_bar.png"))
-        plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT1_vs_BERT_f1_heatmap.png"))
-
-    if not gpt_eval1.empty and not gpt_eval2.empty:
-        plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT1_vs_GPT2_f1_bar.png"))
-        plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT1_vs_GPT2_f1_heatmap.png"))
-
-    if not gpt_eval2.empty and not gpt_eval3.empty:
-        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
-        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
-
-    # Plot overall F1 scores and confusion matrices
-    plot_overall_metrics(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], output_base=output_base)
 
     print(f"Completed evaluation for file: {file_path}")
 
