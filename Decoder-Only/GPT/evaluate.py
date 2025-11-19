@@ -217,6 +217,27 @@ def plot_model_metrics(
     else:
         raise ValueError("style must be 'bar' or 'heatmap'")
 
+def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (8, 6)):
+    overall_f1_scores = {}
+    
+    for df in eval_dfs:
+        if not df.empty:
+            model_name = df['model'].iloc[0]
+            overall_f1 = df['f1'].mean()
+            overall_f1_scores[model_name] = overall_f1
+    
+    overall_f1_df = pd.DataFrame.from_dict(overall_f1_scores, orient='index', columns=['F1 Score'])
+    overall_f1_df = overall_f1_df.sort_values(by='F1 Score', ascending=False)
+    
+    ax = overall_f1_df.plot(kind='bar', figsize=figsize, legend=False)
+    ax.set_ylabel('F1 Score')
+    ax.set_title('Overall F1 Scores by Model')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
 
 def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
     pred_df = pred_df.copy()
@@ -311,7 +332,6 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
 
     return pd.DataFrame(rows)
 
-
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
 
@@ -395,6 +415,9 @@ def evaluate_sheets(file_path):
     if not gpt_eval3.empty and not gpt_eval1.empty:
         plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_heatmap.png"))
+
+    # Plot overall F1 scores
+    plot_overall_f1_scores(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], save_path=os.path.join(output_base, "Overall_F1_Scores.png"))
 
     print(f"Completed evaluation for file: {file_path}")
 
