@@ -103,7 +103,6 @@ def plot_per_feature_confusion_matrix(cm_data, model_name, features, save_path=N
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
-
 def evaluate_model(model_df, truth_df, model_name, features, output_base):
     print(f"\n=== {model_name} Evaluation ===")
 
@@ -135,8 +134,7 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
         'FN': [],
         'TN': []
     }
-    skipped_features = 0
-
+    skipped_features = []
     cm_data = []
 
     for feat in available_features:
@@ -151,6 +149,7 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
 
         if merged.empty:
             print(f"Skipping {feat} — no data after dropping NaNs.")
+            skipped_features.append(feat)
             continue
 
         y_true = merged['y_true'].astype(int)
@@ -158,7 +157,7 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
 
         if y_true.sum() == 0 and y_pred.sum() == 0:
             print(f"Skipping {feat} — no positive instances in ground truth and predictions.")
-            skipped_features += 1
+            skipped_features.append(feat)
             continue
 
         acc = accuracy_score(y_true, y_pred)
@@ -185,9 +184,12 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
 
         cm_data.append([TP, FP, FN, TN])
 
+    # Filter out skipped features to match cm_data length
+    filtered_features = [feat for feat in available_features if feat not in skipped_features]
+
     # Convert to DataFrame and plot confusion matrix for per-feature counts
-    cm_df = pd.DataFrame(cm_data, columns=["TP", "FP", "FN", "TN"], index=available_features)
-    plot_per_feature_confusion_matrix(cm_df, model_name, available_features, save_path=os.path.join(output_base, f'{model_name}_confusion_matrix.png'))
+    cm_df = pd.DataFrame(cm_data, columns=["TP", "FP", "FN", "TN"], index=filtered_features)
+    plot_per_feature_confusion_matrix(cm_df, model_name, filtered_features, save_path=os.path.join(output_base, f'{model_name}_confusion_matrix.png'))
 
     results = pd.DataFrame(summary)
     print("\n=== Summary Metrics ===")
@@ -201,6 +203,7 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
 
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
     return results
+
 
 def plot_model_metrics(
     *,
