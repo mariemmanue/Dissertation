@@ -228,6 +228,95 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
         out_df = out_df.head(max_rows)
     return out_df
 
+def evaluate_model(model_df, truth_df, model_name, features, output_base):
+    print(f"\n=== {model_name} Evaluation ===")
+
+    if model_df is None:
+        print(f"{model_name} data not available. Skipping evaluation.")
+        return pd.DataFrame()
+
+    model_df = model_df.drop_duplicates(subset='sentence')
+    truth_df = truth_df.drop_duplicates(subset='sentence')
+
+    model_df = combine_wh_qu(model_df)
+    truth_df = combine_wh_qu(truth_df)
+
+    available_features = [feat for feat in features if feat in model_df.columns and feat in truth_df.columns]
+    shared_columns = ['sentence'] + available_features
+
+    model_df = model_df[shared_columns]
+    truth_df = truth_df[shared_columns]
+
+    summary = {
+        'model': [],
+        'feature': [],
+        'accuracy': [],
+        'precision': [],
+        'recall': [],
+        'f1': [],
+        'TP': [],
+        'FP': [],
+        'FN': [],
+        'TN': []
+    }
+    skipped_features = 0
+
+    for feat in available_features:
+        merged = pd.merge(
+            truth_df[['sentence', feat]],
+            model_df[['sentence', feat]],
+            on='sentence',
+            how='inner'
+        ).rename(columns={f"{feat}_x": "y_true", f"{feat}_y": "y_pred"})
+
+        merged = merged.dropna(subset=['y_true', 'y_pred'])
+
+        if merged.empty:
+            print(f"Skipping {feat} — no data after dropping NaNs.")
+            continue
+
+        y_true = merged['y_true'].astype(int)
+        y_pred = merged['y_pred'].astype(int)
+
+        if y_true.sum() == 0 and y_pred.sum() == 0:
+            print(f"Skipping {feat} — no positive instances in ground truth and predictions.")
+            skipped_features += 1
+            continue
+
+        acc = accuracy_score(y_true, y_pred)
+        prec = precision_score(y_true, y_pred, zero_division=0)
+        rec = recall_score(y_true, y_pred, zero_division=0)
+        f1 = f1_score(y_true, y_pred, zero_division=0)
+
+        cm = confusion_matrix(y_true, y_pred, labels=[1, 0])
+        TP = int(cm[0, 0])
+        FN = int(cm[0, 1])
+        FP = int(cm[1, 0])
+        TN = int(cm[1, 1])
+
+        summary['model'].append(model_name)
+        summary['feature'].append(feat)
+        summary['accuracy'].append(acc)
+        summary['precision'].append(prec)
+        summary['recall'].append(rec)
+        summary['f1'].append(f1)
+        summary['TP'].append(TP)
+        summary['FP'].append(FP)
+        summary['FN'].append(FN)
+        summary['TN'].append(TN)
+
+    results = pd.DataFrame(summary)
+    print("\n=== Summary Metrics ===")
+    print(results.round(4))
+
+    if not results.empty:
+        print("\n=== Macro Averages ===")
+        print(results[['accuracy', 'precision', 'recall', 'f1']].mean().round(4))
+        print("\n=== Confusion Matrix Counts ===")
+        print(results[['feature', 'TP', 'FP', 'FN', 'TN']].to_string(index=False))
+
+    print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
+    return results
 
 def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list[str], model_name: str) -> pd.DataFrame:
     model_sub = model_df.copy()
