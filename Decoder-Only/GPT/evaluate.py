@@ -442,10 +442,6 @@ def evaluate_sheets(file_path):
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
 
-    if not gpt_eval3.empty and not gpt_eval1.empty:
-        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_bar.png"))
-        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_heatmap.png"))
-
     # Plot overall F1 scores and confusion matrices
     plot_overall_metrics(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], output_base=output_base)
 
