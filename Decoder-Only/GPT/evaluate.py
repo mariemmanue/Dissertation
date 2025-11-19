@@ -264,6 +264,8 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
     }
     skipped_features = 0
 
+    aggregated_cm = np.array([[0, 0], [0, 0]])
+
     for feat in available_features:
         merged = pd.merge(
             truth_df[['sentence', feat]],
@@ -292,6 +294,8 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
         f1 = f1_score(y_true, y_pred, zero_division=0)
 
         cm = confusion_matrix(y_true, y_pred, labels=[1, 0])
+        aggregated_cm += cm  # aggregate confusion matrix counts
+
         TP = int(cm[0, 0])
         FN = int(cm[0, 1])
         FP = int(cm[1, 0])
@@ -319,7 +323,25 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
         print(results[['feature', 'TP', 'FP', 'FN', 'TN']].to_string(index=False))
 
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
+
+    # Plot aggregated confusion matrix for the model
+    plot_aggregated_confusion_matrix(aggregated_cm, model_name, save_path=os.path.join(output_base, f'{model_name}_aggregated_confusion_matrix.png'))
+
     return results
+
+
+
+def plot_aggregated_confusion_matrix(cm_data, model_name, save_path=None):
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm_data, annot=True, fmt='d', cmap='Blues', xticklabels=["Predicted Positive", "Predicted Negative"], yticklabels=["Actual Positive", "Actual Negative"])
+    plt.title(f'Aggregated Confusion Matrix for {model_name}')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
 
 def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list[str], model_name: str) -> pd.DataFrame:
     model_sub = model_df.copy()
@@ -359,6 +381,7 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
                 })
 
     return pd.DataFrame(rows)
+
 
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
@@ -441,6 +464,10 @@ def evaluate_sheets(file_path):
     if not gpt_eval2.empty and not gpt_eval3.empty:
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
+
+    if not gpt_eval3.empty and not gpt_eval1.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_heatmap.png"))
 
     # Plot overall F1 scores and confusion matrices
     plot_overall_metrics(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], output_base=output_base)
