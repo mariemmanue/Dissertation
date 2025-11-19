@@ -311,6 +311,7 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
 
     return pd.DataFrame(rows)
 
+
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
 
@@ -391,7 +392,17 @@ def evaluate_sheets(file_path):
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
 
+    if not gpt_eval3.empty and not gpt_eval1.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_heatmap.png"))
+
     print(f"Completed evaluation for file: {file_path}")
+
+    # Generate combined comparison plots across all models
+    all_evals = [bert_eval, gpt_eval1, gpt_eval2, gpt_eval3]
+    
+    plot_model_metrics(eval_dfs=all_evals, metric="f1", style="bar", save_path=os.path.join(output_base, "All_Models_f1_bar.png"))
+    plot_model_metrics(eval_dfs=all_evals, metric="f1", style="heatmap", save_path=os.path.join(output_base, "All_Models_f1_heatmap.png"))
 
     # Generate error comparison
     bert_exp1_errors = build_error_df(bert_df, gold_df, MASIS_FEATURES, "BERT") if bert_df is not None else pd.DataFrame()
@@ -422,12 +433,10 @@ def evaluate_sheets(file_path):
         all_errors.to_excel(writer, sheet_name="all_errors", index=False)
         err_counts.to_excel(writer, sheet_name="error_counts_pivot")
 
-
 def main():
     file_paths = glob.glob("data/*.xlsx")
     for file_path in file_paths:
         evaluate_sheets(file_path)
-
 
 if __name__ == "__main__":
     main()
