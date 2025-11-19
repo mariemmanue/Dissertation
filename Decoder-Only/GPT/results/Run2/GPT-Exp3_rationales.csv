@@ -1,0 +1,26 @@
+sentence,feature,gold,pred,model_rationale
+"And my dad, um, he did- he played soccer and he- um, is it a seamstress when you're a guy?",appositive-pleonastic-pronoun,0,1,"The subject is repeated ('my dad, ... he ...'), yielding a resumptive pronoun."
+"Well he- he, um, was a seamstress and then when he came to the States, he did like, um, custodial work.",appositive-pleonastic-pronoun,1,0,"The repeated ‚Äòhe- he‚Äô is a disfluency/restart, not a resumptive pronoun after an NP."
+"Um, get like a different reaction because like, you know it's different music and stuff like that, so.",existential-it,1,0,"'It's different music' is predicational, not existential 'it' in place of 'there'."
+"Um, When I first came out here obviously there wasn't like- things weren't that close.",is-was-gen,1,0,No clear non-agreeing 'is/was' with a realized plural subject; 'there wasn't' is followed by a disfluency and then a new clause.
+"Um, also when I went to school, like with teachers with different accents, like that come from, um, different countries like, the West Indies and you know like other places.",verb-stem,1,0,"Past time is marked with went, not a bare verb stem."
+"Um, I wouldn't say we a crew like, we're cool, like I have- Friends.",zero-copula,1,0,"Although 'we a crew' lacks 'are', it appears inside a clearly subordinate complement to 'I wouldn't say', which the rule excludes."
+E- basically everything you do e- equal up with some science.,zero-3sg-pres-s,0,1,The 3sg subject 'everything (you do)' takes a bare verb 'equal' where SAE requires 'equals'.
+E- basically everything you do e- equal up with some science.,zero-rel-pronoun,1,0,"While 'everything you do' has a zero relativizer, the gap is in object position; the rule targets subject-position relatives only."
+Like you feel like you getting something.,zero-copula,1,0,"The missing 'are' before 'getting' appears inside a subordinate like-clause, which the rule excludes from zero-copula marking."
+And you feel like you getting somewhere and then it ends up being wrong.,zero-copula,1,0,"While 'you getting' lacks 'are,' it occurs inside a 'like'-complement subordinate clause; the rule restricts counting zero-copula to non-subordinate utterance units."
+"I mean I could walk, but I'd be dead by the time I get there .",verb-stem,1,0,"Bare verbs appear only as required after modals ('could walk', 'would be'), not to mark past."
+"But I only went there one time, and I don't really- I mean I talk to them every now and again, but I don't see 'em.",past-tense-swap,1,0,No participle-for-preterite or regularized irregular past is used.
+"And that's my favorite time like, it was so much fun, like, I don't know, everybody you see for- that you didn't see for a while come around.",zero-3sg-pres-s,0,1,'Everybody' (3sg) takes bare 'come' instead of SAE 'comes' in 'everybody ... come around.'
+"And that's my favorite time like, it was so much fun, like, I don't know, everybody you see for- that you didn't see for a while come around.",verb-stem,1,0,No past meaning is expressed with a bare verb form; 'come around' is habitual/present with 'everybody'.
+"The whole- you know, everything about it, it's it's beautiful, so.",appositive-pleonastic-pronoun,0,1,Left-dislocated topic 'everything about it' is followed by a resumptive subject pronoun 'it' in 'it's beautiful' (with disfluent repetition).
+"I mean I been playin- I've been playing, um, it's called mass.",bin,1,0,"The fragment ‚ÄòI been playin-‚Äô is a repair toward ‚ÄòI‚Äôve been playing‚Äô; without prosodic stress indicating BIN and given the correction, it reads as SAE present perfect, not AAE BIN."
+"It's nothing to extravagant when you're just playing with the band, like.",existential-it,1,0,"'It' functions as referential/expletive in a predicate nominal, not as existential 'there' (e.g., 'It‚Äôs people...')."
+"And, um, it's crazy because like, family members, they tend to forget about their- Your mom, or dad, or aunts, uncles.",appositive-pleonastic-pronoun,0,1,"The NP 'family members' is followed by a resumptive subject pronoun 'they,' repeating the subject."
+"Um, what else, Yeah, it's about to be a movie.",existential-it,0,1,'It' functions as a dummy subject where SAE would use 'there': 'There‚Äôs about to be a movie.'
+This boy come up to me and I'm using my card.,zero-3sg-pres-s,0,1,'This boy come up' uses a bare verb with a 3rd person singular subject; SAE would require 'comes' for present-time narration.
+Or how you doing?,wh-qu1,0,1,WH-question lacks required auxiliary BE: 'How you √ò doing?' (missing 'are').
+Or they be like what you finna do?,zero-copula,1,0,No required copula between a subject and predicate is deleted; the missing 'are' in the WH-question is treated under wh-qu1 rather than zero-copula.
+Or they be like what you finna do?,wh-qu1,0,1,'What you finna do?' lacks the auxiliary 'are' required in SAE ('What are you about to do?').
+"If I'm at the gas station, aye what you finna do?",zero-copula,1,0,There is no missing BE linking a subject to a predicate; the aux deletion in the WH-question is captured under wh-qu1.
+"If I'm at the gas station, aye what you finna do?",wh-qu1,0,1,WH-question lacks the required auxiliary BE: ‚ÄúWhat you finna do?‚Äù instead of ‚ÄúWhat are you finna do?‚Äù

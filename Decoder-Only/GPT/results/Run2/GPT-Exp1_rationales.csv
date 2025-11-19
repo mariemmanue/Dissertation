@@ -1,0 +1,12 @@
+sentence,feature,gold,pred,model_rationale
+"Um, When I first came out here obviously there wasn't like- things weren't that close.",is-was-gen,1,0,The fragment 'there wasn't like-' is a self-repair and existential; no clear non-agreeing generalized 'is/was' is realized.
+E- basically everything you do e- equal up with some science.,zero-3sg-pres-s,0,1,The 3rd person singular subject 'everything (you do)' takes a bare verb 'equal' where SAE requires 'equals'.
+"And that's my favorite time like, it was so much fun, like, I don't know, everybody you see for- that you didn't see for a while come around.",zero-3sg-pres-s,0,1,‚ÄòEverybody ‚Ä¶ come around‚Äô lacks the -s required in SAE for a 3sg subject ('everybody comes').
+"And like, on my old block,  turn into a party, and like, when you go outside  it's music playing.",zero-3sg-pres-s,1,0,"The fragment 'turn into a party' lacks an explicit 3sg subject; per the rule, we cannot infer a missing -s. The only finite verb is 'is,' which agrees."
+"And like, on my old block,  turn into a party, and like, when you go outside  it's music playing.",zero-3sg-pres-s,1,0,"Although 'turn into a party' could imply a 3sg subject, the subject is elided and agreement is not explicit; per precision rule, do not infer zero -s."
+"I'm thinking he about to scam me, so I'm like- I'm like, what is going on?",zero-copula,0,1,"In 'he about to scam me,' the required 'is' between the subject 'he' and predicate 'about to' is omitted."
+Or how you doing?,wh-qu1,0,1,WH-question lacks required auxiliary BE: 'How you √ò doing?'
+Or they be like what you finna do?,zero-copula,1,0,No required BE between a subject and predicate or before a V-ing form is omitted; any missing auxiliary is tied to the WH-question and handled under wh-qu1.
+Or they be like what you finna do?,wh-qu1,0,1,The WH-question 'what you finna do?' lacks the auxiliary BE required in SAE (cf. 'What are you finna/about to do?').
+"If I'm at the gas station, aye what you finna do?",zero-copula,1,0,"Although SAE could have 'are' before 'finna', the zero-copula rule targets BE before predicates or V-ing; here 'finna' functions as a modal-like marker, so this is better captured under wh-qu1 and 'finna'."
+"If I'm at the gas station, aye what you finna do?",wh-qu1,0,1,"In 'what you finna do?', the WH-question lacks the auxiliary 'are' required in SAE, yielding auxiliary deletion."
