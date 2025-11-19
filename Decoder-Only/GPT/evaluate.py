@@ -49,6 +49,14 @@ def try_load_sheet(sheets, sheet_name):
 def drop_features_column(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=['FEATURES', 'Source'], errors='ignore')
 
+def combine_wh_qu(df):
+    """
+    Combines wh_qu1 and wh_qu2 into a single wh_qu feature.
+    """
+    if 'wh_qu1' in df.columns and 'wh_qu2' in df.columns:
+        df["wh_qu"] = df[["wh_qu1", "wh_qu2"]].max(axis=1)
+        return df.drop(columns=["wh_qu1", "wh_qu2"])
+    return df
 
 def evaluate_model(model_df, truth_df, model_name, features):
     print(f"\n=== {model_name} Evaluation ===")
@@ -326,23 +334,34 @@ def evaluate_sheets(file_path):
         print(f"Gold sheet not found in {file_path}")
         return
     gold_df = drop_features_column(gold_df).dropna(subset=["sentence"])
+    gold_df = combine_wh_qu(gold_df)  # Combine wh_qu features in gold
 
     bert_df_raw = try_load_sheet(sheets, 'BERT')
     bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"]) if bert_df_raw is not None else None
+    if bert_df is not None:
+        bert_df = combine_wh_qu(bert_df)  # Combine wh_qu features in BERT
 
     gpt_df1 = try_load_sheet(sheets, 'GPT-Exp1')
     gpt_df2 = try_load_sheet(sheets, 'GPT-Exp2')
-    gpt_df3 = try_load_sheet(sheets, 'GPT-Exp3')
-    
+    gpt_df3 = try_load_sheet(sheets, 'GPT-Exp3')  # May be missing
+
     df_rationales1 = try_load_sheet(sheets, 'rationales-Exp1')
     df_rationales2 = try_load_sheet(sheets, 'rationales-Exp2')
-    df_rationales3 = try_load_sheet(sheets, 'rationales-Exp3')
+    df_rationales3 = try_load_sheet(sheets, 'rationales-Exp3')  # May be missing
 
     if bert_df is not None:
         for feat in MASIS_FEATURES:
             if feat in bert_df.columns:
                 thr = feat_thresholds.get(feat, 0.5)
                 bert_df[feat] = (bert_df[feat].astype(float) >= thr).astype(int)
+
+    # Combine wh_qu1 and wh_qu2 into wh_qu for GPT-Exp1, GPT-Exp2, and GPT-Exp3
+    if gpt_df1 is not None:
+        gpt_df1 = combine_wh_qu(gpt_df1)
+    if gpt_df2 is not None:
+        gpt_df2 = combine_wh_qu(gpt_df2)
+    if gpt_df3 is not None:
+        gpt_df3 = combine_wh_qu(gpt_df3)
 
     # Evaluate models if data is available
     bert_eval = evaluate_model(bert_df, gold_df, "BERT", MASIS_FEATURES) if bert_df is not None else pd.DataFrame()
@@ -351,37 +370,46 @@ def evaluate_sheets(file_path):
     gpt_eval3 = evaluate_model(gpt_df3, gold_df, "GPT-24+context", EXTENDED_FEATURES) if gpt_df3 is not None else pd.DataFrame()
 
     # Build and save annotated rationales for each experiment
-    annotated_rationales1 = build_annotated_rationales(gpt_df1, df_rationales1, gold_df, MASIS_FEATURES)
-    annotated_rationales1.to_csv(os.path.join(output_base, 'GPT-Exp1_rationales.csv'), index=False)
+    if gpt_df1 is not None and df_rationales1 is not None:
+        annotated_rationales1 = build_annotated_rationales(gpt_df1, df_rationales1, gold_df, MASIS_FEATURES)
+        annotated_rationales1.to_csv(os.path.join(output_base, 'GPT-Exp1_rationales.csv'), index=False)
 
-    annotated_rationales2 = build_annotated_rationales(gpt_df2, df_rationales2, gold_df, EXTENDED_FEATURES)
-    annotated_rationales2.to_csv(os.path.join(output_base, 'GPT-Exp2_rationales.csv'), index=False)
+    if gpt_df2 is not None and df_rationales2 is not None:
+        annotated_rationales2 = build_annotated_rationales(gpt_df2, df_rationales2, gold_df, EXTENDED_FEATURES)
+        annotated_rationales2.to_csv(os.path.join(output_base, 'GPT-Exp2_rationales.csv'), index=False)
 
-    annotated_rationales3 = build_annotated_rationales(gpt_df3, df_rationales3, gold_df, EXTENDED_FEATURES)
-    annotated_rationales3.to_csv(os.path.join(output_base, 'GPT-Exp3_rationales.csv'), index=False)
+    if gpt_df3 is not None and df_rationales3 is not None:
+        annotated_rationales3 = build_annotated_rationales(gpt_df3, df_rationales3, gold_df, EXTENDED_FEATURES)
+        annotated_rationales3.to_csv(os.path.join(output_base, 'GPT-Exp3_rationales.csv'), index=False)
 
     # Save predictions for each experiment
-    gpt_df1.to_csv(os.path.join(output_base, 'GPT-Exp1_predictions.csv'), index=False)
-    gpt_df2.to_csv(os.path.join(output_base, 'GPT-Exp2_predictions.csv'), index=False)
-    gpt_df3.to_csv(os.path.join(output_base, 'GPT-Exp3_predictions.csv'), index=False)
+    if gpt_df1 is not None:
+        gpt_df1.to_csv(os.path.join(output_base, 'GPT-Exp1_predictions.csv'), index=False)
+    if gpt_df2 is not None:
+        gpt_df2.to_csv(os.path.join(output_base, 'GPT-Exp2_predictions.csv'), index=False)
+    if gpt_df3 is not None:
+        gpt_df3.to_csv(os.path.join(output_base, 'GPT-Exp3_predictions.csv'), index=False)
 
     # Plot metrics: Comparing BERT and GPT Experiments
-    plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT1_vs_BERT_f1_bar.png"))
-    plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT1_vs_BERT_f1_heatmap.png"))
+    if not gpt_eval1.empty and not bert_eval.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT1_vs_BERT_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT1_vs_BERT_f1_heatmap.png"))
 
-    plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT1_vs_GPT2_f1_bar.png"))
-    plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT1_vs_GPT2_f1_heatmap.png"))
+    if not gpt_eval1.empty and not gpt_eval2.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT1_vs_GPT2_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT1_vs_GPT2_f1_heatmap.png"))
 
-    plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
-    plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
+    if not gpt_eval2.empty and not gpt_eval3.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
 
     print(f"Completed evaluation for file: {file_path}")
 
     # Generate error comparison
-    bert_exp1_errors = build_error_df(bert_df, gold_df, MASIS_FEATURES, "BERT")
-    gpt_exp1_errors = build_error_df(gpt_df1, gold_df, MASIS_FEATURES, "GPT-17")
-    gpt_exp2_errors = build_error_df(gpt_df2, gold_df, EXTENDED_FEATURES, "GPT-24")
-    gpt_exp3_errors = build_error_df(gpt_df3, gold_df, EXTENDED_FEATURES, "GPT-24+context")
+    bert_exp1_errors = build_error_df(bert_df, gold_df, MASIS_FEATURES, "BERT") if bert_df is not None else pd.DataFrame()
+    gpt_exp1_errors = build_error_df(gpt_df1, gold_df, MASIS_FEATURES, "GPT-17") if gpt_df1 is not None else pd.DataFrame()
+    gpt_exp2_errors = build_error_df(gpt_df2, gold_df, EXTENDED_FEATURES, "GPT-24") if gpt_df2 is not None else pd.DataFrame()
+    gpt_exp3_errors = build_error_df(gpt_df3, gold_df, EXTENDED_FEATURES, "GPT-24+context") if gpt_df3 is not None else pd.DataFrame()
 
     all_errors = pd.concat([gpt_exp1_errors, bert_exp1_errors, gpt_exp2_errors, gpt_exp3_errors], ignore_index=True)
 
