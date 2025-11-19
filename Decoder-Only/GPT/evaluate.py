@@ -103,94 +103,6 @@ def plot_per_feature_confusion_matrix(cm_data, model_name, features, save_path=N
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
-def plot_model_metrics(
-    *,
-    eval_dfs: Optional[List[pd.DataFrame]] = None,
-    err_counts: Optional[pd.DataFrame] = None,
-    metric: Literal["f1", "errors"] = "f1",
-    style: Literal["bar", "heatmap"] = "bar",
-    title: str = None,
-    figsize: tuple = (12, 6),
-    rotation: int = 45,
-    save_path: Optional[str] = None,
-    align: Literal["union", "intersection"] = "union",
-    annotate_heatmap: bool = True
-) -> None:
-
-    def _prepare_f1_pivot(dfs: List[pd.DataFrame]) -> pd.DataFrame:
-        all_eval = pd.concat(dfs, ignore_index=True)
-        pivot = all_eval.pivot(index="feature", columns="model", values="f1")
-
-        if align == "intersection":
-            present_counts = pivot.notna().sum(axis=1)
-            pivot = pivot[present_counts == pivot.shape[1]]
-
-        pivot = pivot.fillna(0.0).sort_index()
-        return pivot
-
-    def _prepare_err_pivot(df: pd.DataFrame) -> pd.DataFrame:
-        if {"feature", "model", "errors"}.issubset(df.columns):
-            p = df.pivot(index="feature", columns="model", values="errors")
-        else:
-            p = df.copy()
-        return p.fillna(0).sort_index()
-
-    if metric == "f1":
-        if not eval_dfs:
-            raise ValueError("metric='f1' requires eval_dfs=[...]")
-        pivot = _prepare_f1_pivot(eval_dfs)
-        default_title = "Model F1 by AAE feature"
-        vmin, vmax = 0.0, 1.0
-        cbar_label = "F1 score"
-        ylab = "AAE feature"
-        xlab = "Model"
-        fmt = ".2f"
-        cmap = "RdYlGn"
-    else:
-        if err_counts is None:
-            raise ValueError("metric='errors' requires err_counts=DataFrame")
-        pivot = _prepare_err_pivot(err_counts)
-        default_title = "Errors per feature by model"
-        vmin, vmax = None, None
-        cbar_label = "Number of errors"
-        ylab = "Feature"
-        xlab = "Model"
-        fmt = ".0f"
-        cmap = "Reds"
-
-    title = title or default_title
-
-    if style == "bar":
-        ax = pivot.plot(kind="bar", figsize=figsize)
-        ax.set_ylabel(cbar_label)
-        ax.set_title(title)
-        ax.legend(title="Model")
-        plt.xticks(rotation=rotation, ha="right")
-        plt.tight_layout()
-        if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        plt.show()
-
-    elif style == "heatmap":
-        plt.figure(figsize=figsize)
-        sns.heatmap(
-            pivot,
-            annot=annotate_heatmap,
-            fmt=fmt,
-            cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-            cbar_kws={"label": cbar_label}
-        )
-        plt.title(title)
-        plt.ylabel(ylab)
-        plt.xlabel(xlab)
-        plt.tight_layout()
-        if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        plt.show()
-    else:
-        raise ValueError("style must be 'bar' or 'heatmap'")
 
 def evaluate_model(model_df, truth_df, model_name, features, output_base):
     print(f"\n=== {model_name} Evaluation ===")
@@ -290,6 +202,94 @@ def evaluate_model(model_df, truth_df, model_name, features, output_base):
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
     return results
 
+def plot_model_metrics(
+    *,
+    eval_dfs: Optional[List[pd.DataFrame]] = None,
+    err_counts: Optional[pd.DataFrame] = None,
+    metric: Literal["f1", "errors"] = "f1",
+    style: Literal["bar", "heatmap"] = "bar",
+    title: str = None,
+    figsize: tuple = (12, 6),
+    rotation: int = 45,
+    save_path: Optional[str] = None,
+    align: Literal["union", "intersection"] = "union",
+    annotate_heatmap: bool = True
+) -> None:
+
+    def _prepare_f1_pivot(dfs: List[pd.DataFrame]) -> pd.DataFrame:
+        all_eval = pd.concat(dfs, ignore_index=True)
+        pivot = all_eval.pivot(index="feature", columns="model", values="f1")
+
+        if align == "intersection":
+            present_counts = pivot.notna().sum(axis=1)
+            pivot = pivot[present_counts == pivot.shape[1]]
+
+        pivot = pivot.fillna(0.0).sort_index()
+        return pivot
+
+    def _prepare_err_pivot(df: pd.DataFrame) -> pd.DataFrame:
+        if {"feature", "model", "errors"}.issubset(df.columns):
+            p = df.pivot(index="feature", columns="model", values="errors")
+        else:
+            p = df.copy()
+        return p.fillna(0).sort_index()
+
+    if metric == "f1":
+        if not eval_dfs:
+            raise ValueError("metric='f1' requires eval_dfs=[...]")
+        pivot = _prepare_f1_pivot(eval_dfs)
+        default_title = "Model F1 by AAE feature"
+        vmin, vmax = 0.0, 1.0
+        cbar_label = "F1 score"
+        ylab = "AAE feature"
+        xlab = "Model"
+        fmt = ".2f"
+        cmap = "RdYlGn"
+    else:
+        if err_counts is None:
+            raise ValueError("metric='errors' requires err_counts=DataFrame")
+        pivot = _prepare_err_pivot(err_counts)
+        default_title = "Errors per feature by model"
+        vmin, vmax = None, None
+        cbar_label = "Number of errors"
+        ylab = "Feature"
+        xlab = "Model"
+        fmt = ".0f"
+        cmap = "Reds"
+
+    title = title or default_title
+
+    if style == "bar":
+        ax = pivot.plot(kind="bar", figsize=figsize)
+        ax.set_ylabel(cbar_label)
+        ax.set_title(title)
+        ax.legend(title="Model")
+        plt.xticks(rotation=rotation, ha="right")
+        plt.tight_layout()
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.show()
+
+    elif style == "heatmap":
+        plt.figure(figsize=figsize)
+        sns.heatmap(
+            pivot,
+            annot=annotate_heatmap,
+            fmt=fmt,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            cbar_kws={"label": cbar_label}
+        )
+        plt.title(title)
+        plt.ylabel(ylab)
+        plt.xlabel(xlab)
+        plt.tight_layout()
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.show()
+    else:
+        raise ValueError("style must be 'bar' or 'heatmap'")
 
 def plot_aggregated_confusion_matrix(cm_data, model_name, save_path=None):
     plt.figure(figsize=(8, 6))
@@ -365,11 +365,11 @@ def evaluate_sheets(file_path):
 
     gpt_df1 = try_load_sheet(sheets, 'GPT-Exp1')
     gpt_df2 = try_load_sheet(sheets, 'GPT-Exp2')
-    gpt_df3 = try_load_sheet(sheets, 'GPT-Exp3')  # May be missing
+    gpt_df3 = try_load_sheet(sheets, 'GPT-Exp3')   
 
     df_rationales1 = try_load_sheet(sheets, 'rationales-Exp1')
     df_rationales2 = try_load_sheet(sheets, 'rationales-Exp2')
-    df_rationales3 = try_load_sheet(sheets, 'rationales-Exp3')  # May be missing
+    df_rationales3 = try_load_sheet(sheets, 'rationales-Exp3') 
 
     if bert_df is not None:
         for feat in MASIS_FEATURES:
@@ -419,6 +419,10 @@ def evaluate_sheets(file_path):
     
     plot_model_metrics(eval_dfs=all_evals, metric="f1", style="bar", save_path=os.path.join(output_base, "All_Models_f1_bar.png"))
     plot_model_metrics(eval_dfs=all_evals, metric="f1", style="heatmap", save_path=os.path.join(output_base, "All_Models_f1_heatmap.png"))
+
+    if not gpt_eval2.empty and not gpt_eval3.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
 
     # Generate error comparison
     bert_exp1_errors = build_error_df(bert_df, gold_df, MASIS_FEATURES, "BERT") if bert_df is not None else pd.DataFrame()
