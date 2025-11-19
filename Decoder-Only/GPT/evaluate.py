@@ -55,7 +55,7 @@ def combine_wh_qu(df):
     """
     if 'wh_qu1' in df.columns and 'wh_qu2' in df.columns:
         df["wh_qu"] = df[["wh_qu1", "wh_qu2"]].max(axis=1)
-        return df.drop(columns=["wh_qu1", "wh_qu2"])
+        df = df.drop(columns=["wh_qu1", "wh_qu2"])
     return df
 
 def evaluate_model(model_df, truth_df, model_name, features):
@@ -67,6 +67,9 @@ def evaluate_model(model_df, truth_df, model_name, features):
 
     model_df = model_df.drop_duplicates(subset='sentence')
     truth_df = truth_df.drop_duplicates(subset='sentence')
+
+    model_df = combine_wh_qu(model_df)
+    truth_df = combine_wh_qu(truth_df)
 
     available_features = [feat for feat in features if feat in model_df.columns and feat in truth_df.columns]
     shared_columns = ['sentence'] + available_features
@@ -144,7 +147,6 @@ def evaluate_model(model_df, truth_df, model_name, features):
 
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
     return results
-
 
 def plot_model_metrics(
     *,
@@ -286,16 +288,11 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
     model_sub = model_df.copy()
     gold_sub = gold_df.copy()
     
-    # Combine 'wh_qu1' and 'wh_qu2' into 'wh_qu' if they exist
-    if 'wh_qu1' in model_df.columns and 'wh_qu2' in model_df.columns:
-        model_sub['wh_qu'] = model_sub[['wh_qu1', 'wh_qu2']].max(axis=1)
-        model_sub = model_sub.drop(columns=['wh_qu1', 'wh_qu2'])
-        
-    if 'wh_qu1' in gold_df.columns and 'wh_qu2' in gold_df.columns:
-        gold_sub['wh_qu'] = gold_sub[['wh_qu1', 'wh_qu2']].max(axis=1)
-        gold_sub = gold_sub.drop(columns=['wh_qu1', 'wh_qu2'])
+    # Combine wh_qu1 and wh_qu2 into wh_qu if they exist
+    model_sub = combine_wh_qu(model_sub)
+    gold_sub = combine_wh_qu(gold_sub)
 
-    needed_cols = ["sentence"] + features
+    needed_cols = ["sentence"] + [feat for feat in features if feat in model_sub.columns and feat in gold_sub.columns]
     model_sub = model_sub[needed_cols].copy()
     gold_sub = gold_sub[needed_cols].copy()
 
@@ -329,7 +326,7 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
 
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
-    
+
     output_base = os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0])
     os.makedirs(output_base, exist_ok=True)
 
@@ -449,5 +446,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
