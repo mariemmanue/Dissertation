@@ -1,26 +1,3 @@
-# evaluate.py
-
-"""nlprun -q jag -p standard -r 8G -c 2 -t 0-2 \
-  -n eval-aae-results \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python evaluate.py" """
-
-"""nlprun -q jag -p standard -r 8G -c 2 -t 0-5 \
-  -n gpt-eval-aae \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python gpt_experiments.py --file data/Run2.xlsx --sheet GPT-Exp1 --extended --context && \
-   python evaluate.py" """
-
 import os
 import pandas as pd
 import numpy as np
@@ -49,6 +26,7 @@ def try_load_sheet(sheets, sheet_name):
 def drop_features_column(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=['FEATURES', 'Source'], errors='ignore')
 
+
 def combine_wh_qu(df):
     """
     Combines wh_qu1 and wh_qu2 into a single wh_qu feature.
@@ -57,6 +35,7 @@ def combine_wh_qu(df):
         df["wh_qu"] = df[["wh_qu1", "wh_qu2"]].max(axis=1)
         df = df.drop(columns=["wh_qu1", "wh_qu2"])
     return df
+
 
 def evaluate_model(model_df, truth_df, model_name, features):
     print(f"\n=== {model_name} Evaluation ===")
@@ -147,6 +126,7 @@ def evaluate_model(model_df, truth_df, model_name, features):
 
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
     return results
+
 
 def plot_model_metrics(
     *,
@@ -261,8 +241,15 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
             if gold_col not in row or pred_col not in row:
                 continue
 
-            gold_v = int(row[gold_col])
-            pred_v = int(row[pred_col])
+            gold_v = row.get(gold_col, None)
+            pred_v = row.get(pred_col, None)
+
+            # Skip row if any value is NaN
+            if pd.isna(gold_v) or pd.isna(pred_v):
+                continue
+
+            gold_v = int(gold_v)
+            pred_v = int(pred_v)
 
             rationale = row.get(rat_col, "")
             if pd.isna(rationale):
@@ -284,11 +271,11 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
         out_df = out_df.head(max_rows)
     return out_df
 
+
 def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list[str], model_name: str) -> pd.DataFrame:
     model_sub = model_df.copy()
     gold_sub = gold_df.copy()
     
-    # Combine wh_qu1 and wh_qu2 into wh_qu if they exist
     model_sub = combine_wh_qu(model_sub)
     gold_sub = combine_wh_qu(gold_sub)
 
@@ -404,10 +391,6 @@ def evaluate_sheets(file_path):
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
 
-    if not gpt_eval3.empty and not gpt_eval1.empty:
-        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_bar.png"))
-        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_heatmap.png"))
-
     print(f"Completed evaluation for file: {file_path}")
 
     # Generate error comparison
@@ -439,10 +422,12 @@ def evaluate_sheets(file_path):
         all_errors.to_excel(writer, sheet_name="all_errors", index=False)
         err_counts.to_excel(writer, sheet_name="error_counts_pivot")
 
+
 def main():
     file_paths = glob.glob("data/*.xlsx")
     for file_path in file_paths:
         evaluate_sheets(file_path)
+
 
 if __name__ == "__main__":
     main()
