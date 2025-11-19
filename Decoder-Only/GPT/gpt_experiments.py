@@ -19,7 +19,7 @@ api_call_count = 0
 
 # Ensure paths
 
-"""nlprun -q jag -p standard -r 20G -c 2 \
+"""nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt-exp-aae \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
@@ -30,10 +30,10 @@ api_call_count = 0
    python gpt_experiments.py \
      --file data/Run1.xlsx \
      --sheet GPT-Exp2 \
-     --extended \
-     --context" """
+     --extended
+      --output_dir data/results" """
 
-"""nlprun -q jag -p standard -r 20G -c 2 \
+"""nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt-exp-aae \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
@@ -43,8 +43,8 @@ api_call_count = 0
    export HF_HOME=/nlp/scr/mtano/hf_home && \
    python gpt_experiments.py \
      --file data/Run1.xlsx \
-     --sheet GPT-Exp1 \
-     --extended" """
+     --sheet GPT-Exp1
+      --output_dir data/results" """
 
 OPENAI_MODEL_NAME = "gpt-5"
 # tokenizer for logging
