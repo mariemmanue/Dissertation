@@ -37,7 +37,6 @@ def combine_wh_qu(df):
     return df
 
 
-
 def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
     pred_df = pred_df.copy()
     rationale_df = rationale_df.copy()
@@ -90,6 +89,54 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
     if max_rows is not None:
         out_df = out_df.head(max_rows)
     return out_df
+
+
+def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (10, 8)):
+    overall_f1_scores = {}
+
+    for df in eval_dfs:
+        if not df.empty:
+            model_name = df['model'].iloc[0]
+            overall_f1 = df['f1'].mean()
+            overall_f1_scores[model_name] = overall_f1
+
+    overall_f1_df = pd.DataFrame.from_dict(overall_f1_scores, orient='index', columns=['F1 Score'])
+    overall_f1_df = overall_f1_df.sort_values(by='F1 Score', ascending=False)
+
+    ax = overall_f1_df.plot(kind='bar', figsize=figsize, legend=False)
+    ax.set_ylabel('F1 Score')
+    ax.set_title('Overall F1 Scores by Model')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+def plot_f1_scores_per_feature(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (14, 10)):
+    all_eval = pd.concat(eval_dfs, ignore_index=True)
+    pivot = all_eval.pivot(index="feature", columns="model", values="f1")
+    pivot = pivot.fillna(0.0).sort_index()
+
+    plt.figure(figsize=figsize)
+    sns.heatmap(
+        pivot,
+        annot=True,
+        fmt=".2f",
+        cmap="RdYlGn",
+        vmin=0.0,
+        vmax=1.0,
+        cbar_kws={"label": "F1 score"}
+    )
+    plt.title('F1 Scores per Feature by Model')
+    plt.xlabel('Model')
+    plt.ylabel('Feature')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
 
 def plot_per_feature_confusion_matrix(cm_data, model_name, features, save_path=None):
     plt.figure(figsize=(14, 10))
@@ -427,6 +474,9 @@ def evaluate_sheets(file_path):
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
 
+    plot_overall_f1_scores(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], save_path=os.path.join(output_base, "Overall_F1_Scores.png"))
+    plot_f1_scores_per_feature(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], save_path=os.path.join(output_base, "Per_Feature_F1_Scores.png"))
+    
     # Generate error comparison
     bert_exp1_errors = build_error_df(bert_df, gold_df, MASIS_FEATURES, "BERT") if bert_df is not None else pd.DataFrame()
     gpt_exp1_errors = build_error_df(gpt_df1, gold_df, MASIS_FEATURES, "GPT-17") if gpt_df1 is not None else pd.DataFrame()
