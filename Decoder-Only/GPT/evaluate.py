@@ -398,8 +398,9 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
 
-    output_base = os.makedirs(output_dir, exist_ok=True) if not os.path.exists(output_dir) else None
-
+    output_base = os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0])
+    os.makedirs(output_base, exist_ok=True)
+    
     gold_df = try_load_sheet(sheets, 'Gold')
     if gold_df is None:  # Ensure 'Gold' sheet exists
         print(f"Gold sheet not found in {file_path}")
