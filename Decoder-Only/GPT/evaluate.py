@@ -166,15 +166,18 @@ def plot_overall_metrics(eval_dfs: List[pd.DataFrame], output_base: str):
     plt.savefig(os.path.join(output_base, "Overall_F1_Scores.png"), dpi=300, bbox_inches='tight')
     plt.show()
 
-    # Plot confusion matrix values
-    ax_cm = overall_df[['TP', 'TN', 'FP', 'FN']].plot(kind='bar', figsize=(12, 8))
-    ax_cm.set_ylabel('Counts')
-    ax_cm.set_title('Overall Confusion Matrix Values by Model')
-    plt.xticks(rotation=45, ha='right')
+    # Plot confusion matrix values as a heatmap
+    cm_data = overall_df[['TP', 'TN', 'FP', 'FN']]
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm_data, annot=True, fmt='d', cmap='Blues', cbar=False)
+    plt.title('Overall Confusion Matrix Values by Model')
+    plt.xlabel('Metric')
+    plt.ylabel('Model')
     plt.tight_layout()
     plt.savefig(os.path.join(output_base, "Overall_Confusion_Matrix.png"), dpi=300, bbox_inches='tight')
     plt.show()
-    
+
+
 def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
     pred_df = pred_df.copy()
     rationale_df = rationale_df.copy()
@@ -371,7 +374,7 @@ def evaluate_sheets(file_path):
     gold_df = combine_wh_qu(gold_df)  # Combine wh_qu features in gold
 
     bert_df_raw = try_load_sheet(sheets, 'BERT')
-    bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"]) if bert_df_raw is not None else None
+    bert_df = drop_features_column(bert_df_raw).dropna(subset(["sentence"])) if bert_df_raw is not None else None
     if bert_df is not None:
         bert_df = combine_wh_qu(bert_df)  # Combine wh_qu features in BERT
 
@@ -436,6 +439,10 @@ def evaluate_sheets(file_path):
     if not gpt_eval2.empty and not gpt_eval3.empty:
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
+
+    if not gpt_eval3.empty and not gpt_eval1.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_heatmap.png"))
 
     # Plot overall F1 scores and confusion matrices
     plot_overall_metrics(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], output_base=output_base)
