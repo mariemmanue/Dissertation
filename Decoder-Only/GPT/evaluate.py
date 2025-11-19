@@ -282,20 +282,22 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
         out_df = out_df.head(max_rows)
     return out_df
 
-def build_error_df(model_df: pd.DataFrame,
-                   gold_df: pd.DataFrame,
-                   features: list[str],
-                   model_name: str) -> pd.DataFrame:
-    """
-    model_df: predictions with columns ['sentence'] + features (0/1)
-    gold_df:  gold labels with same columns
-    features: list of feature names to compare
-    model_name: label to store in the 'model' column
-    """
-    # make sure we only keep the columns we care about
+def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list[str], model_name: str) -> pd.DataFrame:
+    model_sub = model_df.copy()
+    gold_sub = gold_df.copy()
+    
+    # Combine 'wh_qu1' and 'wh_qu2' into 'wh_qu' if they exist
+    if 'wh_qu1' in model_df.columns and 'wh_qu2' in model_df.columns:
+        model_sub['wh_qu'] = model_sub[['wh_qu1', 'wh_qu2']].max(axis=1)
+        model_sub = model_sub.drop(columns=['wh_qu1', 'wh_qu2'])
+        
+    if 'wh_qu1' in gold_df.columns and 'wh_qu2' in gold_df.columns:
+        gold_sub['wh_qu'] = gold_sub[['wh_qu1', 'wh_qu2']].max(axis=1)
+        gold_sub = gold_sub.drop(columns=['wh_qu1', 'wh_qu2'])
+
     needed_cols = ["sentence"] + features
-    model_sub = model_df[needed_cols].copy()
-    gold_sub  = gold_df[needed_cols].copy()
+    model_sub = model_sub[needed_cols].copy()
+    gold_sub = gold_sub[needed_cols].copy()
 
     merged = gold_sub.merge(model_sub, on="sentence", suffixes=("_gold", "_pred"))
 
@@ -304,6 +306,9 @@ def build_error_df(model_df: pd.DataFrame,
         for feat in features:
             gold_col = f"{feat}_gold"
             pred_col = f"{feat}_pred"
+
+            if gold_col not in row or pred_col not in row:
+                continue
 
             gold_val = row.get(gold_col, None)
             pred_val = row.get(pred_col, None)
@@ -321,7 +326,6 @@ def build_error_df(model_df: pd.DataFrame,
                 })
 
     return pd.DataFrame(rows)
-
 
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
@@ -403,6 +407,10 @@ def evaluate_sheets(file_path):
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
         plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
 
+    if not gpt_eval3.empty and not gpt_eval1.empty:
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="bar", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_bar.png"))
+        plot_model_metrics(eval_dfs=[gpt_eval3, gpt_eval1], metric="f1", style="heatmap", align="intersection", save_path=os.path.join(output_base, "GPT3_vs_GPT1_f1_heatmap.png"))
+
     print(f"Completed evaluation for file: {file_path}")
 
     # Generate error comparison
@@ -441,4 +449,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
