@@ -1,15 +1,4 @@
 # evaluate.py
-import os
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-from typing import List, Optional, Literal
-from gpt_experiments import(
-    EXTENDED_FEATURES,
-    MASIS_FEATURES,
-)
 
 """nlprun -q jag -p standard -r 8G -c 2 -t 0-2 \
   -n eval-aae-results \
@@ -32,94 +21,34 @@ from gpt_experiments import(
    python gpt_experiments.py --file data/Run2.xlsx --sheet GPT-Exp1 --extended --context && \
    python evaluate.py" """
 
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import glob
+import seaborn as sns
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from typing import List, Optional, Literal
+from gpt_experiments import (
+    EXTENDED_FEATURES,
+    MASIS_FEATURES,
+)
+
 feat_thresholds = {
     "multiple-neg": 0.5,  # Example threshold
 }
 
-output_dir = "data/results"  # Ensure this matches your intended output
+output_dir = "data/results"
 os.makedirs(output_dir, exist_ok=True)
+
 
 def try_load_sheet(sheets, sheet_name):
     return sheets[sheet_name] if sheet_name in sheets else None
 
+
 def drop_features_column(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=['FEATURES', 'Source'], errors='ignore')
 
-def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list[str], model_name: str) -> pd.DataFrame:
-    needed_cols = ["sentence"] + features
-    model_sub = model_df[needed_cols].copy()
-    gold_sub = gold_df[needed_cols].copy()
-
-    merged = gold_sub.merge(model_sub, on="sentence", suffixes=("_gold", "_pred"))
-
-    rows = []
-    for _, row in merged.iterrows():
-        for feat in features:
-            gold_col = f"{feat}_gold"
-            pred_col = f"{feat}_pred"
-
-            gold_val = row.get(gold_col, None)
-            pred_val = row.get(pred_col, None)
-
-            if pd.isna(gold_val) or pd.isna(pred_val):
-                continue
-
-            if int(gold_val) != int(pred_val):
-                rows.append({
-                    "model": model_name,
-                    "sentence": row["sentence"],
-                    "feature": feat,
-                    "gold": int(gold_val),
-                    "pred": int(pred_val),
-                })
-
-    return pd.DataFrame(rows)
-
-def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
-    pred_df = pred_df.copy()
-    rationale_df = rationale_df.copy()
-    truth_df = truth_df.copy()
-
-    pred_df["sentence"] = pred_df["sentence"].str.strip()
-    rationale_df["sentence"] = rationale_df["sentence"].str.strip()
-    truth_df["sentence"] = truth_df["sentence"].str.strip()
-
-    merged = truth_df.merge(pred_df, on="sentence", suffixes=("_gold", "_pred"))
-    merged = merged.merge(rationale_df, on="sentence", how="left", suffixes=("", "_rat"))
-
-    rows = []
-    for _, row in merged.iterrows():
-        sent = row["sentence"]
-        for feat in features:
-            gold_col = f"{feat}_gold"
-            pred_col = f"{feat}_pred"
-            rat_col = feat
-
-            if gold_col not in row or pred_col not in row:
-                continue
-
-            gold_v = int(row[gold_col])
-            pred_v = int(row[pred_col])
-
-            rationale = row.get(rat_col, "")
-            if pd.isna(rationale):
-                rationale = ""
-
-            if only_disagreements and gold_v == pred_v:
-                continue
-
-            rows.append({
-                "sentence": sent,
-                "feature": feat,
-                "gold": gold_v,
-                "pred": pred_v,
-                "model_rationale": rationale,
-            })
-
-    out_df = pd.DataFrame(rows)
-    if max_rows is not None:
-        out_df = out_df.head(max_rows)
-    return out_df
 
 def evaluate_model(model_df, truth_df, model_name, features):
     print(f"\n=== {model_name} Evaluation ===")
@@ -139,8 +68,15 @@ def evaluate_model(model_df, truth_df, model_name, features):
 
     summary = {
         'model': [],
-        'feature': [], 'accuracy': [], 'precision': [], 'recall': [], 'f1': [],
-        'TP': [], 'FP': [], 'FN': [], 'TN': []
+        'feature': [],
+        'accuracy': [],
+        'precision': [],
+        'recall': [],
+        'f1': [],
+        'TP': [],
+        'FP': [],
+        'FN': [],
+        'TN': []
     }
     skipped_features = 0
 
@@ -200,6 +136,7 @@ def evaluate_model(model_df, truth_df, model_name, features):
 
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
     return results
+
 
 def plot_model_metrics(
     *,
@@ -290,41 +227,111 @@ def plot_model_metrics(
     else:
         raise ValueError("style must be 'bar' or 'heatmap'")
 
-# Loading experiment and rationale sheets
-file_path = "Run2.xlsx"
-sheets = pd.read_excel(file_path, sheet_name=None)
 
-gold_df = sheets['Gold']
-gold_df = drop_features_column(gold_df).dropna(subset=["sentence"])
+def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
+    pred_df = pred_df.copy()
+    rationale_df = rationale_df.copy()
+    truth_df = truth_df.copy()
 
-bert_df_raw = try_load_sheet(sheets, 'BERT')
-bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"]) if bert_df_raw is not None else None
+    pred_df["sentence"] = pred_df["sentence"].str.strip()
+    rationale_df["sentence"] = rationale_df["sentence"].str.strip()
+    truth_df["sentence"] = truth_df["sentence"].str.strip()
 
-gpt_df1 = try_load_sheet(sheets, 'GPT-Exp1')
-gpt_df2 = try_load_sheet(sheets, 'GPT-Exp2')
-gpt_df3 = try_load_sheet(sheets, 'GPT-Exp3')
+    merged = truth_df.merge(pred_df, on="sentence", suffixes=("_gold", "_pred"))
+    merged = merged.merge(rationale_df, on="sentence", how="left", suffixes=("", "_rat"))
 
-df_rationales1 = try_load_sheet(sheets, 'rationales-Exp1')
-df_rationales2 = try_load_sheet(sheets, 'rationales-Exp2')
-df_rationales3 = try_load_sheet(sheets, 'rationales-Exp3')
+    rows = []
+    for _, row in merged.iterrows():
+        sent = row["sentence"]
+        for feat in features:
+            gold_col = f"{feat}_gold"
+            pred_col = f"{feat}_pred"
+            rat_col = feat
 
-if bert_df is not None:
-    for feat in MASIS_FEATURES:
-        if feat in bert_df.columns:
-            thr = feat_thresholds.get(feat, 0.5)
-            bert_df[feat] = (bert_df[feat].astype(float) >= thr).astype(int)
+            if gold_col not in row or pred_col not in row:
+                continue
 
-# Evaluate models if data is available
-bert_eval = evaluate_model(bert_df, gold_df, "BERT", MASIS_FEATURES) if bert_df is not None else pd.DataFrame()
-gpt_eval1 = evaluate_model(gpt_df1, gold_df, "GPT-17", MASIS_FEATURES) if gpt_df1 is not None else pd.DataFrame()
-gpt_eval2 = evaluate_model(gpt_df2, gold_df, "GPT-24", EXTENDED_FEATURES) if gpt_df2 is not None else pd.DataFrame()
-gpt_eval3 = evaluate_model(gpt_df3, gold_df, "GPT-24+context", EXTENDED_FEATURES) if gpt_df3 is not None else pd.DataFrame()
+            gold_v = int(row[gold_col])
+            pred_v = int(row[pred_col])
 
-# Plot metrics if evaluations are available
-if not gpt_eval1.empty and not bert_eval.empty:
-    plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="bar")
-    plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="heatmap")
+            rationale = row.get(rat_col, "")
+            if pd.isna(rationale):
+                rationale = ""
 
-if not gpt_eval1.empty and not gpt_eval2.empty:
-    plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="heatmap")
+            if only_disagreements and gold_v == pred_v:
+                continue
 
+            rows.append({
+                "sentence": sent,
+                "feature": feat,
+                "gold": gold_v,
+                "pred": pred_v,
+                "model_rationale": rationale,
+            })
+
+    out_df = pd.DataFrame(rows)
+    if max_rows is not None:
+        out_df = out_df.head(max_rows)
+    return out_df
+
+
+def evaluate_sheets(file_path):
+    sheets = pd.read_excel(file_path, sheet_name=None)
+    
+    for sheet_name, sheet_df in sheets.items():
+        output_subdir = os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0], sheet_name)
+        os.makedirs(output_subdir, exist_ok=True)
+
+        gold_df = try_load_sheet(sheets, 'Gold')
+        if gold_df is None:
+            continue
+        gold_df = drop_features_column(gold_df).dropna(subset=["sentence"])
+
+        bert_df_raw = try_load_sheet(sheets, 'BERT')
+        bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"]) if bert_df_raw is not None else None
+
+        gpt_df1 = try_load_sheet(sheets, 'GPT-Exp1')
+        gpt_df2 = try_load_sheet(sheets, 'GPT-Exp2')
+        gpt_df3 = try_load_sheet(sheets, 'GPT-Exp3')
+
+        df_rationales1 = try_load_sheet(sheets, 'rationales-Exp1')
+        df_rationales2 = try_load_sheet(sheets, 'rationales-Exp2')
+        df_rationales3 = try_load_sheet(sheets, 'rationales-Exp3')
+
+        if bert_df is not None:
+            for feat in MASIS_FEATURES:
+                if feat in bert_df.columns:
+                    thr = feat_thresholds.get(feat, 0.5)
+                    bert_df[feat] = (bert_df[feat].astype(float) >= thr).astype(int)
+
+        # Evaluate models if data is available
+        bert_eval = evaluate_model(bert_df, gold_df, "BERT", MASIS_FEATURES) if bert_df is not None else pd.DataFrame()
+        gpt_eval1 = evaluate_model(gpt_df1, gold_df, "GPT-17", MASIS_FEATURES) if gpt_df1 is not None else pd.DataFrame()
+        gpt_eval2 = evaluate_model(gpt_df2, gold_df, "GPT-24", EXTENDED_FEATURES) if gpt_df2 is not None else pd.DataFrame()
+        gpt_eval3 = evaluate_model(gpt_df3, gold_df, "GPT-24+context", EXTENDED_FEATURES) if gpt_df3 is not None else pd.DataFrame()
+
+        # Build annotated rationales and save to CSV
+        annotated_rationales = build_annotated_rationales(gpt_df3, df_rationales3, gold_df, EXTENDED_FEATURES)
+        annotated_rationales.to_csv(os.path.join(output_subdir, 'annotated_rationales.csv'), index=False)
+
+        # Plot metrics if evaluations are available
+        if not gpt_eval1.empty and not bert_eval.empty:
+            plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="bar", save_path=os.path.join(output_subdir, "f1_bar.png"))
+            plot_model_metrics(eval_dfs=[gpt_eval1, bert_eval], metric="f1", style="heatmap", save_path=os.path.join(output_subdir, "f1_heatmap.png"))
+
+        if not gpt_eval1.empty and not gpt_eval2.empty:
+            plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2], metric="f1", style="heatmap", save_path=os.path.join(output_subdir, "gpt1_gpt2_f1_heatmap.png"))
+
+        if not gpt_eval3.empty:
+            plot_model_metrics(eval_dfs=[gpt_eval1, gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_subdir, "gpt_all_f1_heatmap.png"))
+
+        print(f"Completed evaluation for file: {file_path}, sheet: {sheet_name}")
+
+def main():
+    file_paths = glob.glob("data/*.xlsx")
+    for file_path in file_paths:
+        evaluate_sheets(file_path)
+
+
+if __name__ == "__main__":
+    main()
