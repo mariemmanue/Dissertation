@@ -37,7 +37,7 @@ def combine_wh_qu(df):
     return df
 
 
-def evaluate_model(model_df, truth_df, model_name, features):
+def evaluate_model(model_df, truth_df, model_name, features, output_base):
     print(f"\n=== {model_name} Evaluation ===")
 
     if model_df is None:
@@ -113,6 +113,9 @@ def evaluate_model(model_df, truth_df, model_name, features):
         summary['FP'].append(FP)
         summary['FN'].append(FN)
         summary['TN'].append(TN)
+        
+        # Plot confusion matrix for each feature
+        plot_confusion_matrix(cm, labels=['1', '0'], model_name=f'{model_name} ({feat})', save_path=os.path.join(output_base, f'{model_name}_{feat}_confusion_matrix.png'))
 
     results = pd.DataFrame(summary)
     print("\n=== Summary Metrics ===")
@@ -126,7 +129,6 @@ def evaluate_model(model_df, truth_df, model_name, features):
 
     print(f"\n=== Skipped {skipped_features} feature(s) with no positives in ground truth or predictions ===")
     return results
-
 
 def plot_model_metrics(
     *,
@@ -235,6 +237,18 @@ def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
 
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+
+def plot_confusion_matrix(cm, labels, model_name, save_path=None):
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
+    plt.title(f'Confusion Matrix for {model_name}')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.tight_layout()
+    
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
@@ -373,10 +387,10 @@ def evaluate_sheets(file_path):
         gpt_df3 = combine_wh_qu(gpt_df3)
 
     # Evaluate models if data is available
-    bert_eval = evaluate_model(bert_df, gold_df, "BERT", MASIS_FEATURES) if bert_df is not None else pd.DataFrame()
-    gpt_eval1 = evaluate_model(gpt_df1, gold_df, "GPT-17", MASIS_FEATURES) if gpt_df1 is not None else pd.DataFrame()
-    gpt_eval2 = evaluate_model(gpt_df2, gold_df, "GPT-24", EXTENDED_FEATURES) if gpt_df2 is not None else pd.DataFrame()
-    gpt_eval3 = evaluate_model(gpt_df3, gold_df, "GPT-24+context", EXTENDED_FEATURES) if gpt_df3 is not None else pd.DataFrame()
+    bert_eval = evaluate_model(bert_df, gold_df, "BERT", MASIS_FEATURES, output_base) if bert_df is not None else pd.DataFrame()
+    gpt_eval1 = evaluate_model(gpt_df1, gold_df, "GPT-17", MASIS_FEATURES, output_base) if gpt_df1 is not None else pd.DataFrame()
+    gpt_eval2 = evaluate_model(gpt_df2, gold_df, "GPT-24", EXTENDED_FEATURES, output_base) if gpt_df2 is not None else pd.DataFrame()
+    gpt_eval3 = evaluate_model(gpt_df3, gold_df, "GPT-24+context", EXTENDED_FEATURES, output_base) if gpt_df3 is not None else pd.DataFrame()
 
     # Build and save annotated rationales for each experiment
     if gpt_df1 is not None and df_rationales1 is not None:
