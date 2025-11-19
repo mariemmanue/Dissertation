@@ -274,16 +274,15 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
         out_df = out_df.head(max_rows)
     return out_df
 
-
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
-    
+
     for sheet_name, sheet_df in sheets.items():
         output_subdir = os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0], sheet_name)
         os.makedirs(output_subdir, exist_ok=True)
 
         gold_df = try_load_sheet(sheets, 'Gold')
-        if gold_df is None:
+        if gold_df is None:  # Ensure 'Gold' sheet exists
             continue
         gold_df = drop_features_column(gold_df).dropna(subset=["sentence"])
 
@@ -310,9 +309,12 @@ def evaluate_sheets(file_path):
         gpt_eval2 = evaluate_model(gpt_df2, gold_df, "GPT-24", EXTENDED_FEATURES) if gpt_df2 is not None else pd.DataFrame()
         gpt_eval3 = evaluate_model(gpt_df3, gold_df, "GPT-24+context", EXTENDED_FEATURES) if gpt_df3 is not None else pd.DataFrame()
 
-        # Build annotated rationales and save to CSV
-        annotated_rationales = build_annotated_rationales(gpt_df3, df_rationales3, gold_df, EXTENDED_FEATURES)
-        annotated_rationales.to_csv(os.path.join(output_subdir, 'annotated_rationales.csv'), index=False)
+        # Build and save annotated rationales if available
+        if gpt_df3 is not None and df_rationales3 is not None and not gpt_df3.empty and not df_rationales3.empty:
+            annotated_rationales = build_annotated_rationales(gpt_df3, df_rationales3, gold_df, EXTENDED_FEATURES)
+            annotated_rationales.to_csv(os.path.join(output_subdir, 'annotated_rationales.csv'), index=False)
+        else:
+            print(f"Skipping rationales for {file_path}, sheet: {sheet_name}")
 
         # Plot metrics if evaluations are available
         if not gpt_eval1.empty and not bert_eval.empty:
