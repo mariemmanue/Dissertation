@@ -374,9 +374,11 @@ def evaluate_sheets(file_path):
     gold_df = combine_wh_qu(gold_df)  # Combine wh_qu features in gold
 
     bert_df_raw = try_load_sheet(sheets, 'BERT')
-    bert_df = drop_features_column(bert_df_raw).dropna(subset(["sentence"])) if bert_df_raw is not None else None
-    if bert_df is not None:
+    if bert_df_raw is not None:
+        bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"])
         bert_df = combine_wh_qu(bert_df)  # Combine wh_qu features in BERT
+    else:
+        bert_df = None
 
     gpt_df1 = try_load_sheet(sheets, 'GPT-Exp1')
     gpt_df2 = try_load_sheet(sheets, 'GPT-Exp2')
