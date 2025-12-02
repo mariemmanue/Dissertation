@@ -28,8 +28,8 @@ api_call_count = 0
    conda activate cgedit && \
    export HF_HOME=/nlp/scr/mtano/hf_home && \
    python gpt_experiments.py \
-     --file data/Run1.xlsx \
-     --sheet GPT-Exp2 \
+     --file data/Test1.xlsx \
+     --sheet Exp2 \
      --extended
       --output_dir data/results" """
 
@@ -42,8 +42,8 @@ api_call_count = 0
    conda activate cgedit && \
    export HF_HOME=/nlp/scr/mtano/hf_home && \
    python gpt_experiments.py \
-     --file data/Run1.xlsx \
-     --sheet GPT-Exp1
+     --file data/Test1.xlsx \
+     --sheet Exp1
       --output_dir data/results" """
 
 OPENAI_MODEL_NAME = "gpt-5"
