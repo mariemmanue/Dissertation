@@ -18,7 +18,6 @@ feat_thresholds = {
 output_dir = "data/results"
 os.makedirs(output_dir, exist_ok=True)
 
-
 def try_load_sheet(sheets, sheet_name):
     return sheets[sheet_name] if sheet_name in sheets else None
 
@@ -91,9 +90,42 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
     return out_df
 
 
-def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (10, 8)):
+def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (10, 8), align: Literal["union", "intersection"] = "intersection"):
+    """
+    Calculate overall F1 scores, optionally only on shared features.
+    
+    Args:
+        eval_dfs: List of evaluation DataFrames with columns ['model', 'feature', 'f1']
+        save_path: Optional path to save the plot
+        figsize: Figure size tuple
+        align: "intersection" to only use features present in all models, "union" to use all features
+    """
     overall_f1_scores = {}
-
+    
+    if align == "intersection":
+        # Find features present in all models
+        all_features = set()
+        for df in eval_dfs:
+            if not df.empty:
+                all_features.update(df['feature'].unique())
+        
+        shared_features = all_features.copy()
+        for df in eval_dfs:
+            if not df.empty:
+                df_features = set(df['feature'].unique())
+                shared_features = shared_features.intersection(df_features)
+        
+        # Filter each df to only shared features
+        filtered_dfs = []
+        for df in eval_dfs:
+            if not df.empty:
+                filtered_df = df[df['feature'].isin(shared_features)].copy()
+                filtered_dfs.append(filtered_df)
+            else:
+                filtered_dfs.append(df)
+        eval_dfs = filtered_dfs
+        print(f"Using {len(shared_features)} shared features for overall F1: {sorted(shared_features)}")
+    
     for df in eval_dfs:
         if not df.empty:
             model_name = df['model'].iloc[0]
@@ -105,7 +137,7 @@ def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str
 
     ax = overall_f1_df.plot(kind='bar', figsize=figsize, legend=False)
     ax.set_ylabel('F1 Score')
-    ax.set_title('Overall F1 Scores by Model')
+    ax.set_title('Overall F1 Scores by Model (Shared Features Only)' if align == "intersection" else 'Overall F1 Scores by Model')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
 
@@ -113,10 +145,25 @@ def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
-
-def plot_f1_scores_per_feature(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (14, 10)):
+def plot_f1_scores_per_feature(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (14, 10), align: Literal["union", "intersection"] = "intersection"):
+    """
+    Plot F1 scores per feature, optionally only for shared features.
+    
+    Args:
+        eval_dfs: List of evaluation DataFrames
+        save_path: Optional path to save the plot
+        figsize: Figure size tuple
+        align: "intersection" to only show features present in all models, "union" to show all features
+    """
     all_eval = pd.concat(eval_dfs, ignore_index=True)
     pivot = all_eval.pivot(index="feature", columns="model", values="f1")
+    
+    if align == "intersection":
+        # Only keep features present in all models
+        present_counts = pivot.notna().sum(axis=1)
+        pivot = pivot[present_counts == pivot.shape[1]]
+        print(f"Showing {len(pivot)} shared features in heatmap")
+    
     pivot = pivot.fillna(0.0).sort_index()
 
     plt.figure(figsize=figsize)
@@ -129,7 +176,8 @@ def plot_f1_scores_per_feature(eval_dfs: List[pd.DataFrame], save_path: Optional
         vmax=1.0,
         cbar_kws={"label": "F1 score"}
     )
-    plt.title('F1 Scores per Feature by Model')
+    title = 'F1 Scores per Feature by Model (Shared Features Only)' if align == "intersection" else 'F1 Scores per Feature by Model'
+    plt.title(title)
     plt.xlabel('Model')
     plt.ylabel('Feature')
     plt.tight_layout()
@@ -392,7 +440,6 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
 
     return pd.DataFrame(rows)
 
-
 def evaluate_sheets(file_path):
     sheets = pd.read_excel(file_path, sheet_name=None)
 
@@ -465,17 +512,58 @@ def evaluate_sheets(file_path):
     print(f"Completed evaluation for file: {file_path}")
 
     # Generate combined comparison plots across all models
+    # Use intersection alignment to only compare on shared features
     all_evals = [bert_eval, gpt_eval1, gpt_eval2, gpt_eval3]
+    all_evals = [df for df in all_evals if not df.empty]  # Remove empty dataframes
     
-    plot_model_metrics(eval_dfs=all_evals, metric="f1", style="bar", save_path=os.path.join(output_base, "All_Models_f1_bar.png"))
-    plot_model_metrics(eval_dfs=all_evals, metric="f1", style="heatmap", save_path=os.path.join(output_base, "All_Models_f1_heatmap.png"))
+    if all_evals:
+        plot_model_metrics(
+            eval_dfs=all_evals, 
+            metric="f1", 
+            style="bar", 
+            align="intersection",
+            save_path=os.path.join(output_base, "All_Models_f1_bar.png")
+        )
+        plot_model_metrics(
+            eval_dfs=all_evals, 
+            metric="f1", 
+            style="heatmap", 
+            align="intersection",
+            save_path=os.path.join(output_base, "All_Models_f1_heatmap.png")
+        )
 
+
+    # Compare GPT-24 vs GPT-24+context on extended features
     if not gpt_eval2.empty and not gpt_eval3.empty:
-        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="bar", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png"))
-        plot_model_metrics(eval_dfs=[gpt_eval2, gpt_eval3], metric="f1", style="heatmap", save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png"))
+        plot_model_metrics(
+            eval_dfs=[gpt_eval2, gpt_eval3], 
+            metric="f1", 
+            style="bar", 
+            align="intersection",
+            save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png")
+        )
+        plot_model_metrics(
+            eval_dfs=[gpt_eval2, gpt_eval3], 
+            metric="f1", 
+            style="heatmap", 
+            align="intersection",
+            save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png")
+        )
 
-    plot_overall_f1_scores(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], save_path=os.path.join(output_base, "Overall_F1_Scores.png"))
-    plot_f1_scores_per_feature(eval_dfs=[bert_eval, gpt_eval1, gpt_eval2, gpt_eval3], save_path=os.path.join(output_base, "Per_Feature_F1_Scores.png"))
+
+    # Overall F1 scores on shared features only
+    all_evals_for_overall = [df for df in [bert_eval, gpt_eval1, gpt_eval2, gpt_eval3] if not df.empty]
+    if all_evals_for_overall:
+        plot_overall_f1_scores(
+            eval_dfs=all_evals_for_overall, 
+            align="intersection",
+            save_path=os.path.join(output_base, "Overall_F1_Scores.png")
+        )
+        plot_f1_scores_per_feature(
+            eval_dfs=all_evals_for_overall, 
+            align="intersection",
+            save_path=os.path.join(output_base, "Per_Feature_F1_Scores.png")
+        )
     
     # Generate error comparison
     bert_exp1_errors = build_error_df(bert_df, gold_df, MASIS_FEATURES, "BERT") if bert_df is not None else pd.DataFrame()
