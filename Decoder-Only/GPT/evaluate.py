@@ -441,7 +441,13 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
     return pd.DataFrame(rows)
 
 def evaluate_sheets(file_path):
-    sheets = pd.read_excel(file_path, sheet_name=None)
+    print(f"\n=== Evaluating {file_path} ===")
+    try:
+        sheets = pd.read_excel(file_path, sheet_name=None, engine="openpyxl")
+    except ValueError as e:
+        print(f"[WARN] Skipping {file_path}: {e}")
+        return
+
 
     output_base = os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0])
     os.makedirs(output_base, exist_ok=True)
