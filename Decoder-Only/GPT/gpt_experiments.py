@@ -30,7 +30,7 @@ api_call_count = 0
    python gpt_experiments.py \
      --file data/Test1.xlsx \
      --sheet Exp2 \
-     --extended
+     --extended \
       --output_dir data/results" """
 
 """nlprun -q jag -p standard -r 40G -c 2 \
@@ -43,7 +43,7 @@ api_call_count = 0
    export HF_HOME=/nlp/scr/mtano/hf_home && \
    python gpt_experiments.py \
      --file data/Test1.xlsx \
-     --sheet Exp1
+     --sheet Exp1 \
       --output_dir data/results" """
 
 OPENAI_MODEL_NAME = "gpt-5"

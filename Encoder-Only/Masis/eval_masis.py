@@ -17,7 +17,7 @@ filename \t utterance \t <17 probs...>
 
 Usage (typical):
 
-    python eval_masis_csv.py \
+    python eval_masis.py \
         --model ./models/masis-final.pt \
         --data_dir ./data \
         --out ./data/results/masis_coraal.tsv
@@ -30,7 +30,7 @@ nlprun -q jag -p standard -r 8G -c 2 -t 0-2 \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    mkdir -p data/results slurm_logs && \
-   python eval_masis_csv.py \
+   python eval_masis.py \
       --model ./models/masis-final.pt \
       --data_dir ./data \
       --out ./data/results/masis_coraal.tsv"
