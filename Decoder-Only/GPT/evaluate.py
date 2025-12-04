@@ -461,22 +461,22 @@ def evaluate_sheets(file_path):
         bert_df = None
 
     # --- GPT configs---
-    gpt_zero_df1 = try_load_sheet(sheets, 'Exp1-ZERO')
-    gpt_icl_df1 = try_load_sheet(sheets, 'Exp1-ICL')
+    # gpt_zero_df1 = try_load_sheet(sheets, 'Exp1-ZERO')
+    # gpt_icl_df1 = try_load_sheet(sheets, 'Exp1-ICL')
     gpt_cot_df1 = try_load_sheet(sheets, 'Exp1-COT')          
 
-    rat_zero_df1 = try_load_sheet(sheets, 'Exp1-ZERO_rationales')
-    rat_icl_df1 = try_load_sheet(sheets, 'Exp1-ICL_rationales')
-    rat_cot_df1 = try_load_sheet(sheets, 'Exp1-COT_rationales')
+    # rat_zero_df1 = try_load_sheet(sheets, 'Exp1-ZERO_rationales')
+    # rat_icl_df1 = try_load_sheet(sheets, 'Exp1-ICL_rationales')
+    # rat_cot_df1 = try_load_sheet(sheets, 'Exp1-COT_rationales')
 
 
-    gpt_zero_df2 = try_load_sheet(sheets, 'Exp2-ZERO')
-    gpt_icl_df2 = try_load_sheet(sheets, 'Exp2-ICL')
+    # gpt_zero_df2 = try_load_sheet(sheets, 'Exp2-ZERO')
+    # gpt_icl_df2 = try_load_sheet(sheets, 'Exp2-ICL')
     gpt_cot_df2 = try_load_sheet(sheets, 'Exp2-COT')          # few_shot_cot
 
-    rat_zero_df2 = try_load_sheet(sheets, 'Exp2-ZERO_rationales')
-    rat_icl_df2 = try_load_sheet(sheets, 'Exp2-ICL_rationales')
-    rat_cot_df2 = try_load_sheet(sheets, 'Exp2-COT_rationales')
+    # rat_zero_df2 = try_load_sheet(sheets, 'Exp2-ZERO_rationales')
+    # rat_icl_df2 = try_load_sheet(sheets, 'Exp2-ICL_rationales')
+    # rat_cot_df2 = try_load_sheet(sheets, 'Exp2-COT_rationales')
 
     if bert_df is not None:
         for feat in MASIS_FEATURES:
