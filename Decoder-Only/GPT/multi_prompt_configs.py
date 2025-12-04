@@ -839,7 +839,7 @@ def main():
     parser.add_argument("--file", type=str, help="Input Excel file path", required=True)
     parser.add_argument("--sheet", type=str, help="Sheet name to write GPT predictions into", required=True)
     parser.add_argument("--extended", action="store_true", help="Use extended feature set (NEW_FEATURE_BLOCK + EXTENDED_FEATURES)")
-    # parser.add_argument("--context", action="store_true", help="(Optional) Use prev/next sentence context from Gold sheet if available (currently not injected).")
+    parser.add_argument("--context", action="store_true", help="(Optional) Use prev/next sentence context from Gold sheet if available (currently not injected).")
     parser.add_argument(
         "--instruction_type",
         type=str,
