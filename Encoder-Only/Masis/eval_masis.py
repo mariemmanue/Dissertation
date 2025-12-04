@@ -33,7 +33,7 @@ nlprun -q jag -p standard -r 8G -c 2 -t 0-2 \
    python eval_masis.py \
       --model ./models/masis-final.pt \
       --data_dir ./data \
-      --out ./data/results/masis_coraal.tsv"
+      --out ./data/results/test1.tsv"
 
 """
 
