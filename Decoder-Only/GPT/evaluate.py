@@ -440,164 +440,262 @@ def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list
 
     return pd.DataFrame(rows)
 
-def evaluate_sheets(file_path):
-    print(f"\n=== Evaluating {file_path} ===")
-    try:
-        sheets = pd.read_excel(file_path, sheet_name=None, engine="openpyxl")
-    except ValueError as e:
-        print(f"[WARN] Skipping {file_path}: {e}")
-        return
+def safe_sheet_name(name: str, max_len: int = 31) -> str:
+    """
+    Excel sheet names must be <=31 chars and avoid some characters.
+    This helper truncates and cleans model names for use as sheet names.
+    """
+    bad_chars = ['[', ']', '*', '?', '/', '\\', ':']
+    for ch in bad_chars:
+        name = name.replace(ch, "_")
+    return name[:max_len]
 
 
-    output_base = os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0])
+def detect_feature_set(sheet_name: str, df: pd.DataFrame) -> Optional[str]:
+    """
+    Decide whether this model sheet should be evaluated against:
+      - 'masis' (17 features) or
+      - 'extended' (25 features)
+    Returns 'masis', 'extended', or None if we can't tell.
+    """
+    cols = set(df.columns)
+
+    # If the sheet name encodes 17 vs 25, trust that first.
+    if "_17_" in sheet_name:
+        return "masis"
+    if "_25_" in sheet_name:
+        return "extended"
+
+    # Heuristic fallback: count overlap with each known feature set.
+    masis_overlap = len(cols.intersection(MASIS_FEATURES))
+    extended_overlap = len(cols.intersection(EXTENDED_FEATURES))
+
+    if extended_overlap > masis_overlap:
+        return "extended"
+    if masis_overlap > 0:
+        return "masis"
+
+    return None  # no clear mapping
+
+def evaluate_sheets(file_path: str):
+    print(f"\n===============================")
+    print(f"=== Evaluating {file_path} ===")
+    print(f"===============================\n")
+
+    # Base directory to write results for this workbook
+    file_basename = os.path.splitext(os.path.basename(file_path))[0]
+    output_base = os.path.join(output_dir, file_basename)
     os.makedirs(output_base, exist_ok=True)
 
-    gold_df = try_load_sheet(sheets, 'Gold')
-    if gold_df is None:  # Ensure 'Gold' sheet exists
-        print(f"Gold sheet not found in {file_path}")
+    # Read all sheets (skip Excel temp/lock files later)
+    sheets = pd.read_excel(file_path, sheet_name=None, engine="openpyxl")
+
+    # ---- 1. Load Gold sheet ----
+    gold_df = sheets.get("Gold")
+    if gold_df is None:
+        print(f"[WARN] No 'Gold' sheet in {file_path}. Skipping.")
         return
+
     gold_df = drop_features_column(gold_df).dropna(subset=["sentence"])
-    gold_df = combine_wh_qu(gold_df)  # Combine wh_qu features in gold
+    gold_df = combine_wh_qu(gold_df)
+    gold_df = gold_df.drop_duplicates(subset="sentence")
 
-    bert_df_raw = try_load_sheet(sheets, 'BERT')
-    if bert_df_raw is not None:
-        bert_df = drop_features_column(bert_df_raw).dropna(subset=["sentence"])
-        bert_df = combine_wh_qu(bert_df)  # Combine wh_qu features in BERT
-    else:
-        bert_df = None
+    # ---- 2. Discover model & rationale sheets ----
+    model_sheets: dict[str, pd.DataFrame] = {}
+    rationale_sheets: dict[str, pd.DataFrame] = {}
 
-    # --- GPT configs---
-    # gpt_zero_df1 = try_load_sheet(sheets, 'Exp1-ZERO')
-    # gpt_icl_df1 = try_load_sheet(sheets, 'Exp1-ICL')
-    gpt_cot_df1 = try_load_sheet(sheets, 'Exp1-COT')          
+    for sheet_name, df_raw in sheets.items():
+        # Skip Gold and Excel temporary/hidden sheets
+        if sheet_name == "Gold":
+            continue
+        if sheet_name.startswith("~$"):
+            continue
 
-    # rat_zero_df1 = try_load_sheet(sheets, 'Exp1-ZERO_rationales')
-    # rat_icl_df1 = try_load_sheet(sheets, 'Exp1-ICL_rationales')
-    # rat_cot_df1 = try_load_sheet(sheets, 'Exp1-COT_rationales')
+        # Rationales sheets: <model>_rationales
+        if sheet_name.endswith("_rationales"):
+            base_name = sheet_name[:-11]  # strip "_rationales"
+            rationale_sheets[base_name] = df_raw
+            continue
 
+        # Only treat BERT_*/GPT_* as model prediction sheets
+        if not (sheet_name.startswith("GPT_") or sheet_name.startswith("BERT_")):
+            continue
 
-    # gpt_zero_df2 = try_load_sheet(sheets, 'Exp2-ZERO')
-    # gpt_icl_df2 = try_load_sheet(sheets, 'Exp2-ICL')
-    gpt_cot_df2 = try_load_sheet(sheets, 'Exp2-COT')          # few_shot_cot
+        df = drop_features_column(df_raw).dropna(subset=["sentence"])
+        df = combine_wh_qu(df)
+        df = df.drop_duplicates(subset="sentence")
 
-    # rat_zero_df2 = try_load_sheet(sheets, 'Exp2-ZERO_rationales')
-    # rat_icl_df2 = try_load_sheet(sheets, 'Exp2-ICL_rationales')
-    # rat_cot_df2 = try_load_sheet(sheets, 'Exp2-COT_rationales')
+        # If BERT sheet: threshold any probabilistic columns into binary
+        if sheet_name.startswith("BERT_"):
+            for feat in MASIS_FEATURES + EXTENDED_FEATURES:
+                if feat in df.columns:
+                    try:
+                        thr = feat_thresholds.get(feat, 0.5)
+                        df[feat] = (df[feat].astype(float) >= thr).astype(int)
+                    except Exception:
+                        # If cast fails, just leave column as-is
+                        pass
 
-    if bert_df is not None:
-        for feat in MASIS_FEATURES:
-            if feat in bert_df.columns:
-                thr = feat_thresholds.get(feat, 0.5)
-                bert_df[feat] = (bert_df[feat].astype(float) >= thr).astype(int)
+        model_sheets[sheet_name] = df
 
-    # Combine wh_qu1 and wh_qu2 into wh_qu for GPT-Exp1, GPT-Exp2, and GPT-Exp3
-    if gpt_cot_df1 is not None:
-        gpt_cot_df1 = combine_wh_qu(gpt_cot_df1)
-    if gpt_cot_df2 is not None:
-        gpt_cot_df2 = combine_wh_qu(gpt_cot_df2)
+    if not model_sheets:
+        print(f"[WARN] No model sheets (GPT_*/BERT_*) found in {file_path}.")
+        return
 
-    # Evaluate models if data is available
-    bert_eval = evaluate_model(bert_df, gold_df, "BERT", MASIS_FEATURES, output_base) if bert_df is not None else pd.DataFrame()
-    gpt_eval1 = evaluate_model(gpt_cot_df1, gold_df, "GPT-17 (Few Shot COT)", MASIS_FEATURES, output_base) if gpt_cot_df1 is not None else pd.DataFrame()
-    gpt_eval2 = evaluate_model(gpt_cot_df2, gold_df, "GPT-17+ (Few Shot COT)", EXTENDED_FEATURES, output_base) if gpt_cot_df2 is not None else pd.DataFrame()
+    # ---- 3. Evaluate each model sheet against Gold ----
+    eval_results: list[pd.DataFrame] = []
+    per_model_errors: dict[str, pd.DataFrame] = {}
 
-    # Build and save annotated rationales for each experiment
+    for sheet_name, model_df in model_sheets.items():
+        feature_set = detect_feature_set(sheet_name, model_df)
+        if feature_set is None:
+            print(f"[SKIP] {sheet_name}: could not determine feature set.")
+            continue
 
-    # Save predictions for each experiment
-    # if gpt_df1 is not None:
-    #     gpt_df1.to_csv(os.path.join(output_base, 'GPT-Exp1_predictions.csv'), index=False)
-    # if gpt_df2 is not None:
-    #     gpt_df2.to_csv(os.path.join(output_base, 'GPT-Exp2_predictions.csv'), index=False)
-    # if gpt_df3 is not None:
-    #     gpt_df3.to_csv(os.path.join(output_base, 'GPT-Exp3_predictions.csv'), index=False)
+        if feature_set == "masis":
+            features = MASIS_FEATURES
+        else:
+            features = EXTENDED_FEATURES
 
-    print(f"Completed evaluation for file: {file_path}")
+        print(f"\n--- Evaluating model sheet: {sheet_name} "
+              f"(feature set: {feature_set}, {len(features)} features) ---")
 
-    # Generate combined comparison plots across all models
-    # Use intersection alignment to only compare on shared features
-    all_evals = [bert_eval, gpt_eval1, gpt_eval2]
-    all_evals = [df for df in all_evals if not df.empty]  # Remove empty dataframes
-    
-    if all_evals:
-        plot_model_metrics(
-            eval_dfs=all_evals, 
-            metric="f1", 
-            style="bar", 
-            align="intersection",
-            save_path=os.path.join(output_base, "All_Models_f1_bar.png")
-        )
-        plot_model_metrics(
-            eval_dfs=all_evals, 
-            metric="f1", 
-            style="heatmap", 
-            align="intersection",
-            save_path=os.path.join(output_base, "All_Models_f1_heatmap.png")
+        model_eval = evaluate_model(
+            model_df=model_df,
+            truth_df=gold_df,
+            model_name=sheet_name,   # use sheet name as model identifier
+            features=features,
+            output_base=output_base,
         )
 
+        if not model_eval.empty:
+            eval_results.append(model_eval)
 
-    # Compare GPT-24 vs GPT-24+context on extended features
-    # if not gpt_eval2.empty and not gpt_eval3.empty:
-    #     plot_model_metrics(
-    #         eval_dfs=[gpt_eval2, gpt_eval3], 
-    #         metric="f1", 
-    #         style="bar", 
-    #         align="intersection",
-    #         save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_bar.png")
-    #     )
-    #     plot_model_metrics(
-    #         eval_dfs=[gpt_eval2, gpt_eval3], 
-    #         metric="f1", 
-    #         style="heatmap", 
-    #         align="intersection",
-    #         save_path=os.path.join(output_base, "GPT2_vs_GPT3_f1_heatmap.png")
-    #     )
+            # Build error dataframe for this model
+            err_df = build_error_df(model_df, gold_df, features, model_name=sheet_name)
+            per_model_errors[sheet_name] = err_df
 
+            # Optionally: build annotated rationales if we have them
+            rat_df = rationale_sheets.get(sheet_name)
+            if rat_df is not None:
+                try:
+                    annotated = build_annotated_rationales(
+                        pred_df=model_df,
+                        rationale_df=rat_df,
+                        truth_df=gold_df,
+                        features=features,
+                        only_disagreements=True,
+                        max_rows=None,
+                    )
+                    out_csv = os.path.join(output_base, f"{sheet_name}_annotated_rationales.csv")
+                    annotated.to_csv(out_csv, index=False)
+                    print(f"[INFO] Wrote annotated rationales for {sheet_name} to {out_csv}")
+                except Exception as e:
+                    print(f"[WARN] Could not build annotated rationales for {sheet_name}: {e}")
 
-    # Overall F1 scores on shared features only
-    all_evals_for_overall = [df for df in [bert_eval, gpt_eval1, gpt_eval2] if not df.empty]
-    if all_evals_for_overall:
-        plot_overall_f1_scores(
-            eval_dfs=all_evals_for_overall, 
-            align="intersection",
-            save_path=os.path.join(output_base, "Overall_F1_Scores.png")
-        )
-        plot_f1_scores_per_feature(
-            eval_dfs=all_evals_for_overall, 
-            align="intersection",
-            save_path=os.path.join(output_base, "Per_Feature_F1_Scores.png")
-        )
-    
-    # Generate error comparison
-    bert_exp1_errors = build_error_df(bert_df, gold_df, MASIS_FEATURES, "BERT") if bert_df is not None else pd.DataFrame()
-    gpt_exp1_errors = build_error_df(gpt_cot_df1, gold_df, MASIS_FEATURES, "GPT-17") if gpt_cot_df1 is not None else pd.DataFrame()
-    gpt_exp2_errors = build_error_df(gpt_cot_df2, gold_df, EXTENDED_FEATURES, "GPT-17+") if gpt_cot_df1 is not None else pd.DataFrame()
+    # If no successful evaluations, nothing else to do
+    eval_results = [df for df in eval_results if not df.empty]
+    if not eval_results:
+        print("[WARN] No non-empty evaluation results.")
+        return
 
-    all_errors = pd.concat([gpt_exp1_errors, bert_exp1_errors, gpt_exp2_errors], ignore_index=True)
+    # ---- 4. Cross-model COMPARISONS (even, intersection-based) ----
+    # Use intersection alignment so we only compare on features
+    # that are shared across all evaluated models.
+    all_models_label = "ALL_MODELS"
 
-    # Quick pivot: errors per feature per model
-    err_counts = (
-        all_errors
-        .groupby(["model", "feature"])
-        .size()
-        .reset_index(name="error_count")
-        .pivot(index="feature", columns="model", values="error_count")
-        .fillna(0)
-        .sort_index()
+    # (a) F1 by feature and model (bar + heatmap, intersection)
+    plot_model_metrics(
+        eval_dfs=eval_results,
+        metric="f1",
+        style="bar",
+        align="intersection",
+        title="Model F1 by AAE feature (shared features only)",
+        save_path=os.path.join(output_base, f"{all_models_label}_F1_bar_intersection.png"),
     )
 
-    print(err_counts)
+    plot_model_metrics(
+        eval_dfs=eval_results,
+        metric="f1",
+        style="heatmap",
+        align="intersection",
+        title="Model F1 by AAE feature (heatmap, shared features only)",
+        save_path=os.path.join(output_base, f"{all_models_label}_F1_heatmap_intersection.png"),
+    )
 
-    with pd.ExcelWriter(os.path.join(output_base, "model_errors_all_experiments.xlsx")) as writer:
-        gpt_exp1_errors.to_excel(writer, sheet_name="GPT-Exp1_errors", index=False)
-        bert_exp1_errors.to_excel(writer, sheet_name="BERT_errors", index=False)
-        gpt_exp2_errors.to_excel(writer, sheet_name="GPT-Exp2_errors", index=False)
-        all_errors.to_excel(writer, sheet_name="all_errors", index=False)
-        err_counts.to_excel(writer, sheet_name="error_counts_pivot")
+    # (b) Overall F1 (macro over shared features only)
+    plot_overall_f1_scores(
+        eval_dfs=eval_results,
+        align="intersection",
+        save_path=os.path.join(output_base, f"{all_models_label}_Overall_F1_intersection.png"),
+    )
+
+    # (c) Per-feature F1 scores (heatmap) over shared features only
+    plot_f1_scores_per_feature(
+        eval_dfs=eval_results,
+        align="intersection",
+        save_path=os.path.join(output_base, f"{all_models_label}_Per_Feature_F1_intersection.png"),
+    )
+
+    # ---- 5. Error aggregation across models ----
+    all_errors = pd.concat(per_model_errors.values(), ignore_index=True) if per_model_errors else pd.DataFrame()
+
+    if not all_errors.empty:
+        # Pivot: errors per feature per model
+        err_counts = (
+            all_errors
+            .groupby(["model", "feature"])
+            .size()
+            .reset_index(name="errors")
+            .pivot(index="feature", columns="model", values="errors")
+            .fillna(0)
+            .sort_index()
+        )
+
+        print("\n=== Error counts (per feature x model) ===")
+        print(err_counts)
+
+        # Optional: error heatmap for "even" comparison of where models struggle
+        plot_model_metrics(
+            err_counts=err_counts.reset_index().melt(id_vars="feature", var_name="model", value_name="errors")
+                        if isinstance(err_counts, pd.DataFrame) else None,
+            metric="errors",
+            style="heatmap",
+            title="Errors per Feature by Model",
+            annotate_heatmap=True,
+            figsize=(12, 8),
+            save_path=os.path.join(output_base, f"{all_models_label}_Error_Heatmap.png"),
+        )
+
+        # Save detailed errors to Excel
+        errors_xlsx = os.path.join(output_base, "model_errors_all_experiments.xlsx")
+        with pd.ExcelWriter(errors_xlsx) as writer:
+            for model_name, err_df in per_model_errors.items():
+                if err_df.empty:
+                    continue
+                sheet = safe_sheet_name(f"{model_name}_errors")
+                err_df.to_excel(writer, sheet_name=sheet, index=False)
+
+            all_errors.to_excel(writer, sheet_name="all_errors", index=False)
+            err_counts.to_excel(writer, sheet_name="error_counts_pivot")
+
+        print(f"[INFO] Wrote error breakdown to {errors_xlsx}")
+
 
 def main():
-    file_paths = glob.glob("data/*.xlsx")
+    # Glob all Excel files in data/ (skip temp files)
+    file_paths = [
+        fp for fp in glob.glob("data/*.xlsx")
+        if not os.path.basename(fp).startswith("~$")
+    ]
+    if not file_paths:
+        print("[INFO] No .xlsx files found under data/.")
+        return
+
     for file_path in file_paths:
         evaluate_sheets(file_path)
+
+
 
 if __name__ == "__main__":
     main()

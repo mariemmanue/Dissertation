@@ -56,121 +56,6 @@ nlprun -q jag -p standard -r 40G -c 2 \
      --output_dir data/results"
 """
 
-# # ZERO SHOT commands
-
-# """
-# nlprun -q jag -p standard -r 40G -c 2 \
-#   -n gpt-zero-exp1 \
-#   -o slurm_logs/%x-%j.out \
-#   "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-#    mkdir -p slurm_logs data/results && \
-#    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-#    conda activate cgedit && \
-#    export HF_HOME=/nlp/scr/mtano/hf_home && \
-#    python multi_prompt_configs.py \
-#      --file data/Test1.xlsx \
-#      --sheet Exp1-ZERO \
-#      --instruction_type zero_shot \
-#      --self_verification \
-#      --dialect_legitimacy \
-#      --output_dir data/results"
-
-
-# nlprun -q jag -p standard -r 40G -c 2 \
-#   -n gpt-zero-exp2 \
-#   -o slurm_logs/%x-%j.out \
-#   "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-#    mkdir -p slurm_logs data/results && \
-#    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-#    conda activate cgedit && \
-#    export HF_HOME=/nlp/scr/mtano/hf_home && \
-#    python multi_prompt_configs.py \
-#      --file data/Test1.xlsx \
-#      --sheet Exp2-ZERO \
-#      --extended \
-#      --instruction_type zero_shot \
-#      --self_verification \
-#      --dialect_legitimacy \
-#      --output_dir data/results"
-# """
-
-# ZERO SHOT COT commands
-
-"""
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt-0cot-exp1 \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python multi_prompt_configs.py \
-     --file data/Test1.xlsx \
-     --sheet Exp1-0COT \
-     --instruction_type zero_shot_cot \
-     --self_verification \
-     --dialect_legitimacy \
-     --output_dir data/results"
-
-
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt-0cot-exp2 \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python multi_prompt_configs.py \
-     --file data/Test1.xlsx \
-     --sheet Exp2-0COT \
-     --extended \
-     --self_verification \
-     --dialect_legitimacy \
-     --instruction_type zero_shot_cot \
-     --output_dir data/results"
-"""
-
-# FEW SHOT COT commands
-
-"""
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt-fewcot-exp1 \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python multi_prompt_configs.py \
-     --file data/Test1.xlsx \
-     --sheet Exp1-COT \
-     --block_examples \
-     --self_verification \
-     --dialect_legitimacy \
-     --instruction_type few_shot_cot \
-     --output_dir data/results"
-
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt-fewcot-exp2 \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python multi_prompt_configs.py \
-     --file data/Test1.xlsx \
-     --sheet Exp2-COT \
-     --block_examples \
-     --extended \
-     --self_verification \
-     --dialect_legitimacy \
-     --instruction_type few_shot_cot \
-     --output_dir data/results"
-"""
-
 OPENAI_MODEL_NAME = "gpt-5"
 # tokenizer for logging (will be overridden by main)
 enc = tiktoken.encoding_for_model("gpt-5")
@@ -203,7 +88,7 @@ MASIS_FEATURE_BLOCK = """
      • Noun–noun juxtaposition (dad car, mama house)
      • Bare or nonstandard possessive pronouns before a noun (they car, her brother kids).
    + Example (label = 1): "That they dad boo." (nonstandard 'they' + 'dad boo' expressing possession)
-   - Miss (label = 0): "That's their dad's car." (all possessives fully marked in SAE)
+   - Miss (label = 0): "That's their dad's car." (all possessives fully marked in SAE) 
    Ambiguity note:
    • If it is unclear whether two adjacent nouns form a possessive relationship or just a list/name (e.g., “school bus stop”), prefer 0 and mention ambiguity.
 
@@ -282,7 +167,7 @@ MASIS_FEATURE_BLOCK = """
     + Example (label = 1): "Don’t nobody like how they actin’." (Don’t + subject 'nobody')
     – Miss (label = 0): "Nobody don’t like how they actin’." (subject precedes negative auxiliary, no inversion)
     Notes:
-    • Only mark in addition to multiple-neg when subject follows the negative auxiliary.
+    • Only mark in addition to multiple-neg when subject follows the negative auxiliary, at the beginning of a sentence or clause.
     Ambiguity note:
     • If word order is unclear due to disfluency, prefer 0 and note ambiguity.
 
@@ -292,7 +177,7 @@ MASIS_FEATURE_BLOCK = """
     + Example (label = 1): "Nobody don’t wanna see that." (negative subject + negative auxiliary)
     – Miss (label = 0): "Nobody wanna see that." (subject negative, verb positive)
     Notes:
-    • Only mark in addition to multiple-neg when both subject and verb are negative without inversion.
+    • Only mark in addition to multiple-neg when both subject and verb are negative without inversion, at the beginning of a sentence or clause.
     Ambiguity note:
     • If one element is only pragmatically negative or unclear, prefer 0.
 
@@ -310,7 +195,7 @@ MASIS_FEATURE_BLOCK = """
     + Example (label = 1): "She walk to they house." (3sg subject + bare 'walk' with present meaning)
     - Miss (label = 0): "They walk to their house." (plural subject = no 3sg requirement)
     Ambiguity note:
-    • If the time reference is in past tense, prefer 0 and explain.
+    • If the time reference is in past tense, prefer 0 and explain. 
 
 14. is-was-gen
     Decision rule (single element: GENERALIZED IS/WAS WITH NON-STANDARD AGREEMENT):
@@ -352,7 +237,7 @@ MASIS_FEATURE_BLOCK = """
     - Miss (label = 0): "Where is she?"  (auxiliary present)
     - Miss (label = 0): "What did you want?"  (DO-support present)
     Notes:
-    • Only mark wh-qu1 when the missing auxiliary is required for a WH-question in SAE.
+    • Only mark wh-qu1 AND zero-copula when the missing auxiliary is required for a WH-question in SAE.
     • Do not mark for simple topicalization or fragments that are not clearly questions.
     Ambiguity note:
     • If there is no clear question intonation or punctuation and the string might be a fragment, prefer 0.
@@ -360,16 +245,13 @@ MASIS_FEATURE_BLOCK = """
 17b. wh-qu2  (WH-word + non-standard inversion)
     Decision rule (single element: NON-SAE WH WORD ORDER):
     Mark 1 when a WH-question or WH-clause departs from SAE subject–auxiliary inversion patterns:
-      • No inversion where SAE requires it (Where he is going? instead of Where is he going?)
+      • No inversion where SAE requires it
       • Inversion inside embedded WH-clauses where SAE keeps declarative order
-        (I asked him could he find her instead of I asked him if he could find her).
     + Example (label = 1): "Where he is going?"  (auxiliary follows subject in a main question)
     + Example (label = 1): "I asked him could he find her." (inversion in embedded clause)
-    - Miss (label = 0): "Where is he going?"  (standard WH inversion)
     - Miss (label = 0): "I asked him if he could find her."  (no embedded inversion)
     Notes:
     • Only mark wh-qu2 when WH-clause word order is non-standard relative to SAE.
-    • If both wh-qu1 (aux deletion) and wh-qu2 (non-inversion) clearly apply, you may mark both.
     Ambiguity note:
     • If speech is heavily disfluent and apparent word order may be just a restart, prefer 0 and mention ambiguity.
 """
@@ -423,8 +305,7 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     Decision rule (single element: NON-SAE TENSE FORM SUBSTITUTED IN SIMPLE PAST OR PAST PARTICIPLE POSITION):  
     Mark 1 when:
       • A past participle form is used as a simple past (e.g., seen, done, went as preterites), OR
-      • A regularized past is used where an irregular past is expected,
-    and the clause refers to a simple past event (not pluperfect).
+      • A regularized past is used where an irregular past is expected, and the clause refers to a simple past event (not pluperfect).
     + Example (label = 1): "I seen him yesterday." (past participle 'seen' used as preterite)
     – Miss (label = 0): "I saw him yesterday." (standard preterite)
     Ambiguity note:
@@ -434,7 +315,7 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     Decision rule (single element: MISSING SUBJECT RELATIVE PRONOUN):
     Mark 1 when a finite clause modifies a noun and functions as a subject relative, but there is NO overt relative pronoun ('who', 'that', 'which') in subject position.
     + Example (label = 1): "There are many mothers [Ø don’t know their children]." (finite clause modifying 'mothers' without 'who')
-    - Miss (label = 0): "There are many mothers who don’t know their children." (overt 'who')
+    - Miss (label = 0): "I think he left." (that-deletion in a complement clause)
     Notes:
     • Exclude reduced relatives ('the guy wearing red'), appositives, or complement clauses not modifying the noun ('I know [that he left]').
     Ambiguity note:
@@ -458,22 +339,66 @@ ICL_EXAMPLES_BLOCK = """
 FEW-SHOT TRAINING EXAMPLES (for demonstration only; NOT the target utterance).
 
 Example 1:
-SENTENCE: "They be playing outside."
+SENTENCE: "And my cousin place turn into a whole cookout soon as it get warm, and when you step outside it's people dancing out on the sidewalk."
 ANNOTATED LABELS (subset):
-- be-construction: {"value": 1, "rationale": "Uninflected 'be' is the finite verb and marks habitual activity."}
-- zero-3sg-pres-s: {"value": 0, "rationale": "Subject is plural, so bare 'play' is grammatical in SAE as well."}
-- multiple-neg: {"value": 0, "rationale": "No negative elements in the clause."}
+- zero-3sg-pres-s: {
+    "value": 1,
+    "rationale": "The clause 'turn into a whole cookout' has a recoverable 3sg subject from the local discourse ('my cousin place' / 'it'). Interpreting it as '[it] turn into a whole cookout', the verb 'turn' has a present/habitual reading with a 3sg subject. SAE would require 'turns', so this counts as a missing -s with an understood subject."
+}
+- existential-it: {
+    "value": 1,
+    "rationale": "In 'it's people dancing out on the sidewalk', 'it' functions as a dummy subject introducing new entities ('people'), patterning like existential 'it' (similar to 'there are people dancing') rather than a referential or weather 'it'."
+}
+- multiple-neg: {
+    "value": 0,
+    "rationale": "There are no negative elements in this utterance; there is no configuration with two or more negatives contributing to a single logical negation."
+}
+- zero-poss: {
+    "value": 1,
+    "rationale": "In 'my cousin place,' the noun 'place' expresses a possessive relationship to 'my cousin' without an overt SAE possessive marker ('my cousin's place'). The two nouns appear in direct sequence, forming the AAE-style zero-possessive construction. The meaning is clearly possessive rather than appositive or a compound noun."
+}
 
 Example 2:
-SENTENCE: "I ain't never heard of that."
+SENTENCE: "He threwed him a quick punch and a hard knock to the ribs, then spin around and walk straight out the room like it was nothing."
 ANNOTATED LABELS (subset):
-- multiple-neg: {"value": 1, "rationale": "Negative auxiliary 'ain't' plus negative adverb 'never' express a single negation."}
-- aint: {"value": 1, "rationale": "'ain't' functions as a negative auxiliary for HAVE/DO in this clause."}
-- verb-stem: {"value": 0, "rationale": "'heard' is an appropriate past/perfect form; there is no bare-stem past."}
+- double-object: {
+    "value": 1,
+    "rationale": "In 'threwed him a quick jab and a hard hook', the verb 'threwed' is followed by the indirect object 'him' and then a direct object NP ('a quick jab and a hard hook') with no preposition introducing the recipient. This is a verb + two NP objects pattern, characteristic of the double-object construction."
+}
+- verb-stem-past: {
+    "value": 1,
+    "rationale": "The sentence describes a single past-time event established by the past-tense context ('threwed him...'). The coordinated verbs 'spin' and 'walk' appear in bare-stem form instead of the SAE narrative-past forms ('spun', 'walked'). Because the temporal reference has already been set to the past, the bare verbs function as past-time predicates, matching the AAE bare-stem past pattern."
+}
+- past-tense-swap: {
+    "value": 1,
+    "rationale": "'threwed' is an overregularized past form in place of the SAE irregular 'threw'. This matches the criterion for past-tense-swap, where a regularized or participle-like form is used as the simple past."
+}
+
+Example 3:
+SENTENCE: "He ain't never seen nothing move that fast before, then a week later he just seen it happen again right in front of him."
+ANNOTATED LABELS (subset):
+- multiple-neg: {
+    "value": 1,
+    "rationale": "In 'ain't never seen nothing', 'ain't', 'never', and 'nothing' are all negative elements within the same clause, but they jointly express a single logical negation ('he has never seen anything like that'). This is the hallmark of multiple negation / negative concord."
+}
+- aint: {
+    "value": 1,
+    "rationale": "'ain't' here functions as a general negative auxiliary, standing in for 'hasn't'/'has not' with the participle 'seen' ('he hasn't ever seen anything'), rather than as a lexical main verb."
+}
+- past-tense-swap: {
+    "value": 1,
+    "rationale": "In 'he just seen it happen again', 'seen' (a participle form) is used as a simple past where SAE would require 'saw'. The time reference ('a week later' + event already completed) makes this a simple past, so this is a nonstandard substitution of a participle form in preterite position."
+}
+- verb-stem: {
+    "value": 0,
+    "rationale": "Neither 'seen' nor 'happen' is functioning as a bare-stem past: 'seen' is a participle used as simple past (captured by past-tense-swap), and 'happen' appears under 'seen it happen' without independent past marking. There is no clear case of a bare verb form directly realizing a past-time finite verb slot."
+}
 
 Use these as patterns for how to connect specific grammatical evidence to binary feature decisions.
 Do NOT reuse these sentences when analyzing the new target utterance.
 """
+
+
 
 # -------------------- UTILITIES --------------------
 
@@ -517,7 +442,10 @@ def build_system_msg(
             "AAE is a rule-governed, systematic language variety. You must analyze the input according to AAE's "
             "internal grammatical rules, not Standard American English (SAE) norms.\n"
             "Do NOT treat AAE constructions as 'incorrect' or 'broken' English; your job is to identify and justify "
-            "AAE patterns relative to SAE, not to correct them.\n\n"
+            "AAE patterns relative to SAE, not to correct them.\n"
+            "Informal or slangy English that could be spoken by many speakers (regardless of race) does NOT automatically "
+            "count as AAE. Only mark a feature as 1 if the utterance clearly matches the specific AAE morphosyntactic "
+            "pattern described in the decision rule.\n\n"
         )
     else:
         intro = (
@@ -544,20 +472,24 @@ def build_system_msg(
         "   - Focus each decision on that single element (e.g., for verb-stem, focus only on past meaning with bare verb; "
         "     for appositive-pleonastic-pronoun, focus only on redundant pronouns).\n"
         "3. MULTIPLE INTERPRETATIONS:\n"
-        "   - If more than one grammatical analysis is plausibly compatible with the utterance, briefly consider the strongest "
-        "     alternative.\n"
-        "   - Choose the decision (1 or 0) that is most consistent with the feature's decision rule.\n"
-        "   - If evidence is genuinely insufficient to decide, prefer precision over recall: output 0 and state that the "
-        "     structure is ambiguous.\n"
-    )
+        "   - If more than one grammatical analysis is genuinely possible based on the surface structure, briefly acknowledge the\n"
+        "     strongest alternative.\n"
+        "   - Then choose the label (1 or 0) that best satisfies the feature’s *explicit* decision rule.\n"
+        "   - If the utterance does not provide enough grammatical evidence to apply the rule, prefer precision over recall:\n"
+        "       output 0 and explain that the structure is grammatically underspecified.\n"
+        "   - Do NOT treat disfluencies, missing subjects, or casual phrasing as ambiguity unless they obscure the syntactic\n"
+        "     environment relevant to the feature.\n\n"
+        )
 
     if self_verification:
         base_content += (
-            "4. SELF-VERIFICATION (internal reliability check):\n"
-            "   - Before finalizing each feature's rationale or label, quickly check that:\n"
-            "       * You are using only grammatical facts from the sentence (word order, morphology, clause boundaries).\n"
-            "       * You are not relying on stereotypes or assumptions about what the speaker 'meant'.\n"
-            "       * You are not treating AAE patterns as errors; you are describing them structurally relative to SAE.\n\n"
+            "4. SELF-VERIFICATION (FINAL CHECK BEFORE OUTPUT):\n"
+            "   - For each feature, confirm that:\n"
+            "       * Your reasoning uses ONLY grammatical facts in the utterance—word order, morphology, clause structure, tense/aspect.\n"
+            "       * You are NOT filling in missing material with world knowledge, assumptions about intent, or reconstructed subjects.\n"
+            "       * You are NOT labeling a structure as an AAE feature merely because it differs from SAE or sounds informal.\n"
+            "         A feature must match its defined AAE grammatical pattern.\n"
+            "       * Your rationale explains *why* the rule either applies or does not apply, even if the label is 0.\n\n"
         )
     else:
         base_content += "\n"
@@ -565,17 +497,23 @@ def build_system_msg(
     base_content += (
         "EXPLICIT EVALUATION CONSTRAINTS:\n"
         "- Analyze ONLY syntax, morphology, and clause structure.\n"
-        "- Treat fillers and discourse markers (e.g., 'like', 'you know', 'I mean', 'uh', 'um') as non-grammatical material "
-        "  unless they clearly function as verbs, complementizers, or clause heads. Do NOT base feature decisions purely on fillers.\n"
+        "- Informal, conversational, or slang (including missing subjects, contractions, or casual phrasing) "
+        "  does NOT by itself imply an AAE feature. Only mark a feature when the specific AAE decision rule is satisfied.\n"
+        "- SUBJECT DROPS IN SPONTANEOUS SPEECH:\n"
+        "   - In conversational speech, speakers often omit subjects when they are pragmatically given.\n"
+        "   - If a clause has a clearly recoverable subject from the SAME utterance or the immediately preceding clause,you may treat that subject as syntactically present when relevant.\n"
+        "   - In these cases, compare the verb form to what SAE would require with that understood subject.\n"
+        "   - If no specific subject is clearly recoverable from the local context (the clause could be a fragment), prefer 0\n"
+        "     and briefly note that the structure is too fragmentary or ambiguous for a reliable feature decision.\n"
         "- For tense-related features (verb-stem, past-tense-swap, preterite-had, is-was-gen, zero-3sg-pres-s):\n"
-        "   - First determine the intended reference time (past vs present vs habitual) using explicit time adverbs, aspect markers, "
-        "     and discourse context.\n"
+        "   - First determine the intended reference time (past vs present vs habitual) using explicit time adverbs, aspect markers,\n"
+        "     and LOCAL discourse context (earlier/later clauses in the same utterance or the provided context sentences).\n"
         "   - Then compare the verb form to what SAE would require in that same context.\n"
         "   - Only mark the feature as 1 when the mismatch fits the defined AAE pattern.\n"
-        "- For 'BIN', 'done', and 'had', distinguish long-standing vs recent or pluperfect readings using context; mark the feature only when "
-        "  the specialized reading is clearly licensed by the utterance.\n"
-        "- Do NOT infer missing words or tense from plausibility in the real world; use only textual evidence.\n\n"
+        "- Do NOT infer missing words, tense, or subjects purely from real-world plausibility or stereotypes about what speakers\n"
+        "  'probably meant.' Use only the textual and local discourse evidence that is actually present in the given context.\n\n"
     )
+
 
     if "cot" in instruction_type:
         base_content += (
@@ -793,6 +731,7 @@ def query_gpt(
         self_verification=self_verification,
         require_rationales=require_rationales,
     )
+
 
     input_tokens = sum(len(enc_obj.encode(msg["content"])) for msg in messages)
     total_input_tokens += input_tokens
