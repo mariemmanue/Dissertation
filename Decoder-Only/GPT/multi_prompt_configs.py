@@ -19,41 +19,6 @@ api_call_count = 0
 
 # ICL commands
 """
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt-icl-exp1 \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python multi_prompt_configs.py \
-     --file data/Test1.xlsx \
-     --sheet Exp1-ICL \
-     --instruction_type icl \
-     --block_examples \
-     --self_verification \
-     --dialect_legitimacy \
-     --output_dir data/results"
-
-
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt-icl-exp2 \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
-   mkdir -p slurm_logs data/results && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   export HF_HOME=/nlp/scr/mtano/hf_home && \
-   python multi_prompt_configs.py \
-     --file data/Test1.xlsx \
-     --sheet Exp2-ICL \
-     --extended \
-     --instruction_type icl \
-     --block_examples \
-     --self_verification \
-     --dialect_legitimacy \
-     --output_dir data/results"
 """
 
 OPENAI_MODEL_NAME = "gpt-5"
@@ -305,7 +270,7 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     Decision rule (single element: NON-SAE TENSE FORM SUBSTITUTED IN SIMPLE PAST OR PAST PARTICIPLE POSITION):  
     Mark 1 when:
       • A past participle form is used as a simple past (e.g., seen, done, went as preterites), OR
-      • A regularized past is used where an irregular past is expected, and the clause refers to a simple past event (not pluperfect).
+      • A regularized past is used where an irregular past is expected, and the clause refers to a simple past event.
     + Example (label = 1): "I seen him yesterday." (past participle 'seen' used as preterite)
     – Miss (label = 0): "I saw him yesterday." (standard preterite)
     Ambiguity note:
