@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import glob
 import seaborn as sns
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Sequence
 from gpt_experiments import (
     EXTENDED_FEATURES,
     MASIS_FEATURES,
@@ -17,10 +17,6 @@ feat_thresholds = {
 
 output_dir = "data/results"
 os.makedirs(output_dir, exist_ok=True)
-
-def try_load_sheet(sheets, sheet_name):
-    return sheets[sheet_name] if sheet_name in sheets else None
-
 
 def drop_features_column(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=['FEATURES', 'Source'], errors='ignore')
@@ -34,6 +30,7 @@ def combine_wh_qu(df):
         df["wh_qu"] = df[["wh_qu1", "wh_qu2"]].max(axis=1)
         df = df.drop(columns=["wh_qu1", "wh_qu2"])
     return df
+
 
 
 def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
@@ -89,6 +86,55 @@ def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_d
         out_df = out_df.head(max_rows)
     return out_df
 
+def plot_overall_micro_f1_scores(
+    eval_dfs: List[pd.DataFrame],
+    save_path: Optional[str] = None,
+    figsize: tuple = (10, 8),
+    align: Literal["union", "intersection"] = "intersection",
+):
+    # Optionally restrict to shared features only
+    if align == "intersection":
+        shared = None
+        for df in eval_dfs:
+            feats = set(df["feature"].unique())
+            shared = feats if shared is None else shared.intersection(feats)
+        shared = shared or set()
+        filtered = []
+        for df in eval_dfs:
+            filtered.append(df[df["feature"].isin(shared)].copy())
+        eval_dfs = filtered
+        print(f"[micro-F1] Using {len(shared)} shared features: {sorted(shared)}")
+
+    micro_scores = {}
+    for df in eval_dfs:
+        if df.empty:
+            continue
+        model = df["model"].iloc[0]
+        TP = int(df["TP"].sum())
+        FP = int(df["FP"].sum())
+        FN = int(df["FN"].sum())
+
+        denom = (2 * TP + FP + FN)
+        micro_f1 = (2 * TP / denom) if denom > 0 else 0.0
+        micro_scores[model] = micro_f1
+
+    out = pd.DataFrame.from_dict(micro_scores, orient="index", columns=["micro_F1"])
+    out = out.sort_values("micro_F1", ascending=False)
+
+    ax = out.plot(kind="bar", figsize=figsize, legend=False)
+    ax.set_ylabel("micro-F1")
+    ax.set_title(
+        "Overall micro-F1 by model (shared features only)"
+        if align == "intersection"
+        else "Overall micro-F1 by model (each model’s evaluated features; not strictly comparable)"
+    )
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.show()
+
+
 
 def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str] = None, figsize: tuple = (10, 8), align: Literal["union", "intersection"] = "intersection"):
     """
@@ -137,7 +183,11 @@ def plot_overall_f1_scores(eval_dfs: List[pd.DataFrame], save_path: Optional[str
 
     ax = overall_f1_df.plot(kind='bar', figsize=figsize, legend=False)
     ax.set_ylabel('F1 Score')
-    ax.set_title('Overall F1 Scores by Model (Shared Features Only)' if align == "intersection" else 'Overall F1 Scores by Model')
+    ax.set_title(
+    "Overall F1 Scores by Model (shared features only)"
+    if align == "intersection"
+    else "Overall F1 Scores by Model (each model’s evaluated features; not strictly comparable)"
+    )
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
 
@@ -389,56 +439,65 @@ def plot_model_metrics(
     else:
         raise ValueError("style must be 'bar' or 'heatmap'")
 
-def plot_aggregated_confusion_matrix(cm_data, model_name, save_path=None):
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm_data, annot=True, fmt='d', cmap='Blues', xticklabels=["Predicted Positive", "Predicted Negative"], yticklabels=["Actual Positive", "Actual Negative"])
-    plt.title(f'Aggregated Confusion Matrix for {model_name}')
-    plt.xlabel('Predicted')
-    plt.ylabel('Actual')
-    plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.show()
-
-def build_error_df(model_df: pd.DataFrame, gold_df: pd.DataFrame, features: list[str], model_name: str) -> pd.DataFrame:
+def build_error_df(
+    model_df: pd.DataFrame,
+    gold_df: pd.DataFrame,
+    features: list[str],
+    model_name: str,
+    rationale_df: Optional[pd.DataFrame] = None,
+) -> pd.DataFrame:
     model_sub = model_df.copy()
     gold_sub = gold_df.copy()
-    
+
     model_sub = combine_wh_qu(model_sub)
     gold_sub = combine_wh_qu(gold_sub)
 
-    needed_cols = ["sentence"] + [feat for feat in features if feat in model_sub.columns and feat in gold_sub.columns]
+    needed_cols = ["sentence"] + [f for f in features if f in model_sub.columns and f in gold_sub.columns]
     model_sub = model_sub[needed_cols].copy()
     gold_sub = gold_sub[needed_cols].copy()
 
     merged = gold_sub.merge(model_sub, on="sentence", suffixes=("_gold", "_pred"))
 
+    # Build a fast lookup: (sentence, feature) -> rationale text
+    rat_lookup = {}
+    if rationale_df is not None and "sentence" in rationale_df.columns:
+        r = rationale_df.copy()
+        r["sentence"] = r["sentence"].astype(str).str.strip()
+        for feat in features:
+            if feat in r.columns:
+                # If rationale cells are NaN, treat as ""
+                rat_lookup.update({
+                    (sent, feat): (txt if pd.notna(txt) else "")
+                    for sent, txt in zip(r["sentence"].tolist(), r[feat].tolist())
+                })
+
     rows = []
     for _, row in merged.iterrows():
+        sent = row["sentence"]
         for feat in features:
             gold_col = f"{feat}_gold"
             pred_col = f"{feat}_pred"
-
             if gold_col not in row or pred_col not in row:
                 continue
 
-            gold_val = row.get(gold_col, None)
-            pred_val = row.get(pred_col, None)
-
-            if pd.isna(gold_val) or pd.isna(pred_val):
+            gv = row[gold_col]
+            pv = row[pred_col]
+            if pd.isna(gv) or pd.isna(pv):
                 continue
 
-            if int(gold_val) != int(pred_val):
+            gv = int(gv); pv = int(pv)
+            if gv != pv:
                 rows.append({
                     "model": model_name,
-                    "sentence": row["sentence"],
+                    "sentence": sent,
                     "feature": feat,
-                    "gold": int(gold_val),
-                    "pred": int(pred_val),
+                    "gold": gv,
+                    "pred": pv,
+                    "model_rationale": rat_lookup.get((str(sent).strip(), feat), ""),
                 })
 
     return pd.DataFrame(rows)
+
 
 def safe_sheet_name(name: str, max_len: int = 31) -> str:
     """
@@ -476,6 +535,81 @@ def detect_feature_set(sheet_name: str, df: pd.DataFrame) -> Optional[str]:
         return "masis"
 
     return None  # no clear mapping
+
+# keep your dict name, but use it consistently
+feat_thresholds = {"multiple-neg": 0.5}
+
+def binarize_if_probabilistic(df: pd.DataFrame, features: list[str], model_name: str):
+    out = df.copy()
+    for feat in features:
+        if feat not in out.columns:
+            continue
+        s = out[feat]
+
+        uniq = set(pd.Series(s.dropna()).unique().tolist())
+        if uniq.issubset({0, 1, 0.0, 1.0, True, False}):
+            out[feat] = pd.to_numeric(s, errors="coerce").fillna(0).astype(int)
+            continue
+
+        vals = pd.to_numeric(s, errors="coerce")
+        if vals.notna().sum() == 0:
+            continue  # don't clobber
+
+        thr = feat_thresholds.get(feat, 0.5)
+        out[feat] = (vals >= thr).astype(int)
+
+    return out
+
+
+METRICS_DEFAULT = ("precision", "recall", "f1")
+
+def safe_pivot_get(pivot: pd.DataFrame, metric: str, level: str) -> pd.Series:
+    """Return pivot[(metric, level)] if it exists, else NaNs aligned to pivot.index."""
+    key = (metric, level)
+    if key in pivot.columns:
+        return pivot[key]
+    return pd.Series(index=pivot.index, data=pd.NA, dtype="float64")
+
+def compute_pairwise_deltas(
+    df: pd.DataFrame,
+    *,
+    index_cols: Sequence[str],
+    factor_col: str,
+    a_level: str,
+    b_level: str,
+    metrics: Sequence[str] = METRICS_DEFAULT,
+    require_metric: str = "f1",     # which metric defines “paired / even”
+    aggfunc: str = "first",
+    prefix: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Build pivot over `factor_col` and compute (b_level - a_level) deltas for each metric.
+    Filters to rows where both levels exist (paired) using `require_metric`.
+    """
+    # pivot: index_cols x factor_col -> metrics
+    pivot = df.pivot_table(
+        index=list(index_cols),
+        columns=factor_col,
+        values=list(metrics),
+        aggfunc=aggfunc
+    )
+
+    # evenness / pairing filter
+    have_both = safe_pivot_get(pivot, require_metric, a_level).notna() & safe_pivot_get(pivot, require_metric, b_level).notna()
+    pivot = pivot[have_both]
+
+    out = {}
+    for m in metrics:
+        d = safe_pivot_get(pivot, m, b_level) - safe_pivot_get(pivot, m, a_level)
+        colname = f"d_{m}_{b_level}_minus_{a_level}"
+        if prefix:
+            colname = f"{prefix}{colname}"
+        out[colname] = d
+
+    deltas = pd.DataFrame(out).reset_index()
+    return deltas
+
+
 
 def evaluate_sheets(file_path: str):
     print(f"\n===============================")
@@ -518,23 +652,14 @@ def evaluate_sheets(file_path: str):
             continue
 
         # Only treat BERT_*/GPT_* as model prediction sheets
-        if not (sheet_name.startswith("GPT_") or sheet_name.startswith("BERT_")):
+        name_up = sheet_name.upper()
+        if not (name_up.startswith("GPT_") or name_up.startswith("BERT_") or name_up.startswith("ROBERTA_") or name_up.startswith("MODERNBERT_")):
             continue
+
 
         df = drop_features_column(df_raw).dropna(subset=["sentence"])
         df = combine_wh_qu(df)
         df = df.drop_duplicates(subset="sentence")
-
-        # If BERT sheet: threshold any probabilistic columns into binary
-        if sheet_name.startswith("BERT_"):
-            for feat in MASIS_FEATURES + EXTENDED_FEATURES:
-                if feat in df.columns:
-                    try:
-                        thr = feat_thresholds.get(feat, 0.5)
-                        df[feat] = (df[feat].astype(float) >= thr).astype(int)
-                    except Exception:
-                        # If cast fails, just leave column as-is
-                        pass
 
         model_sheets[sheet_name] = df
 
@@ -552,27 +677,36 @@ def evaluate_sheets(file_path: str):
             print(f"[SKIP] {sheet_name}: could not determine feature set.")
             continue
 
-        if feature_set == "masis":
-            features = MASIS_FEATURES
-        else:
-            features = EXTENDED_FEATURES
+        features = MASIS_FEATURES if feature_set == "masis" else EXTENDED_FEATURES
+
+        # binarize probabilities (BERT / RoBERTa / etc) safely
+        model_df = binarize_if_probabilistic(model_df, features, sheet_name)
+        if any(k in sheet_name.upper() for k in ["BERT", "ROBERTA", "MODERNBERT"]):
+            for feat in features:
+                if feat in model_df.columns:
+                    u = set(model_df[feat].dropna().unique().tolist())
+                    if not u.issubset({0,1}):
+                        print(f"[WARN] {sheet_name} feature {feat} not binary after binarize: {sorted(list(u))[:10]}")
+                        break
+        model_sheets[sheet_name] = model_df
 
         print(f"\n--- Evaluating model sheet: {sheet_name} "
-              f"(feature set: {feature_set}, {len(features)} features) ---")
+            f"(feature set: {feature_set}, {len(features)} features) ---")
 
         model_eval = evaluate_model(
             model_df=model_df,
             truth_df=gold_df,
-            model_name=sheet_name,   # use sheet name as model identifier
+            model_name=sheet_name,
             features=features,
             output_base=output_base,
         )
+
 
         if not model_eval.empty:
             eval_results.append(model_eval)
 
             # Build error dataframe for this model
-            err_df = build_error_df(model_df, gold_df, features, model_name=sheet_name)
+            err_df = build_error_df(model_df, gold_df, features, model_name=sheet_name, rationale_df=rationale_sheets.get(sheet_name))
             per_model_errors[sheet_name] = err_df
 
             # Optionally: build annotated rationales if we have them
@@ -593,11 +727,98 @@ def evaluate_sheets(file_path: str):
                 except Exception as e:
                     print(f"[WARN] Could not build annotated rationales for {sheet_name}: {e}")
 
+
     # If no successful evaluations, nothing else to do
     eval_results = [df for df in eval_results if not df.empty]
     if not eval_results:
         print("[WARN] No non-empty evaluation results.")
         return
+
+    all_eval = pd.concat(eval_results, ignore_index=True)
+
+    gpt_eval = all_eval[all_eval["model"].str.upper().str.startswith("GPT_")].copy()
+
+    if gpt_eval.empty:
+        print("[WARN] No GPT_* model rows found; skipping GPT-only analyses (means/vars/deltas).")
+    else:
+        # ---- GPT means / vars ----
+        mean_f1_per_feature = (
+            gpt_eval.groupby("feature")["f1"]
+            .mean()
+            .sort_values(ascending=False)
+            .reset_index(name="mean_f1_gpt")
+        )
+        mean_f1_per_feature.to_csv(os.path.join(output_base, "gpt_mean_f1_per_feature.csv"), index=False)
+
+        var_f1_per_feature = (
+            gpt_eval.groupby("feature")["f1"]
+            .var(ddof=1)
+            .reset_index(name="var_f1_gpt")
+        )
+        var_f1_per_feature.to_csv(os.path.join(output_base, "gpt_var_f1_per_feature.csv"), index=False)
+
+        # ---- parse GPT condition factors ----
+        def parse_ctx(model: str):
+            m = model.upper()
+            if "_NOCTX" in m:
+                return "noCTX"
+            if "_CTX" in m:
+                return "CTX"
+            return None
+
+        def parse_gpt_conditions(model: str) -> dict:
+            m = model.upper()
+            return {
+                "feature_set": "17" if "_17_" in m else ("25" if "_25_" in m else None),
+                "instr": "FSCOT" if "_FSCOT_" in m else ("ZS" if "_ZS_" in m else None),
+                "ctx": parse_ctx(model),
+            }
+
+        gpt_eval[["feature_set", "instr", "ctx"]] = (
+            gpt_eval["model"].apply(lambda x: pd.Series(parse_gpt_conditions(x)))
+        )
+
+        # drop rows we can't parse cleanly (prevents weird NaN pivots)
+        gpt_eval = gpt_eval.dropna(subset=["feature_set", "instr", "ctx"])
+
+        # ---- shared features across all GPT models (evenness) ----
+        shared = None
+        for _, sub in gpt_eval.groupby("model"):
+            feats = set(sub["feature"].unique())
+            shared = feats if shared is None else (shared & feats)
+        shared = shared or set()
+
+        gpt_shared = gpt_eval[gpt_eval["feature"].isin(shared)].copy()
+
+        # ---- ZS -> FSCOT deltas ----
+        delta_instr = compute_pairwise_deltas(
+            gpt_shared,
+            index_cols=["feature", "feature_set"],
+            factor_col="instr",
+            a_level="ZS",
+            b_level="FSCOT",
+            metrics=("precision", "recall", "f1"),
+            require_metric="f1",
+            aggfunc="mean",   # <- future-proof for repeats/seeds
+        )
+        delta_instr.to_csv(os.path.join(output_base, "delta_ZS_to_FSCOT_per_feature.csv"), index=False)
+
+        # ---- noCTX -> CTX deltas ----
+        delta_ctx = compute_pairwise_deltas(
+            gpt_shared,
+            index_cols=["feature", "feature_set", "instr"],
+            factor_col="ctx",
+            a_level="noCTX",
+            b_level="CTX",
+            metrics=("precision", "recall", "f1"),
+            require_metric="f1",
+            aggfunc="mean",   # <- future-proof for repeats/seeds
+        )
+
+        out_csv = os.path.join(output_base, "delta_CTX_per_feature.csv")
+        delta_ctx.to_csv(out_csv, index=False)
+        print(f"[INFO] Wrote {out_csv} ({len(delta_ctx)} rows)")
+
 
     # ---- 4. Cross-model COMPARISONS (even, intersection-based) ----
     # Use intersection alignment so we only compare on features
@@ -630,12 +851,32 @@ def evaluate_sheets(file_path: str):
         save_path=os.path.join(output_base, f"{all_models_label}_Overall_F1_intersection.png"),
     )
 
+    # (b2) Overall F1 — FULL per model (each model’s evaluated features)
+    plot_overall_f1_scores(
+        eval_dfs=eval_results,
+        align="union",
+        save_path=os.path.join(output_base, f"{all_models_label}_Overall_F1_full_union.png"),
+    )
+
     # (c) Per-feature F1 scores (heatmap) over shared features only
     plot_f1_scores_per_feature(
-        eval_dfs=eval_results,
+        eval_dfs=eval_results, 
         align="intersection",
         save_path=os.path.join(output_base, f"{all_models_label}_Per_Feature_F1_intersection.png"),
     )
+
+    plot_overall_micro_f1_scores(
+        eval_dfs=eval_results,
+        align="intersection",
+        save_path=os.path.join(output_base, f"{all_models_label}_MicroF1_intersection.png"),
+    )
+
+    plot_overall_micro_f1_scores(
+        eval_dfs=eval_results,
+        align="union",
+        save_path=os.path.join(output_base, f"{all_models_label}_MicroF1_full_union.png"),
+    )
+
 
     # ---- 5. Error aggregation across models ----
     all_errors = pd.concat(per_model_errors.values(), ignore_index=True) if per_model_errors else pd.DataFrame()
