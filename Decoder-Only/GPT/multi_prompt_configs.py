@@ -1,16 +1,17 @@
 # gpt_experiments.py
 import os
 import pandas as pd
-from collections import defaultdict
 import csv
 import json
+import re
 import time
 from tqdm import tqdm
-import getpass
 
 from openai import OpenAI
 import tiktoken
 import argparse
+import math
+
 
 # Initialize global variables
 total_input_tokens = 0
@@ -61,10 +62,11 @@ MASIS_FEATURE_BLOCK = """
    Decision rule (single element: COPULAR / AUXILIARY BE DELETION):
    Mark 1 when a form of BE (is/are/was/were) that SAE requires is missing:
      (a) between a subject and a predicate (NP, AdjP, PP), OR
-     (b) before a V-ing verb in a progressive construction,
+    (b) before a V-ing verb in a progressive construction, OR
+    (c) before a preverbal future/near-future marker such as finna (“fixing to”),
    AND the material forms a single clause (not obviously subordinate or a list fragment).
-   + Example (label = 1): "She finna eat." (missing 'is' between subject and V-ing (finna = fixing to))
-   - Miss (label = 0): "No problem." (formulaic fragment; no clear subject–predicate copula slot)
+   + Example (label = 1): "She finna eat." (missing 'is' before preverbal finna marker; SAE: "She is finna eat.")
+   - Miss (label = 0): "No problem." (fragment; no clear subject–predicate copula slot)
    Ambiguity note:
    • If the utterance can be read as a fragment or headline where SAE might also drop BE, prefer 0 and explain.
 
@@ -149,8 +151,8 @@ MASIS_FEATURE_BLOCK = """
 12. aint
     Decision rule (single element: GENERAL NEGATOR 'AIN'T'):
     Mark 1 when 'ain’t' is used as a general negative auxiliary for BE, HAVE, or DO, or as a general clausal negator, rather than as a lexical verb.
-    + Example (1): "She ain't here." (negated copula)
-    - Miss (0): "She isn't here." (not 'ain’t')
+    + Example (label = 1): "She ain't here." (negated copula)
+    - Miss (label = 0): "She isn't here." (not 'ain’t')
 
 13. zero-3sg-pres-s
     Decision rule (single element: MISSING -S ON 3SG PRESENT VERB):
@@ -330,7 +332,7 @@ ANNOTATED LABELS (subset):
     "value": 1,
     "rationale": "In 'threwed him a quick jab and a hard hook', the verb 'threwed' is followed by the indirect object 'him' and then a direct object NP ('a quick jab and a hard hook') with no preposition introducing the recipient. This is a verb + two NP objects pattern, characteristic of the double-object construction."
 }
-- verb-stem-past: {
+- verb-stem: {
     "value": 1,
     "rationale": "The sentence describes a single past-time event established by the past-tense context ('threwed him...'). The coordinated verbs 'spin' and 'walk' appear in bare-stem form instead of the SAE narrative-past forms ('spun', 'walked'). Because the temporal reference has already been set to the past, the bare verbs function as past-time predicates, matching the AAE bare-stem past pattern."
 }
@@ -382,7 +384,7 @@ def strip_examples_from_block(block: str) -> str:
         s = line.lstrip()
         if s.startswith("+ Example"):
             continue
-        if s.startswith("- Miss") or s.startswith("– Miss"):
+        if s.startswith(("- Miss", "– Miss", "— Miss")):
             continue
         stripped_lines.append(line)
     return "\n".join(stripped_lines)
@@ -392,6 +394,7 @@ def build_system_msg(
     instruction_type: str,
     dialect_legitimacy: bool,
     self_verification: bool,
+    use_context: bool,  
 ) -> dict:
     """
     Build the system message.
@@ -479,6 +482,16 @@ def build_system_msg(
         "  'probably meant.' Use only the textual and local discourse evidence that is actually present in the given context.\n\n"
     )
 
+    # ---- ONLY when context is enabled ----
+    if use_context:
+        base_content += (
+            "- CONTEXT USE (if provided):\n"
+            "   - You may use PREV/NEXT sentence context ONLY to resolve:\n"
+            "       * recoverable subject in the SAME utterance chain,\n"
+            "       * explicit temporal reference (past vs present) when stated in context.\n"
+            "   - Do NOT use context to invent missing words or to infer events not stated.\n\n"
+        )
+
 
     if "cot" in instruction_type:
         base_content += (
@@ -496,14 +509,10 @@ def build_system_response_instructions(
     features: list[str],
     instruction_type: str,
     require_rationales: bool,
+    context_block: str | None = None,   # <-- NEW
 ) -> str:
     feature_list_str = ", ".join(f'"{f}"' for f in features)
 
-    extra_cot_line = ""
-    if "cot" in instruction_type:
-        extra_cot_line = (
-            "- Internally, you may reason step by step before deciding each feature, but do NOT print the steps.\n"
-        )
 
     if require_rationales:
         output_format = (
@@ -529,7 +538,6 @@ def build_system_response_instructions(
             "Do NOT include any explanation outside of this single top-level JSON object.\n"
         )
     else:
-        # LABEL-ONLY CONDITION: flat JSON from feature -> 0/1, no rationale requests.
         output_format = (
             "OUTPUT FORMAT (STRICT, LABEL-ONLY):\n"
             "- Return ONLY a single JSON object.\n"
@@ -548,18 +556,48 @@ def build_system_response_instructions(
             "Do NOT include any explanation outside of this single top-level JSON object.\n"
         )
 
+    context_section = ""
+    if context_block:
+        context_section = (
+            "CONTEXT (use only as permitted by system instructions):\n"
+            f"{context_block}\n\n"
+        )
+
     return (
-        "Now analyze this utterance strictly according to the rules above:\n"
-        f"UTTERANCE: {utterance}\n\n"
+        "Now analyze the target utterance strictly according to the rules above.\n\n"
+        f"{context_section}"
+        f"UTTERANCE (target): {utterance}\n\n"
         "TASK:\n"
         "- For EACH feature in the list below, decide whether it is present (1) or absent (0) IN THIS UTTERANCE.\n"
         "- Treat each feature as a separate, small, task-grounded question about ONE semantic/grammatical element "
         "(e.g., possession, habitual aspect, negation configuration, WH word order, tense/aspect of the main verb).\n"
         "- Apply the procedure before making each binary decision.\n"
-        f"{extra_cot_line}\n"
         f"FEATURE KEYS (in required order):\n[{feature_list_str}]\n\n"
         f"{output_format}"
     )
+
+def has_usable_context(left_context: str | None, right_context: str | None) -> bool:
+    return bool(_clean_ctx(left_context) or _clean_ctx(right_context))
+
+def _clean_ctx(x):
+    if x is None:
+        return None
+    if isinstance(x, float) and math.isnan(x):
+        return None
+    s = str(x).strip()
+    return s if s else None
+
+def format_context_block(left_context: str | None, right_context: str | None) -> str:
+    left_context = _clean_ctx(left_context)
+    right_context = _clean_ctx(right_context)
+
+    lines = []
+    if left_context:
+        lines.append(f"PREV SENTENCE (context): {left_context}")
+    if right_context:
+        lines.append(f"NEXT SENTENCE (context): {right_context}")
+    return "\n".join(lines)
+
 
 
 def build_messages(
@@ -571,37 +609,63 @@ def build_messages(
     use_context: bool = False,
     left_context: str | None = None,
     right_context: str | None = None,
+    context_mode: str = "single_turn",   # <-- NEW
     use_icl_examples: bool = False,
     dialect_legitimacy: bool = False,
     self_verification: bool = False,
     require_rationales: bool = True,
-) -> list[dict]:
-    """
-    Build the full messages list for the OpenAI ChatCompletion API.
-    - instruction_type: one of ["zero_shot", "icl", "zero_shot_cot", "few_shot_cot"]
-    - include_examples_in_block: whether the feature block should retain + Example / - Miss lines.
-      NOTE: For zero_shot / zero_shot_cot we forcibly strip examples regardless of this flag.
-    - use_icl_examples: if True, append a separate FEW-SHOT section before the response instructions.
-    """
+) -> tuple[list[dict], str]:
 
     system_msg = build_system_msg(
         instruction_type=instruction_type,
         dialect_legitimacy=dialect_legitimacy,
         self_verification=self_verification,
+        use_context=use_context,
     )
 
-    # Enforce: zero-shot conditions never get examples embedded in the feature block
     effective_include_examples = include_examples_in_block
     if instruction_type in ["zero_shot", "zero_shot_cot"]:
         effective_include_examples = False
 
-    if effective_include_examples:
-        feature_block = base_feature_block
-    else:
-        feature_block = strip_examples_from_block(base_feature_block)
+    feature_block = base_feature_block if effective_include_examples else strip_examples_from_block(base_feature_block)
 
+    # Build context block text once
+    context_block = None
+    if use_context:
+        cb = format_context_block(left_context, right_context)
+        if cb.strip():
+            context_block = cb
+
+    # === Condition B: context in its own earlier user message ===
+    if use_context and context_block and context_mode == "two_turn":
+        context_msg = {
+            "role": "user",
+            "content": (
+                "CONTEXT (do NOT analyze yet; this is NOT the target utterance).\n"
+                "Use only as permitted by the system instructions.\n\n"
+                f"{context_block}"
+            ),
+        }
+
+        # Main task message contains NO embedded context
+        parts = [feature_block]
+        if use_icl_examples:
+            parts.append(ICL_EXAMPLES_BLOCK)
+
+        response_instructions = build_system_response_instructions(
+            utterance=utterance,
+            features=features,
+            instruction_type=instruction_type,
+            require_rationales=require_rationales,
+            context_block=None,  # important: keep empty here for the two-turn condition
+        )
+        parts.append(response_instructions)
+
+        task_msg = {"role": "user", "content": "\n\n".join(parts)}
+        return [system_msg, context_msg, task_msg], "two_turn"
+
+    # === Condition A (default): single user message (your current approach) ===
     parts = [feature_block]
-
     if use_icl_examples:
         parts.append(ICL_EXAMPLES_BLOCK)
 
@@ -610,16 +674,13 @@ def build_messages(
         features=features,
         instruction_type=instruction_type,
         require_rationales=require_rationales,
+        context_block=context_block if (use_context and context_block) else None,
     )
     parts.append(response_instructions)
 
-    user_msg = {
-        "role": "user",
-        "content": "\n\n".join(parts),
-    }
-    return [system_msg, user_msg]
-
-
+    user_msg = {"role": "user", "content": "\n\n".join(parts)}
+    
+    return [system_msg, user_msg], "single_turn"
 # -------------------- USAGE SUMMARY --------------------
 
 def print_final_usage_summary():
@@ -633,17 +694,62 @@ def print_final_usage_summary():
     print("===================================\n")
 
 
+def _extract_first_json_object(text: str) -> str | None:
+    """
+    Best-effort: find the first top-level {...} JSON object in a messy string.
+    Handles leading text, code fences, etc. Does NOT fix invalid JSON (e.g., single quotes).
+    """
+    if not text:
+        return None
+
+    # Strip common code fences quickly
+    text = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.IGNORECASE)
+    text = re.sub(r"\s*```$", "", text.strip())
+
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        else:
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:i+1]
+    return None
+
+
 def parse_output_json(raw_str: str, features: list[str]):
-    """
-    Supports BOTH:
-    - Nested JSON: {feat: {"value": 0/1, "rationale": "..."}}
-    - Flat JSON:   {feat: 0/1}
-    """
-    data = json.loads(raw_str)
+    try:
+        data = json.loads(raw_str)
+    except json.JSONDecodeError:
+        candidate = _extract_first_json_object(raw_str)
+        if not candidate:
+            raise
+        data = json.loads(candidate)
 
     vals = {}
     rats = {}
+    missing = []
     for feat in features:
+        if feat not in data:
+            missing.append(feat)
+
         entry = data.get(feat, {})
         if isinstance(entry, (int, float)):
             vals[feat] = int(entry)
@@ -652,10 +758,13 @@ def parse_output_json(raw_str: str, features: list[str]):
             vals[feat] = int(entry.get("value", 0))
             rats[feat] = str(entry.get("rationale", "")).strip()
         else:
-            # Fallback: treat as missing / 0
             vals[feat] = 0
             rats[feat] = ""
-    return vals, rats
+
+
+
+    return vals, rats, missing
+
 
 
 # -------------------- GPT QUERY --------------------
@@ -672,23 +781,29 @@ def query_gpt(
     use_context: bool = False,
     left_context: str | None = None,
     right_context: str | None = None,
+    context_mode: str = "single_turn",
     dialect_legitimacy: bool = False,
     self_verification: bool = False,
     require_rationales: bool = True,
+    dump_prompt: bool = False,
+    dump_prompt_path: str | None = None,
+    dump_once_key: str | None = None,
     max_retries: int = 15,
     base_delay: int = 3,
-) -> str | None:
+) -> tuple[str | None, str]:
+
     global api_call_count, total_input_tokens, total_output_tokens
 
     use_icl_examples = instruction_type in ["icl", "few_shot_cot"]
 
-    messages = build_messages(
+    messages, arm_used = build_messages(
         utterance=sentence,
         features=features,
         base_feature_block=base_feature_block,
         instruction_type=instruction_type,
         include_examples_in_block=include_examples_in_block,
         use_context=use_context,
+        context_mode=context_mode,
         left_context=left_context,
         right_context=right_context,
         use_icl_examples=use_icl_examples,
@@ -696,7 +811,21 @@ def query_gpt(
         self_verification=self_verification,
         require_rationales=require_rationales,
     )
+    # ---- DEBUG: dump exact prompt payload ----
+    if dump_prompt and dump_once_key and os.environ.get(dump_once_key, "0") != "1":
+        os.environ[dump_once_key] = "1"
 
+        payload = {
+            "model": OPENAI_MODEL_NAME,
+            "messages": messages,
+        }
+        print("\n===== PROMPT DUMP (exact API payload) =====")
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print("===== END PROMPT DUMP =====\n")
+
+        if dump_prompt_path:
+            with open(dump_prompt_path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
 
     input_tokens = sum(len(enc_obj.encode(msg["content"])) for msg in messages)
     total_input_tokens += input_tokens
@@ -705,6 +834,8 @@ def query_gpt(
         try:
             resp = client.chat.completions.create(
                 model=OPENAI_MODEL_NAME,
+                temperature=0,
+                top_p=1,
                 messages=messages,
             )
 
@@ -720,7 +851,7 @@ def query_gpt(
                 f"Output Tokens: {output_tokens} | "
                 f"Total: {total_input_tokens + total_output_tokens}"
             )
-            return output_text
+            return output_text, arm_used
 
         except Exception as e:
             if "429" in str(e) or "rate" in str(e).lower():
@@ -729,21 +860,22 @@ def query_gpt(
                 time.sleep(wait_time)
             else:
                 print(f"Error on sentence: {sentence[:40]}... = {e}")
-                return None
+                return None, arm_used
 
     print(f"Failed after {max_retries} retries.")
-    return None
+    return None, arm_used
 
 
 # -------------------- MAIN --------------------
 
 def main():
+    dump_once_key = "DUMPED_PROMPT_ONCE"
     # Argument Parsing
     parser = argparse.ArgumentParser(description="Run GPT Experiments for AAE feature annotation.")
     parser.add_argument("--file", type=str, help="Input Excel file path", required=True)
     parser.add_argument("--sheet", type=str, help="Sheet name to write GPT predictions into", required=True)
     parser.add_argument("--extended", action="store_true", help="Use extended feature set (NEW_FEATURE_BLOCK + EXTENDED_FEATURES)")
-    parser.add_argument("--context", action="store_true", help="(Optional) Use prev/next sentence context from Gold sheet if available (currently not injected).")
+    parser.add_argument("--context", action="store_true", help="(Optional) Use prev/next sentence context from Gold sheet if available.")
     parser.add_argument(
         "--instruction_type",
         type=str,
@@ -772,11 +904,40 @@ def main():
         help="If set, request flat JSON labels (0/1 only) with NO rationales.",
     )
     parser.add_argument("--output_dir", type=str, help="Output directory for CSV/Excel results", required=True)
+    parser.add_argument("--dump_prompt", action="store_true",
+                        help="Print the exact messages payload sent to the API (first example only).")
+    parser.add_argument("--dump_prompt_path", type=str, default=None,
+                        help="Optional path to write dumped prompt JSON (e.g., /tmp/prompt.json).")
+    parser.add_argument(
+        "--context_mode",
+        type=str,
+        choices=["single_turn", "two_turn"],
+        default="single_turn",
+        help="How to inject context when --context is set."
+    )
     args = parser.parse_args()
+
 
     file_title = os.path.splitext(os.path.basename(args.file))[0]
     out_dir = os.path.join(args.output_dir, file_title)
     os.makedirs(out_dir, exist_ok=True)
+
+    meta_path = os.path.join(out_dir, args.sheet + "_meta.csv")
+    if not os.path.exists(meta_path):
+        with open(meta_path, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerow(["idx","sentence","use_context_requested","has_usable_context",
+                        "requested_context_mode","arm_used","parse_status",
+                        "missing_key_count","missing_keys"])
+
+    def write_meta(idx, sentence, usable, arm_used, parse_status, missing_count="", missing_keys=""):
+        with open(meta_path, "a", newline="", encoding="utf-8") as f:
+            use_ctx_req = int(args.context)
+            requested = args.context_mode if args.context else ""
+            csv.writer(f).writerow([
+                idx, sentence, use_ctx_req, int(usable), requested, arm_used,
+                parse_status, missing_count, missing_keys
+            ])
+
 
     sheets = pd.read_excel(args.file, sheet_name=None)
     gold_df = sheets["Gold"]
@@ -791,7 +952,7 @@ def main():
         raise ValueError("Please set the OPENAI_API_KEY environment variable.")
 
     client = OpenAI(api_key=openai_api_key)
-    enc_obj = tiktoken.get_encoding("p50k_base")
+    enc_obj = tiktoken.encoding_for_model(OPENAI_MODEL_NAME)
 
     USE_EXTENDED = args.extended
     CURRENT_FEATURES = EXTENDED_FEATURES if USE_EXTENDED else MASIS_FEATURES
@@ -818,18 +979,28 @@ def main():
 
     results = []
     rationale_rows = []
+    
+    usable_ctx_count = 0
+    used_two_turn_count = 0
+    used_single_turn_count = 0
 
     # Iterating through sentences to evaluate
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
         left = None
         right = None
+
+
         if args.context:
             if "prev_sentence" in gold_df.columns:
                 left = gold_df.loc[idx, "prev_sentence"]
             if "next_sentence" in gold_df.columns:
                 right = gold_df.loc[idx, "next_sentence"]
 
-        raw = query_gpt(
+        usable = has_usable_context(left, right)
+        if args.context and usable:
+            usable_ctx_count += 1
+
+        raw, arm_used = query_gpt(
             client,
             enc_obj,
             sentence,
@@ -840,20 +1011,36 @@ def main():
             use_context=args.context,
             left_context=left,
             right_context=right,
+            context_mode=args.context_mode,   # <-- NEW (comes from argparse)
             dialect_legitimacy=args.dialect_legitimacy,
             self_verification=args.self_verification,
             require_rationales=require_rationales,
+            dump_prompt=args.dump_prompt,
+            dump_prompt_path=args.dump_prompt_path,
+            dump_once_key=dump_once_key,
         )
+        if arm_used == "two_turn":
+            used_two_turn_count += 1
+        else:
+            used_single_turn_count += 1
 
+        # after raw is returned
         if not raw:
+            write_meta(idx, sentence, usable, arm_used, "EMPTY_RESPONSE", "", "")
             continue
 
         try:
-            vals, rats = parse_output_json(raw, features=CURRENT_FEATURES)
+            vals, rats, missing = parse_output_json(raw, features=CURRENT_FEATURES)
         except json.JSONDecodeError as e:
-            print(f"JSON parse fail on sentence: {sentence}\nError: {e}")
-            print(raw)
+            write_meta(idx, sentence, usable, arm_used, "PARSE_FAIL", "", "")
             continue
+
+        missing_key_count = len(missing)
+        missing_keys_str = "|".join(missing)
+        write_meta(idx, sentence, usable, arm_used, "OK", missing_key_count, missing_keys_str)
+
+
+
 
         pred_row = {"sentence": sentence}
         pred_row.update(vals)
@@ -882,7 +1069,8 @@ def main():
         predictions_df.to_excel(writer, sheet_name=args.sheet, index=False)
         rats_sheet_name = f"{args.sheet}_rationales"
         rationales_df.to_excel(writer, sheet_name=rats_sheet_name, index=False)
-
+    print(f"[CONTEXT] --context={args.context} | usable_context_rows={usable_ctx_count}/{len(eval_sentences)}")
+    print(f"[ARM] used_two_turn={used_two_turn_count} | used_single_turn={used_single_turn_count}")
     print_final_usage_summary()
 
 

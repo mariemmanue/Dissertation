@@ -11,6 +11,18 @@ from gpt_experiments import (
     MASIS_FEATURES,
 )
 
+"""
+nlprun -q jag -p standard -r 40G -c 2 -t 4:00:00 \
+  -n eval-gpt-sheets \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
+   mkdir -p slurm_logs && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python evaluate.py"
+
+"""
+
 feat_thresholds = {
     "multiple-neg": 0.5,  # Example threshold
 }
