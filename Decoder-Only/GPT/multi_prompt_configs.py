@@ -1,4 +1,3 @@
-# gpt_experiments.py
 import os
 import pandas as pd
 import csv
@@ -18,9 +17,7 @@ total_input_tokens = 0
 total_output_tokens = 0
 api_call_count = 0
 
-# ICL commands
-"""
-"""
+
 
 OPENAI_MODEL_NAME = "gpt-5"
 # tokenizer for logging (will be overridden by main)
