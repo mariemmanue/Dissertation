@@ -384,7 +384,8 @@ def strip_examples_from_block(block: str) -> str:
         s = line.lstrip()
         if s.startswith("+ Example"):
             continue
-        if s.startswith(("- Miss", "– Miss", "— Miss")):
+        # Handle - Miss (hyphen), – Miss (en dash), — Miss (em dash), including extra spaces
+        if re.match(r"^[-–—]\s*Miss\b", s):
             continue
         stripped_lines.append(line)
     return "\n".join(stripped_lines)
@@ -469,7 +470,7 @@ def build_system_msg(
         "  does NOT by itself imply an AAE feature. Only mark a feature when the specific AAE decision rule is satisfied.\n"
         "- SUBJECT DROPS IN SPONTANEOUS SPEECH:\n"
         "   - In conversational speech, speakers often omit subjects when they are pragmatically given.\n"
-        "   - If a clause has a clearly recoverable subject from the SAME utterance or the immediately preceding clause,you may treat that subject as syntactically present when relevant.\n"
+        "   - If a clause has a clearly recoverable subject from the SAME utterance or the immediately preceding clause, you may treat that subject as syntactically present when relevant.\n"
         "   - In these cases, compare the verb form to what SAE would require with that understood subject.\n"
         "   - If no specific subject is clearly recoverable from the local context (the clause could be a fragment), prefer 0\n"
         "     and briefly note that the structure is too fragmentary or ambiguous for a reliable feature decision.\n"
@@ -832,14 +833,13 @@ def query_gpt(
 
     for attempt in range(max_retries):
         try:
-            resp = client.chat.completions.create(
+            resp = client.responses.create(
                 model=OPENAI_MODEL_NAME,
+                input=messages,
                 temperature=0,
-                top_p=1,
-                messages=messages,
             )
+            output_text = resp.output_text
 
-            output_text = resp.choices[0].message.content
             output_tokens = len(enc_obj.encode(output_text))
             total_output_tokens += output_tokens
             api_call_count += 1
@@ -926,16 +926,16 @@ def main():
     if not os.path.exists(meta_path):
         with open(meta_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(["idx","sentence","use_context_requested","has_usable_context",
-                        "requested_context_mode","arm_used","parse_status",
+                        "requested_context_mode","arm_used", "context_included","parse_status",
                         "missing_key_count","missing_keys"])
 
-    def write_meta(idx, sentence, usable, arm_used, parse_status, missing_count="", missing_keys=""):
+    def write_meta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count="", missing_keys=""):
         with open(meta_path, "a", newline="", encoding="utf-8") as f:
             use_ctx_req = int(args.context)
             requested = args.context_mode if args.context else ""
             csv.writer(f).writerow([
                 idx, sentence, use_ctx_req, int(usable), requested, arm_used,
-                parse_status, missing_count, missing_keys
+                int(bool(context_included)), parse_status, missing_count, missing_keys
             ])
 
 
@@ -999,6 +999,7 @@ def main():
         usable = has_usable_context(left, right)
         if args.context and usable:
             usable_ctx_count += 1
+        context_included = bool(args.context and usable)
 
         raw, arm_used = query_gpt(
             client,
@@ -1026,19 +1027,20 @@ def main():
 
         # after raw is returned
         if not raw:
-            write_meta(idx, sentence, usable, arm_used, "EMPTY_RESPONSE", "", "")
+            write_meta(idx, sentence, usable, arm_used, context_included, "EMPTY_RESPONSE", "", "")
             continue
+
 
         try:
             vals, rats, missing = parse_output_json(raw, features=CURRENT_FEATURES)
-        except json.JSONDecodeError as e:
-            write_meta(idx, sentence, usable, arm_used, "PARSE_FAIL", "", "")
+        except Exception as e:
+            # Catch JSON errors + type coercion errors (e.g., "value": "N/A"), etc.
+            write_meta(idx, sentence, usable, arm_used, context_included, "PARSE_FAIL", "", "")
             continue
 
         missing_key_count = len(missing)
         missing_keys_str = "|".join(missing)
-        write_meta(idx, sentence, usable, arm_used, "OK", missing_key_count, missing_keys_str)
-
+        write_meta(idx, sentence, usable, arm_used, context_included, "OK", missing_key_count, missing_keys_str)
 
 
 
