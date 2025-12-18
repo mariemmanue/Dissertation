@@ -833,7 +833,6 @@ def query_gpt(
             resp = client.responses.create(
                 model=OPENAI_MODEL_NAME,
                 input=messages,
-                temperature=0,
             )
             output_text = resp.output_text
 
