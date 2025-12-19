@@ -572,6 +572,7 @@ def build_error_df(
 
     return pd.DataFrame(rows)
 
+
 def auto_pairwise_deltas(
     df: pd.DataFrame,
     *,
@@ -580,24 +581,25 @@ def auto_pairwise_deltas(
     prefix: str,
     metrics=("precision", "recall", "f1"),
 ):
-    work = df.copy().dropna(subset=["feature"])
+    work = df.copy()
+    work = work.dropna(subset=["feature"])
 
     # keep only factor columns that actually exist
     factors = [f for f in factors if f in work.columns]
 
     for fac in factors:
-        # levels for THIS factor
-        levels = sorted([x for x in work[fac].dropna().unique().tolist()])
+        levels = sorted(work[fac].dropna().unique().tolist())
         if len(levels) != 2:
             continue
-        a_level, b_level = levels
+        a_level, b_level = levels[0], levels[1]
 
-        # Only “hold fixed” other factors that have some non-null values
-        other_factors = [f for f in factors if f != fac and work[f].notna().any()]
+        # robust scalar check even if duplicate columns make work[[f]] multi-col
+        other_factors = [
+            f for f in factors
+            if f != fac and work[[f]].notna().to_numpy().any()
+        ]
 
-        # IMPORTANT: don’t require all other_factors to be non-null if you don’t actually need them
-        sub = work.dropna(subset=[fac])  # require the factor itself
-        # for other factors, keep NaNs as their own group by filling them
+        sub = work.dropna(subset=[fac]).copy()
         for f in other_factors:
             sub[f] = sub[f].fillna("NA")
 
@@ -617,8 +619,6 @@ def auto_pairwise_deltas(
         out_csv = os.path.join(output_base, f"{prefix}delta_{fac}_{a_level}_to_{b_level}_per_feature.csv")
         deltas.to_csv(out_csv, index=False)
         print(f"[INFO] Wrote {out_csv} ({len(deltas)} rows)")
-
-
 
 
 
