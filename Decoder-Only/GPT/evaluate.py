@@ -858,10 +858,6 @@ def evaluate_sheets(file_path: str):
     all_eval = pd.concat(eval_results, ignore_index=True)
 
     for trial in ["A", "B"]:
-        sub = all_eval[all_eval["trial"] == trial].copy()
-        if sub.empty:
-            continue
-
         eval_dfs_trial = [df for df in eval_results if parse_factors(df["model"].iloc[0])["trial"] == trial]
         if not eval_dfs_trial:
             continue
@@ -898,9 +894,11 @@ def evaluate_sheets(file_path: str):
 
 
 
+
     # factor columns for ALL models (BERT included; may be None)
     factors_df = all_eval["model"].apply(lambda x: pd.Series(parse_factors(x)))
     all_eval = pd.concat([all_eval, factors_df], axis=1)
+
 
     gpt_eval = all_eval[all_eval["model"].str.upper().str.startswith("GPT_")].copy()
     gpt_eval = gpt_eval.dropna(subset=["feature_set", "ctx"])
