@@ -34,15 +34,77 @@ def drop_features_column(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=['FEATURES', 'Source'], errors='ignore')
 
 
-def combine_wh_qu(df):
+def combine_wh_qu(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Combines wh_qu1 and wh_qu2 into a single wh_qu feature.
+    Combines wh-qu1/wh-qu2 (or wh_qu1/wh_qu2) into a single wh-qu.
+    If wh-qu already exists, do nothing.
     """
-    if 'wh_qu1' in df.columns and 'wh_qu2' in df.columns:
-        df["wh_qu"] = df[["wh_qu1", "wh_qu2"]].max(axis=1)
-        df = df.drop(columns=["wh_qu1", "wh_qu2"])
-    return df
+    out = df.copy()
 
+    if "wh-qu" in out.columns:
+        return out
+
+    a = "wh-qu1" if "wh-qu1" in out.columns else ("wh_qu1" if "wh_qu1" in out.columns else None)
+    b = "wh-qu2" if "wh-qu2" in out.columns else ("wh_qu2" if "wh_qu2" in out.columns else None)
+
+    if a and b:
+        out["wh-qu"] = out[[a, b]].max(axis=1)
+        out = out.drop(columns=[a, b])
+
+    return out
+
+def parse_factors(sheet_name: str) -> dict:
+    """
+    Parse condition factors out of sheet names like:
+      GPT_17_ZS_CTX_A
+      GPT_25_FSCOT_noCTX_B
+    Returns dict with keys:
+      feature_set in {"17","25"} or None
+      instr in {"ZS","FSCOT"} or None
+      ctx in {"CTX","noCTX"} or None
+      trial in {"A","B"} or None
+    """
+    m = sheet_name.upper()
+
+    # split tokens, keep order
+    toks = [t for t in m.split("_") if t]
+
+    # feature set
+    feature_set = None
+    if "17" in toks or "_17_" in f"_{m}_":
+        feature_set = "17"
+    elif "25" in toks or "_25_" in f"_{m}_":
+        feature_set = "25"
+
+    # instruction
+    instr = None
+    if "FSCOT" in toks or "_FSCOT_" in f"_{m}_":
+        instr = "FSCOT"
+    elif "ZS" in toks or "_ZS_" in f"_{m}_":
+        instr = "ZS"
+
+    # context (prefer explicit noCTX)
+    ctx = None
+    if "NOCTX" in toks or "_NOCTX" in m:
+        ctx = "noCTX"
+    elif "CTX" in toks or "_CTX" in m:
+        ctx = "CTX"
+
+    # trial A/B at end
+    trial = None
+    if toks and toks[-1] in ("A", "B"):
+        trial = toks[-1]
+
+    return {"feature_set": feature_set, "instr": instr, "ctx": ctx, "trial": trial}
+
+
+def parse_trial(model: str):
+    m = model.upper()
+    if m.endswith("_A"):
+        return "A"
+    if m.endswith("_B"):
+        return "B"
+    return None
 
 
 def build_annotated_rationales(pred_df, rationale_df, truth_df, features, only_disagreements=True, max_rows=None):
@@ -510,6 +572,60 @@ def build_error_df(
 
     return pd.DataFrame(rows)
 
+def auto_pairwise_deltas(
+    df: pd.DataFrame,
+    *,
+    factors: list[str],
+    output_base: str,
+    prefix: str,
+    metrics=("precision", "recall", "f1"),
+):
+    work = df.copy().dropna(subset=["feature"])
+
+    # keep only factor columns that actually exist
+    factors = [f for f in factors if f in work.columns]
+
+    for fac in factors:
+        # levels for THIS factor
+        levels = sorted([x for x in work[fac].dropna().unique().tolist()])
+        if len(levels) != 2:
+            continue
+        a_level, b_level = levels
+
+        # Only “hold fixed” other factors that have some non-null values
+        other_factors = [f for f in factors if f != fac and work[f].notna().any()]
+
+        # IMPORTANT: don’t require all other_factors to be non-null if you don’t actually need them
+        sub = work.dropna(subset=[fac])  # require the factor itself
+        # for other factors, keep NaNs as their own group by filling them
+        for f in other_factors:
+            sub[f] = sub[f].fillna("NA")
+
+        index_cols = ["feature"] + other_factors
+
+        deltas = compute_pairwise_deltas(
+            sub,
+            index_cols=index_cols,
+            factor_col=fac,
+            a_level=a_level,
+            b_level=b_level,
+            metrics=metrics,
+            require_metric="f1",
+            aggfunc="mean",
+        )
+
+        out_csv = os.path.join(output_base, f"{prefix}delta_{fac}_{a_level}_to_{b_level}_per_feature.csv")
+        deltas.to_csv(out_csv, index=False)
+        print(f"[INFO] Wrote {out_csv} ({len(deltas)} rows)")
+
+
+
+
+
+
+
+
+
 
 def safe_sheet_name(name: str, max_len: int = 31) -> str:
     """
@@ -523,21 +639,14 @@ def safe_sheet_name(name: str, max_len: int = 31) -> str:
 
 
 def detect_feature_set(sheet_name: str, df: pd.DataFrame) -> Optional[str]:
-    """
-    Decide whether this model sheet should be evaluated against:
-      - 'masis' (17 features) or
-      - 'extended' (25 features)
-    Returns 'masis', 'extended', or None if we can't tell.
-    """
+    sheet_up = sheet_name.upper()
     cols = set(df.columns)
 
-    # If the sheet name encodes 17 vs 25, trust that first.
-    if "_17_" in sheet_name:
+    if "_17_" in sheet_up or sheet_up.endswith("_17") or sheet_up.startswith("17_") or "_17" in sheet_up:
         return "masis"
-    if "_25_" in sheet_name:
+    if "_25_" in sheet_up or sheet_up.endswith("_25") or sheet_up.startswith("25_") or "_25" in sheet_up:
         return "extended"
 
-    # Heuristic fallback: count overlap with each known feature set.
     masis_overlap = len(cols.intersection(MASIS_FEATURES))
     extended_overlap = len(cols.intersection(EXTENDED_FEATURES))
 
@@ -545,8 +654,8 @@ def detect_feature_set(sheet_name: str, df: pd.DataFrame) -> Optional[str]:
         return "extended"
     if masis_overlap > 0:
         return "masis"
+    return None
 
-    return None  # no clear mapping
 
 # keep your dict name, but use it consistently
 feat_thresholds = {"multiple-neg": 0.5}
@@ -747,8 +856,73 @@ def evaluate_sheets(file_path: str):
         return
 
     all_eval = pd.concat(eval_results, ignore_index=True)
+    all_eval["trial"] = all_eval["model"].apply(parse_trial)
+
+    for trial in ["A", "B"]:
+        sub = all_eval[all_eval["trial"] == trial].copy()
+        if sub.empty:
+            continue
+
+        eval_dfs_trial = [df for df in eval_results if parse_factors(df["model"].iloc[0])["trial"] == trial]
+        if not eval_dfs_trial:
+            continue
+
+        label = f"TRIAL_{trial}"
+
+        plot_model_metrics(
+            eval_dfs=eval_dfs_trial,
+            metric="f1",
+            style="heatmap",
+            align="intersection",
+            title=f"{label}: F1 by feature (shared features only)",
+            save_path=os.path.join(output_base, f"{label}_F1_heatmap_intersection.png"),
+            figsize=(14, 10),
+        )
+
+        plot_overall_f1_scores(
+            eval_dfs=eval_dfs_trial,
+            align="intersection",
+            save_path=os.path.join(output_base, f"{label}_Overall_F1_intersection.png"),
+        )
+
+        plot_overall_micro_f1_scores(
+            eval_dfs=eval_dfs_trial,
+            align="intersection",
+            save_path=os.path.join(output_base, f"{label}_MicroF1_intersection.png"),
+        )
+
+        plot_f1_scores_per_feature(
+            eval_dfs=eval_dfs_trial,
+            align="intersection",
+            save_path=os.path.join(output_base, f"{label}_Per_Feature_F1_intersection.png"),
+        )
+
+
+
+    # factor columns for ALL models (BERT included; may be None)
+    factors_df = all_eval["model"].apply(lambda x: pd.Series(parse_factors(x)))
+    all_eval = pd.concat([all_eval, factors_df], axis=1)
 
     gpt_eval = all_eval[all_eval["model"].str.upper().str.startswith("GPT_")].copy()
+    gpt_eval = gpt_eval.dropna(subset=["feature_set", "ctx"])
+
+    # include instr/trial if present; function will skip if not exactly 2 levels
+
+    auto_pairwise_deltas(
+        gpt_eval,
+        factors=["feature_set", "ctx", "instr", "trial"],
+        output_base=output_base,
+        prefix="GPT_",
+    )
+
+    auto_pairwise_deltas(
+        all_eval.dropna(subset=["feature_set", "ctx"]),
+        factors=["feature_set", "ctx"],
+        output_base=output_base,
+        prefix="ALLMODELS_",
+    )
+
+
 
     if gpt_eval.empty:
         print("[WARN] No GPT_* model rows found; skipping GPT-only analyses (means/vars/deltas).")
@@ -768,30 +942,6 @@ def evaluate_sheets(file_path: str):
             .reset_index(name="var_f1_gpt")
         )
         var_f1_per_feature.to_csv(os.path.join(output_base, "gpt_var_f1_per_feature.csv"), index=False)
-
-        # ---- parse GPT condition factors ----
-        def parse_ctx(model: str):
-            m = model.upper()
-            if "_NOCTX" in m:
-                return "noCTX"
-            if "_CTX" in m:
-                return "CTX"
-            return None
-
-        def parse_gpt_conditions(model: str) -> dict:
-            m = model.upper()
-            return {
-                "feature_set": "17" if "_17_" in m else ("25" if "_25_" in m else None),
-                "instr": "FSCOT" if "_FSCOT_" in m else ("ZS" if "_ZS_" in m else None),
-                "ctx": parse_ctx(model),
-            }
-
-        gpt_eval[["feature_set", "instr", "ctx"]] = (
-            gpt_eval["model"].apply(lambda x: pd.Series(parse_gpt_conditions(x)))
-        )
-
-        # drop rows we can't parse cleanly (prevents weird NaN pivots)
-        gpt_eval = gpt_eval.dropna(subset=["feature_set", "instr", "ctx"])
 
         # ---- shared features across all GPT models (evenness) ----
         shared = None
