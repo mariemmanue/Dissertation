@@ -37,6 +37,11 @@ nlprun -q jag -p standard -r 40G -c 2 -t 4:00:00 \
    python evaluate.py"
 """
 
+# Treat wh-qu as part of the MASIS/17 set (it may be derived from wh-qu1/wh-qu2)
+MASIS17_FEATURES = list(MASIS_FEATURES)
+if "wh-qu" not in MASIS17_FEATURES:
+    MASIS17_FEATURES.append("wh-qu")
+
 # enforce consistent delta direction (b - a)
 PREFERRED_LEVEL_ORDER = {
     "ctx": ("noCTX", "CTX"),          # CTX - noCTX
@@ -67,6 +72,9 @@ def combine_wh_qu(df: pd.DataFrame) -> pd.DataFrame:
 
     if "wh-qu" in out.columns:
         return out
+
+    if "wh_qu" in out.columns and "wh-qu" not in out.columns:
+        out = out.rename(columns={"wh_qu": "wh-qu"})
 
     a = "wh-qu1" if "wh-qu1" in out.columns else ("wh_qu1" if "wh_qu1" in out.columns else None)
     b = "wh-qu2" if "wh-qu2" in out.columns else ("wh_qu2" if "wh_qu2" in out.columns else None)
@@ -885,7 +893,7 @@ def evaluate_sheets(file_path: str):
             print(f"[SKIP] {sheet_name}: could not determine feature set.")
             continue
 
-        features = MASIS_FEATURES if detected == "masis" else EXTENDED_FEATURES
+        features = MASIS17_FEATURES if detected == "masis" else EXTENDED_FEATURES
         model_feature_set_num[sheet_name] = ("17" if detected == "masis" else "25")
 
         model_df = binarize_if_probabilistic(model_df, features, str(sheet_name))
