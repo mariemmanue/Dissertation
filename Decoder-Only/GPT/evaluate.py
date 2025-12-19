@@ -77,6 +77,32 @@ def combine_wh_qu(df: pd.DataFrame) -> pd.DataFrame:
 
     return out
 
+SENTENCE_ALIASES = ["sentence", "Sentence", "SENTENCE", "text", "Text", "utterance", "Utterance", "UTTERANCE"]
+
+def normalize_sentence_column(df: pd.DataFrame, sheet_name: str) -> Optional[pd.DataFrame]:
+    """
+    Ensure df has a column named 'sentence'.
+    - If it has an alias (Sentence/text/utterance), rename it.
+    - If it has none, return None (caller should skip sheet).
+    """
+    cols = list(df.columns)
+    if "sentence" in cols:
+        return df
+
+    for c in SENTENCE_ALIASES:
+        if c in cols:
+            out = df.rename(columns={c: "sentence"}).copy()
+            return out
+
+    # last resort: case-insensitive match
+    lower_map = {str(c).strip().lower(): c for c in cols}
+    if "sentence" in lower_map:
+        out = df.rename(columns={lower_map["sentence"]: "sentence"}).copy()
+        return out
+
+    print(f"[WARN] Sheet '{sheet_name}' has no 'sentence' column (cols={cols[:15]}...). Skipping.")
+    return None
+
 
 def parse_factors(sheet_name: str) -> dict:
     """
@@ -801,8 +827,14 @@ def evaluate_sheets(file_path: str):
         print(f"[WARN] No 'Gold' sheet in {file_path}. Skipping.")
         return
 
-    gold_df = drop_features_column(gold_df).dropna(subset=["sentence"])
+    gold_df = drop_features_column(gold_df)
+    gold_df = normalize_sentence_column(gold_df, "Gold")
+    if gold_df is None:
+        print(f"[WARN] Gold sheet missing sentence column in {file_path}. Skipping workbook.")
+        return
+    gold_df = gold_df.dropna(subset=["sentence"])
     gold_df = safe_strip_sentence_col(gold_df)
+
     gold_df = combine_wh_qu(gold_df)
     gold_df = gold_df.drop_duplicates(subset="sentence")
 
@@ -824,8 +856,13 @@ def evaluate_sheets(file_path: str):
         if not (name_up.startswith("GPT_") or name_up.startswith("BERT") or name_up.startswith("ROBERTA") or name_up.startswith("MODERNBERT")):
             continue
 
-        df = drop_features_column(df_raw).dropna(subset=["sentence"])
+        df = drop_features_column(df_raw)
+        df = normalize_sentence_column(df, sheet_name)
+        if df is None:
+            continue
+        df = df.dropna(subset=["sentence"])
         df = safe_strip_sentence_col(df)
+
         df = combine_wh_qu(df)
         df = df.drop_duplicates(subset="sentence")
 
