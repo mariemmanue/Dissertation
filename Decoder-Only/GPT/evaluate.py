@@ -856,7 +856,6 @@ def evaluate_sheets(file_path: str):
         return
 
     all_eval = pd.concat(eval_results, ignore_index=True)
-    all_eval["trial"] = all_eval["model"].apply(parse_trial)
 
     for trial in ["A", "B"]:
         sub = all_eval[all_eval["trial"] == trial].copy()
