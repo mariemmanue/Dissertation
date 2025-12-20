@@ -65,7 +65,10 @@ MASIS_FEATURE_BLOCK = """
    + Example (label = 1): "She finna eat." (missing 'is' before preverbal finna marker; SAE: "She is finna eat.")
    - Miss (label = 0): "No problem." (fragment; no clear subject–predicate copula slot)
    Ambiguity note:
-   • If the utterance can be read as a fragment or headline where SAE might also drop BE, prefer 0 and explain.
+   • #dont automatically exclude fragments, If the utterance can be read as a fragment  prefer 0 and explain.
+#wrong: “so many things Ø happening now” lacks BE before a V-ing, but the clause is headed by 'Cause' and functions as an obvious subordinate/fragment; per rule, prefer 0. Alt: could reflect BE deletion in a progressive, but the fragment status blocks marking.
+# wrong: There is no missing BE linking a subject to a predicate or marking a progressive; 'he gonna' functions as a future marker, not a copula/progressive context.
+
 
 3. double-tense
    Decision rule (single element: DUPLICATED PAST MORPHOLOGY):
@@ -124,7 +127,7 @@ MASIS_FEATURE_BLOCK = """
    • If either 10 or 11 applies, this feature (multiple-neg) must also be 1.
    Ambiguity note:
    • If one negation belongs to a different clause (e.g., complement clause) and the sentence may have two separate negated propositions, prefer 0 and explain.
-
+# must be descirbing the same shit "And I'm more than glad I didn't get into it, c- w- At the time, you wont able to get into it no way."...
 10. neg-inversion
     Decision rule (single element: NEGATIVE AUX BEFORE SUBJECT):
     Mark 1 when a negative auxiliary or marker appears before the subject in the clause, with the subject following it (a subtype of multiple negation).
@@ -183,7 +186,7 @@ MASIS_FEATURE_BLOCK = """
 16. double-object
     Decision rule (single element: TWO NP OBJECTS, NO PREPOSITION):
     Mark 1 when a verb is followed directly by two noun phrases (recipient + theme) in a single clause, with no preposition marking the recipient.
-    + Example (label = 1): "He gave him a lick." (verb + two NP objects)
+    + Example (label = 1): "He gave him a lick." (verb + two NP objects) # differences from SAE, loke give is ditransitive in SAE so...
     - Miss (label = 0): "He gave it to her." (preposition 'to' introduces recipient)
     Notes:
     • Exclude clausal or wh-word complements (e.g., 'tell you what', 'show you how') where the second constituent is not a full NP.
@@ -238,7 +241,7 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     - Miss (label = 0): "I like them." (object pronoun)
     Ambiguity note:
     • If 'them' is separated from the noun or can be interpreted as a pronoun, prefer 0.
-
+# wrong: And leave it in there unless we gonna throw them floor- that floor well that's like that.
 20. appositive-pleonastic-pronoun
     Decision rule (single element: REDUNDANT/RESUMPTIVE PRONOUN):
     Mark 1 when a subject or object NP is followed by a co-referential pronoun in the same clause, forming an appositive or pleonastic structure used for emphasis or clarity,
@@ -248,14 +251,14 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     - Miss (label = 0): "My mama told me that." (no pronoun repetition)
     Ambiguity note:
     • If the structure could equally be a self-correction or restart with a new subject, and not clearly a redundant pronoun, prefer 0 and mention disfluency.
-
+# wrong: Left-dislocated NP 'a lot of folks' is followed by a co-referential resumptive object pronoun in 'you ask ’em' within the same utterance.
 21. bin
     Decision rule (single element: BIN W/O 'HAVE'):
     Mark 1 when stressed BIN/BEEN (often capitalized in transcripts) appears without auxiliary 'have' and indicates that a state or action has been true for a long time
     (remote past continuing to present or at least long-established).
     + Example (label = 1): "She BIN married." = 1 (long-standing state)
     - Miss (label = 0): "She been married for two years." (unstressed, recent past; standard 'have been')
-
+#wrong:"Lowercase 'been' appears without clear stressed BIN reading; it functions as perfect 'been', not remote BIN."
 22. verb-stem
     Decision rule (single element: BARE VERB WITH CLEAR PAST REFERENCE):
     Mark 1 when a bare (uninflected) verb form is used to express a clearly past event in the same clause, based on explicit temporal adverbs, surrounding context,
@@ -274,6 +277,9 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     – Miss (label = 0): "I saw him yesterday." (standard preterite)
     Ambiguity note:
     • If the time reference is unclear and the form could belong to a perfect construction (with omitted auxiliary), prefer 0 and note ambiguity.
+# wrong: In 'When the water come up ... went up,' 'come' appears as simple past where SAE requires 'came,' with past-time supported by 'went' and 'got' later; alt: a self-correction, but the non-SAE past form is overt.
+# wrong: 'They done a job' could be read as participle 'done' used as simple past 'did', but it is also compatible with a perfect reading with omitted 'have'; lacking a clear past-time anchor, prefer 0 per the rule.
+# wrong: 'Drunk' could be a participle in an omitted-have perfect with 'ever ... in my life'; per the rule, ambiguity with a perfect reading means do not mark as simple past substitution.
 
 24. zero-rel-pronoun
     Decision rule (single element: MISSING SUBJECT RELATIVE PRONOUN):
@@ -284,7 +290,7 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     • Exclude reduced relatives ('the guy wearing red'), appositives, or complement clauses not modifying the noun ('I know [that he left]').
     Ambiguity note:
     • If the clause could just as easily be a separate main clause rather than a modifier of the NP, prefer 0.
-
+# weong: The clause 'you could get...' modifies 'the earliest' but lacks only an optional complementizer 'that'; the subject of the clause ('you') is overt, so there is no missing subject relative pronoun.
 25. preterite-had
     Decision rule (single element: 'HAD' + VERB FOR SIMPLE PAST, NO PAST-BEFORE-PAST):
     Mark 1 when 'had' plus a past verb is used to express a simple past event (with no clear 'past-before-past' meaning),
