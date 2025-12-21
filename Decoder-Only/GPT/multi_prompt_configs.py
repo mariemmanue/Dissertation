@@ -42,7 +42,7 @@ EXTENDED_FEATURES = [
 # NOTE: For zero-shot and zero-shot CoT, we strip + Example / - Miss lines programmatically,
 # so we can keep the rich versions here.
 
-MASIS_FEATURE_BLOCK = """
+MASIS_FEATURE_BLOCK = f"""
 1. zero-poss
    Decision rule (single semantic element: POSSESSION):
    Mark 1 if a possessive relationship is expressed WITHOUT an overt SAE possessive morpheme ('s) or standard possessive pronoun form,
@@ -57,18 +57,15 @@ MASIS_FEATURE_BLOCK = """
 
 2. zero-copula
    Decision rule (single element: COPULAR / AUXILIARY BE DELETION):
-   Mark 1 when a form of BE (is/are/was/were) that SAE requires is missing:
+   Mark 1 when a form of BE (is/are/was/were) that SAE requires is missing in cases where the utterance can be parsed as a single clause with a clear subject–predicate relation (not just a heading, list item, or obvious subordinate fragment):
      (a) between a subject and a predicate (NP, AdjP, PP), OR
     (b) before a V-ing verb in a progressive construction, OR
-    (c) before a preverbal future/near-future marker such as finna (“fixing to”),
+    (c) before a preverbal future/near-future marker such as finna (“fixing to”) or gonna (“going to”),
    AND the material forms a single clause (not obviously subordinate or a list fragment).
-   + Example (label = 1): "She finna eat." (missing 'is' before preverbal finna marker; SAE: "She is finna eat.")
+   + Example (label = 1): "She finna/gonna eat." (missing 'is' before preverbal finna marker; SAE: "She is finna eat.")
    - Miss (label = 0): "No problem." (fragment; no clear subject–predicate copula slot)
    Ambiguity note:
-   • #dont automatically exclude fragments, If the utterance can be read as a fragment  prefer 0 and explain.
-#wrong: “so many things Ø happening now” lacks BE before a V-ing, but the clause is headed by 'Cause' and functions as an obvious subordinate/fragment; per rule, prefer 0. Alt: could reflect BE deletion in a progressive, but the fragment status blocks marking.
-# wrong: There is no missing BE linking a subject to a predicate or marking a progressive; 'he gonna' functions as a future marker, not a copula/progressive context.
-
+   • Do not automatically exclude short or out‑of‑context strings as “fragments”; instead, ask whether there is a recoverable subject and predicate slot that would host BE in SAE. If not, prefer 0 and explain.
 
 3. double-tense
    Decision rule (single element: DUPLICATED PAST MORPHOLOGY):
@@ -118,35 +115,26 @@ MASIS_FEATURE_BLOCK = """
 
 9. multiple-neg
    Decision rule (single element: MORE THAN ONE NEGATIVE FORM, ONE NEGATIVE MEANING):
-   Mark 1 when two or more negative elements (negative auxiliaries, adverbs, pronouns, or determiners) appear within the same clause or phrase,
-   but the overall meaning is a single logical negation.
+   Mark 1 when two or more negative elements (negative auxiliaries, adverbs, pronouns, or determiners) occur within the same clause or tightly integrated predicate and together express a single semantic negation (negative concord).
    + Example (label = 1): "I ain't never heard of that." (ain't + never)
-   - Miss (label = 0): "I ain't ever heard of that." (single negation)
+   - Miss (label = 0): "I ain't ever heard of that, not anyway." (single negation, “not anyway” read as a scalar/emphatic expression rather than participating in concord)
    Notes:
    • This is the broad category covering both negative inversion (10) and negative concord (11).
    • If either 10 or 11 applies, this feature (multiple-neg) must also be 1.
-   Ambiguity note:
-   • If one negation belongs to a different clause (e.g., complement clause) and the sentence may have two separate negated propositions, prefer 0 and explain.
-# must be descirbing the same shit "And I'm more than glad I didn't get into it, c- w- At the time, you wont able to get into it no way."...
+
 10. neg-inversion
-    Decision rule (single element: NEGATIVE AUX BEFORE SUBJECT):
-    Mark 1 when a negative auxiliary or marker appears before the subject in the clause, with the subject following it (a subtype of multiple negation).
+    Decision rule (single element: CLAUSE-INITIAL NEGATIVE AUX BEFORE SUBJECT):
+    Mark 1 when a negative auxiliary or marker occurs at the beginning of a sentence or clause and precedes the subject, with the subject immediately following it in that same clause.
     + Example (label = 1): "Don’t nobody like how they actin’." (Don’t + subject 'nobody')
     – Miss (label = 0): "Nobody don’t like how they actin’." (subject precedes negative auxiliary, no inversion)
-    Notes:
-    • Only mark in addition to multiple-neg when subject follows the negative auxiliary, at the beginning of a sentence or clause.
-    Ambiguity note:
-    • If word order is unclear due to disfluency, prefer 0 and note ambiguity.
+    – Miss (label = 0): "I ain't never doubted nobody." (negative elements not beginning of clause)
 
 11. n-inv-neg-concord
-    Decision rule (single element: SUBJECT + VERB BOTH NEGATIVE, SUBJECT BEFORE NEGATIVE AUX)):
-    Mark 1 when both the subject and the finite verb (or auxiliary) carry negative marking, but subject still precedes the verb (no inversion), forming one negative meaning.
+    Decision rule (single element: CLAUSE-INITIAL SUBJECT + VERB BOTH NEGATIVE, SUBJECT BEFORE NEGATIVE AUX)):
+   Mark 1 when both the subject and the finite verb (or auxiliary) show overt negative marking, the subject still comes first at the beginning of a sentence or clause, and together they express a single semantic negation.
     + Example (label = 1): "Nobody don’t wanna see that." (negative subject + negative auxiliary)
     – Miss (label = 0): "Nobody wanna see that." (subject negative, verb positive)
-    Notes:
-    • Only mark in addition to multiple-neg when both subject and verb are negative without inversion, at the beginning of a sentence or clause.
-    Ambiguity note:
-    • If one element is only pragmatically negative or unclear, prefer 0.
+    – Miss (label = 0): "That's how nobody never seen." (negative elements not beginning of clause)
 
 12. aint
     Decision rule (single element: GENERAL NEGATOR 'AIN'T'):
@@ -184,43 +172,36 @@ MASIS_FEATURE_BLOCK = """
     • If plurality is only inferable from distant context and not clear in the NP itself, prefer 0.
 
 16. double-object
-    Decision rule (single element: TWO NP OBJECTS, NO PREPOSITION):
-    Mark 1 when a verb is followed directly by two noun phrases (recipient + theme) in a single clause, with no preposition marking the recipient.
-    + Example (label = 1): "He gave him a lick." (verb + two NP objects) # differences from SAE, loke give is ditransitive in SAE so...
-    - Miss (label = 0): "He gave it to her." (preposition 'to' introduces recipient)
+    Decision rule (single element: TWO NP OBJECTS, NO PREPOSITION): 
+    Mark 1 when, in a single clause, a verb is followed directly by two noun phrases (typically recipient + theme) with no preposition (e.g., to/for) marking the recipient, and the verb–double-object pattern is not one that is already standard in SAE (such as ditransitive verbs give/send/tell someone something).
+    + Example (label = 1): "He got me a car." (verb + two NP objects) 
+    - Miss (label = 0): "He gave it a book." (ditransitive in SAE)
     Notes:
     • Exclude clausal or wh-word complements (e.g., 'tell you what', 'show you how') where the second constituent is not a full NP.
-    Ambiguity note:
-    • If the second element might be a clause or small clause rather than an NP, prefer 0.
 
-17a. wh-qu1  (WH-word + copula or DO deletion)
-    Decision rule (single element: MISSING BE/DO IN WH-QUESTION):
-    Mark 1 when a WH-question or WH-clause clearly requires a form of BE or DO in SAE, but that auxiliary is missing in the surface form.
+17a. wh-qu1  (WH-word + zero copula/DO deletion)
+    Decision rule (single element: ZERO COPULA/MISSING DO IN WH-QUESTION):
+    Mark 1 only when the string is a genuine WH‑interrogative that makes a direct request for information, and SAE would require a form of BE (also mark for zero‑copula) or DO in that question.
     This includes:
-      • Missing copula before a predicate or locative (Where she Ø at?)
-      • Missing DO-support in WH-questions (What you Ø want?, Where you Ø go?)
-    + Example (label = 1): "Where she at?"  (missing 'is')
+      • Zero copula before a predicate or locative (Where she at?)
+      • Missing DO in WH-questions (What you want?, Where you go?)
+    + Example (label = 1): "Who you be talking to like that?"  (missing 'are' between wh-word and subject; SAE: 'Who are you usually talking to like that?')
     + Example (label = 1): "What you want?"  (missing 'do')
     - Miss (label = 0): "Where is she?"  (auxiliary present)
-    - Miss (label = 0): "What did you want?"  (DO-support present)
+    - Miss (label = 0): "I don't know what she wants."  (not requesting information)
     Notes:
-    • Only mark wh-qu1 AND zero-copula when the missing auxiliary is required for a WH-question in SAE.
+    • Mark BOTH wh-qu1 AND zero-copula when the missing auxiliary is required for a WH-question in SAE.
     • Do not mark for simple topicalization or fragments that are not clearly questions.
-    Ambiguity note:
-    • If there is no clear question intonation or punctuation and the string might be a fragment, prefer 0.
 
 17b. wh-qu2  (WH-word + non-standard inversion)
     Decision rule (single element: NON-SAE WH WORD ORDER):
-    Mark 1 when a WH-question or WH-clause departs from SAE subject–auxiliary inversion patterns:
+    Mark 1 when a WH-question or WH-clause departs from SAE subject–auxiliary inversion patterns: 
       • No inversion where SAE requires it
       • Inversion inside embedded WH-clauses where SAE keeps declarative order
     + Example (label = 1): "Where he is going?"  (auxiliary follows subject in a main question)
-    + Example (label = 1): "I asked him could he find her." (inversion in embedded clause)
-    - Miss (label = 0): "I asked him if he could find her."  (no embedded inversion)
+    - Miss (label = 0): "I asked him if he could find her."  (not a wh-question, no embedded WH, standard word order)
     Notes:
     • Only mark wh-qu2 when WH-clause word order is non-standard relative to SAE.
-    Ambiguity note:
-    • If speech is heavily disfluent and apparent word order may be just a restart, prefer 0 and mention ambiguity.
 """
 
 NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
@@ -240,25 +221,24 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     + Example (label = 1): "Them shoes tight." (demonstrative determiner)
     - Miss (label = 0): "I like them." (object pronoun)
     Ambiguity note:
-    • If 'them' is separated from the noun or can be interpreted as a pronoun, prefer 0.
-# wrong: And leave it in there unless we gonna throw them floor- that floor well that's like that.
+    • Cases where them directly precedes a noun inside the same NP, and can be paraphrased as “those floor‑…”, do count as demonstrative‑them, even if the noun is truncated or repaired afterward. 
+
 20. appositive-pleonastic-pronoun
     Decision rule (single element: REDUNDANT/RESUMPTIVE PRONOUN):
     Mark 1 when a subject or object NP is followed by a co-referential pronoun in the same clause, forming an appositive or pleonastic structure used for emphasis or clarity,
     not merely a disfluent restart.
     Fillers or pauses (e.g., 'uh', 'you know') may appear between NP and pronoun.
     + Example (label = 1): "My dad, he told me it." (NP 'my dad' + resumptive 'he')
-    - Miss (label = 0): "My mama told me that." (no pronoun repetition)
+    - Miss (label = 0): "A lot of people, you can tell they would tell me that." ('you' is the subject of 'can tell' and does not refer to 'a lot of people')
     Ambiguity note:
     • If the structure could equally be a self-correction or restart with a new subject, and not clearly a redundant pronoun, prefer 0 and mention disfluency.
-# wrong: Left-dislocated NP 'a lot of folks' is followed by a co-referential resumptive object pronoun in 'you ask ’em' within the same utterance.
+ 
 21. bin
-    Decision rule (single element: BIN W/O 'HAVE'):
-    Mark 1 when stressed BIN/BEEN (often capitalized in transcripts) appears without auxiliary 'have' and indicates that a state or action has been true for a long time
-    (remote past continuing to present or at least long-established).
-    + Example (label = 1): "She BIN married." = 1 (long-standing state)
-    - Miss (label = 0): "She been married for two years." (unstressed, recent past; standard 'have been')
-#wrong:"Lowercase 'been' appears without clear stressed BIN reading; it functions as perfect 'been', not remote BIN."
+    Decision rule (single element: BEEN W/O 'HAVE'):
+    Mark 1 when 'been' appears without auxiliary 'have'. MAY indicate that a state or action has been true for a long time.
+    + Example (label = 1): "She been married." = 1 (long-standing state)
+    - Miss (label = 0): "She's been married for two years." (standard 'have been')
+
 22. verb-stem
     Decision rule (single element: BARE VERB WITH CLEAR PAST REFERENCE):
     Mark 1 when a bare (uninflected) verb form is used to express a clearly past event in the same clause, based on explicit temporal adverbs, surrounding context,
@@ -270,27 +250,20 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
 
 23. past-tense-swap
     Decision rule (single element: NON-SAE TENSE FORM SUBSTITUTED IN SIMPLE PAST OR PAST PARTICIPLE POSITION):  
-    Mark 1 when:
-      • A past participle form is used as a simple past (e.g., seen, done, went as preterites), OR
-      • A regularized past is used where an irregular past is expected, and the clause refers to a simple past event.
+    Mark 1 when an overtly non‑SAE past form is used to express a simple past event, either by:
+    • A past participle form is used as a simple past (e.g., 'seen', 'done', 'drunk', 'came' as preterites), OR
+    • A regularized past is used where an irregular past is expected, and the clause refers to a simple past event (e.g, 'knowed' for 'know'), OR
+    • A simple past form is used where SAE requires a distinct past participle (e.g., 'had bit' for SAE 'had bitten').
     + Example (label = 1): "I seen him yesterday." (past participle 'seen' used as preterite)
+    + Example (label = 1): “The dog had bit him before.” (simple past bit in pluperfect position; SAE: had bitten)
     – Miss (label = 0): "I saw him yesterday." (standard preterite)
-    Ambiguity note:
-    • If the time reference is unclear and the form could belong to a perfect construction (with omitted auxiliary), prefer 0 and note ambiguity.
-# wrong: In 'When the water come up ... went up,' 'come' appears as simple past where SAE requires 'came,' with past-time supported by 'went' and 'got' later; alt: a self-correction, but the non-SAE past form is overt.
-# wrong: 'They done a job' could be read as participle 'done' used as simple past 'did', but it is also compatible with a perfect reading with omitted 'have'; lacking a clear past-time anchor, prefer 0 per the rule.
-# wrong: 'Drunk' could be a participle in an omitted-have perfect with 'ever ... in my life'; per the rule, ambiguity with a perfect reading means do not mark as simple past substitution.
 
 24. zero-rel-pronoun
     Decision rule (single element: MISSING SUBJECT RELATIVE PRONOUN):
     Mark 1 when a finite clause modifies a noun and functions as a subject relative, but there is NO overt relative pronoun ('who', 'that', 'which') in subject position.
-    + Example (label = 1): "There are many mothers [Ø don’t know their children]." (finite clause modifying 'mothers' without 'who')
+    + Example (label = 1): "There are many mothers don’t know their children." (clause modifying 'mothers' without 'who')
     - Miss (label = 0): "I think he left." (that-deletion in a complement clause)
-    Notes:
-    • Exclude reduced relatives ('the guy wearing red'), appositives, or complement clauses not modifying the noun ('I know [that he left]').
-    Ambiguity note:
-    • If the clause could just as easily be a separate main clause rather than a modifier of the NP, prefer 0.
-# weong: The clause 'you could get...' modifies 'the earliest' but lacks only an optional complementizer 'that'; the subject of the clause ('you') is overt, so there is no missing subject relative pronoun.
+
 25. preterite-had
     Decision rule (single element: 'HAD' + VERB FOR SIMPLE PAST, NO PAST-BEFORE-PAST):
     Mark 1 when 'had' plus a past verb is used to express a simple past event (with no clear 'past-before-past' meaning),
