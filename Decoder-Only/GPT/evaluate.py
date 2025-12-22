@@ -21,7 +21,7 @@ import seaborn as sns
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
-from gpt_experiments import (
+from multi_prompt_configs import (
     EXTENDED_FEATURES,
     MASIS_FEATURES,
 )
