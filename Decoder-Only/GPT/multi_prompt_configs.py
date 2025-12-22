@@ -35,7 +35,7 @@ EXTENDED_FEATURES = [
     "zero-poss", "zero-copula", "double-tense", "be-construction", "resultant-done", "finna", "come", "double-modal",
     "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint", "zero-3sg-pres-s", "is-was-gen", "zero-pl-s",
     "double-object", "wh-qu1", "wh-qu2", "existential-it", "demonstrative-them", "appositive-pleonastic-pronoun",
-    "bin", "verb-stem", "past-tense-swap", "zero-rel-pronoun", "preterite-had"
+    "bin", "verb-stem", "past-tense-swap", "zero-rel-pronoun", "preterite-had", "bare-got"
 ]
 
 # -------------------- FEATURE BLOCKS (WITH EXAMPLES) --------------------
@@ -172,12 +172,19 @@ MASIS_FEATURE_BLOCK = f"""
     • If plurality is only inferable from distant context and not clear in the NP itself, prefer 0.
 
 16. double-object
-    Decision rule (single element: TWO NP OBJECTS, NO PREPOSITION): 
-    Mark 1 when, in a single clause, a verb is followed directly by two noun phrases (typically recipient + theme) with no preposition (e.g., to/for) marking the recipient, and the verb–double-object pattern is not one that is already standard in SAE (such as ditransitive verbs give/send/tell someone something).
-    + Example (label = 1): "He got me a car." (verb + two NP objects) 
-    - Miss (label = 0): "He gave it a book." (ditransitive in SAE)
-    Notes:
-    • Exclude clausal or wh-word complements (e.g., 'tell you what', 'show you how') where the second constituent is not a full NP.
+    Decision rule (single element: PERSONAL DATIVE / SELF‑BENEFIT PRONOUN + NP):
+    Mark 1 when, in a single clause:
+      • The subject and a following object pronoun (me, us, you, him, her, them) are coreferential (e.g., I … me, we … us, you … you), AND
+      • That pronoun is immediately followed by a noun phrase (NP) with no preposition (no to/for), AND
+      • Together the verb + pronoun + NP express that the subject is obtaining, having, or wanting something for themself
+      + Example (label = 1): “We had us a couple of beers.” (subject we = pronoun us; self‑benefactive “we had ourselves some beers”)
+      + Example (label = 1): “Soon as you get you some Scrabble tiles…” (subject you = pronoun you; “you get yourself some tiles”)
+      – Miss (label = 0): “He gave me a book.” (pronoun me is not coreferential with subject he; ordinary recipient, not personal dative)
+      – Miss (label = 0): “They got him a car.” (subject they ≠ pronoun him; benefit is for a different person)
+      Notes:
+        • The crucial diagnostic is subject = object pronoun and a following NP with no preposition, expressing self‑benefit or self‑possession.
+        • Do not mark ordinary ditransitives where the pronoun refers to a different person from the subject (e.g., He gave me…, They got him…).
+        • Exclude cases where the second element after the pronoun is not a full NP (e.g., tell you what, show you how), or where the pronoun clearly starts a new clause rather than forming a verb + pronoun + NP sequence.
 
 17a. wh-qu1  (WH-word + zero copula/DO deletion)
     Decision rule (single element: ZERO COPULA/MISSING DO IN WH-QUESTION):
@@ -191,7 +198,7 @@ MASIS_FEATURE_BLOCK = f"""
     - Miss (label = 0): "I don't know what she wants."  (not requesting information)
     Notes:
     • Mark BOTH wh-qu1 AND zero-copula when the missing auxiliary is required for a WH-question in SAE.
-    • Do not mark for simple topicalization or fragments that are not clearly questions.
+    • Do not mark for complements, fragments or subordinate what/where clauses that are not clearly questions.
 
 17b. wh-qu2  (WH-word + non-standard inversion)
     Decision rule (single element: NON-SAE WH WORD ORDER):
@@ -202,6 +209,7 @@ MASIS_FEATURE_BLOCK = f"""
     - Miss (label = 0): "I asked him if he could find her."  (not a wh-question, no embedded WH, standard word order)
     Notes:
     • Only mark wh-qu2 when WH-clause word order is non-standard relative to SAE.
+    • Do not mark for complements, fragments or subordinate what/where clauses that are not clearly questions.
 """
 
 NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
@@ -225,38 +233,42 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
 
 20. appositive-pleonastic-pronoun
     Decision rule (single element: REDUNDANT/RESUMPTIVE PRONOUN):
-    Mark 1 when a subject or object NP is followed by a co-referential pronoun in the same clause, forming an appositive or pleonastic structure used for emphasis or clarity,
-    not merely a disfluent restart.
+    Mark 1 when a subject or object NP is followed, within the same clause, by a clearly co‑referential pronoun in the same grammatical role 
+    (subject + subject, object + object), forming an appositive or pleonastic structure used for emphasis or topic continuity rather than as a new subject. 
+    Fillers or pauses (e.g., uh, you know) may intervene
     Fillers or pauses (e.g., 'uh', 'you know') may appear between NP and pronoun.
     + Example (label = 1): "My dad, he told me it." (NP 'my dad' + resumptive 'he')
-    - Miss (label = 0): "A lot of people, you can tell they would tell me that." ('you' is the subject of 'can tell' and does not refer to 'a lot of people')
+    - Miss (label = 0): "A lot of people, you can tell they would tell me that." ('you' is the subject of can tell and does not repeat 'a lot of people' in the same role; 'they' is the subject of a different clause)
     Ambiguity note:
     • If the structure could equally be a self-correction or restart with a new subject, and not clearly a redundant pronoun, prefer 0 and mention disfluency.
  
 21. bin
     Decision rule (single element: BEEN W/O 'HAVE'):
-    Mark 1 when 'been' appears without auxiliary 'have'. MAY indicate that a state or action has been true for a long time.
+    Mark 1 only when BIN/been appears without an overt auxiliary 'have'.
     + Example (label = 1): "She been married." = 1 (long-standing state)
     - Miss (label = 0): "She's been married for two years." (standard 'have been')
 
 22. verb-stem
     Decision rule (single element: BARE VERB WITH CLEAR PAST REFERENCE):
-    Mark 1 when a bare (uninflected) verb form is used to express a clearly past event in the same clause, based on explicit temporal adverbs, surrounding context,
-    or aspect markers (e.g., done), where SAE would require a past-tense form.
+    Mark 1 when a bare (uninflected) verb form serves as the finite verb of a clause that clearly refers to a past event, based on local cues (explicit time adverbs, 
+    nearby past‑tense anchors in the same sentence, or aspect markers like 'done'), in a context where SAE would require a past‑tense form.
     + Example (label = 1): "Yesterday he done walk to school." (bare 'walk' in a past context; also resultant-done = 1)
-    - Miss (label = 0): "He walk to school every day." (present habitual; possible zero-3sg-pres-s but not verb-stem past)
+    - Miss (label = 0): "He walk to school every day." (present habitual; possible zero-3sg-pres-s but not verb-stem)
     Ambiguity note:
     • If there is no explicit evidence that the event is past (no time adverb, no clear past context), prefer 0 and avoid assuming past meaning.
 
 23. past-tense-swap
-    Decision rule (single element: NON-SAE TENSE FORM SUBSTITUTED IN SIMPLE PAST OR PAST PARTICIPLE POSITION):  
-    Mark 1 when an overtly non‑SAE past form is used to express a simple past event, either by:
+    Decision rule (single element: NON-SAE INFLECTED PAST TENSE FORM):  
+    Mark 1 when an overtly non‑SAE tense form is used as the main tense carrier of a clause, violating the standard simple‑past vs past‑participle distribution, and the clause has clear simple‑past or perfect/pluperfect reference.
+    Mark 1 in any of these cases:
     • A past participle form is used as a simple past (e.g., 'seen', 'done', 'drunk', 'came' as preterites), OR
     • A regularized past is used where an irregular past is expected, and the clause refers to a simple past event (e.g, 'knowed' for 'know'), OR
     • A simple past form is used where SAE requires a distinct past participle (e.g., 'had bit' for SAE 'had bitten').
     + Example (label = 1): "I seen him yesterday." (past participle 'seen' used as preterite)
     + Example (label = 1): “The dog had bit him before.” (simple past bit in pluperfect position; SAE: had bitten)
     – Miss (label = 0): "I saw him yesterday." (standard preterite)
+    Ambiguity note:
+    • feature never applies to bare stems; those belong under 'verb-stem' when they function as finite past. If the verb has no overt tense morphology at all, do not mark past-tense-swap.
 
 24. zero-rel-pronoun
     Decision rule (single element: MISSING SUBJECT RELATIVE PRONOUN):
@@ -274,6 +286,17 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     • Accept overregularized forms (had went, had ran) as long as the temporal structure is simple past.
     Ambiguity note:
     • If there is a clear second past event that makes 'had' plausibly pluperfect, prefer 0 and treat as SAE pluperfect, not preterite-had.
+
+26. bare-got
+    Decision rule (single element: PRESENT-POSSESSIVE 'GOT' WITHOUT 'HAVE'):
+    Mark 1 when 'got' functions as a present-tense possessive verb meaning 'have',
+    and there is NO overt 'have/has' or 'have got' construction in the same clause.
+    The subject has something right now (current possession), not a past 'got' event.
+    + Example (label = 1): "I got three kids." (present possession: SAE ~ 'I have three kids.')
+    - Miss (label = 0): "I got a big paycheck last month." (simple past of 'get', not present possession)
+    Ambiguity note:
+    • Only mark bare-got when the clause clearly describes current possession and does not contain an overt 'have/has'. 
+    • If 'got' can be read as simple past ('received/obtained') or as part of 'have got', prefer 0 and mention the ambiguity.
 """
 
 # -------------------- ICL FEW-SHOT EXAMPLES BLOCK --------------------
@@ -282,39 +305,39 @@ ICL_EXAMPLES_BLOCK = """
 FEW-SHOT TRAINING EXAMPLES (for demonstration only; NOT the target utterance).
 
 Example 1:
-SENTENCE: "And my cousin place turn into a whole cookout soon as it get warm, and when you step outside it's people dancing out on the sidewalk."
+SENTENCE: "And my cousin family place turn into a whole cookout soon as it get warm, and when you step outside it's people dancing out on the sidewalk."
 ANNOTATED LABELS (subset):
 - zero-3sg-pres-s: {
     "value": 1,
-    "rationale": "The clause 'turn into a whole cookout' has a recoverable 3sg subject from the local discourse ('my cousin place' / 'it'). Interpreting it as '[it] turn into a whole cookout', the verb 'turn' has a present/habitual reading with a 3sg subject. SAE would require 'turns', so this counts as a missing -s with an understood subject."
+    "rationale": "In 'my cousin family place turn into a whole cookout', the subject is 3sg ('my cousin family place') and the present-tense verb 'turn' lacks -s; SAE requires 'turns', so zero-3sg-pres-s = 1."
 }
 - existential-it: {
     "value": 1,
-    "rationale": "In 'it's people dancing out on the sidewalk', 'it' functions as a dummy subject introducing new entities ('people'), patterning like existential 'it' (similar to 'there are people dancing') rather than a referential or weather 'it'."
+    "rationale": "In 'it's people dancing out on the sidewalk', 'it' is a dummy subject that introduces new people, like 'There are people dancing', so existential-it = 1."
 }
 - multiple-neg: {
     "value": 0,
-    "rationale": "There are no negative elements in this utterance; there is no configuration with two or more negatives contributing to a single logical negation."
+    "rationale": "No clause in the sentence contains more than one negative element."
 }
 - zero-poss: {
     "value": 1,
-    "rationale": "In 'my cousin place,' the noun 'place' expresses a possessive relationship to 'my cousin' without an overt SAE possessive marker ('my cousin's place'). The two nouns appear in direct sequence, forming the AAE-style zero-possessive construction. The meaning is clearly possessive rather than appositive or a compound noun."
+    "rationale": "In 'my cousin family place', the nouns 'cousin' and 'family' express possession of 'place' without an overt 's (SAE: 'my cousin's family place'), so zero-poss = 1."
 }
 
 Example 2:
-SENTENCE: "He threwed him a quick punch and a hard knock to the ribs, then spin around and walk straight out the room like it was nothing."
+SENTENCE: "He threwed him a quick punch, then spin around and walk straight out the room like it was nothing."
 ANNOTATED LABELS (subset):
 - double-object: {
-    "value": 1,
-    "rationale": "In 'threwed him a quick jab and a hard hook', the verb 'threwed' is followed by the indirect object 'him' and then a direct object NP ('a quick jab and a hard hook') with no preposition introducing the recipient. This is a verb + two NP objects pattern, characteristic of the double-object construction."
+    "value": 0,
+    "rationale": "In 'threwed him a quick punch', the verb 'threwed' is followed by two NP objects but this frame is standard for the SAE ditransitive so double-object = 0."
 }
 - verb-stem: {
     "value": 1,
-    "rationale": "The sentence describes a single past-time event established by the past-tense context ('threwed him...'). The coordinated verbs 'spin' and 'walk' appear in bare-stem form instead of the SAE narrative-past forms ('spun', 'walked'). Because the temporal reference has already been set to the past, the bare verbs function as past-time predicates, matching the AAE bare-stem past pattern."
+    "rationale": "Past time is set by 'He threwed him a quick punch'. The later verbs 'spin' and 'walk' are bare stems in the same past-time sequence where SAE expects 'spun' and 'walked', so verb-stem = 1."
 }
 - past-tense-swap: {
     "value": 1,
-    "rationale": "'threwed' is an overregularized past form in place of the SAE irregular 'threw'. This matches the criterion for past-tense-swap, where a regularized or participle-like form is used as the simple past."
+    "rationale": "'Threwed' is a regularized past form used as the simple past where SAE uses irregular 'threw', so past-tense-swap = 1."
 }
 
 Example 3:
@@ -322,24 +345,25 @@ SENTENCE: "He ain't never seen nothing move that fast before, then a week later 
 ANNOTATED LABELS (subset):
 - multiple-neg: {
     "value": 1,
-    "rationale": "In 'ain't never seen nothing', 'ain't', 'never', and 'nothing' are all negative elements within the same clause, but they jointly express a single logical negation ('he has never seen anything like that'). This is the hallmark of multiple negation / negative concord."
+    "rationale": "In 'ain't never seen nothing', the negative elements 'ain't', 'never', and 'nothing' are all in the same clause and together mean 'has never seen anything', so multiple-neg = 1."
 }
 - aint: {
     "value": 1,
-    "rationale": "'ain't' here functions as a general negative auxiliary, standing in for 'hasn't'/'has not' with the participle 'seen' ('he hasn't ever seen anything'), rather than as a lexical main verb."
+    "rationale": "'Ain't' is used as a negative auxiliary for HAVE ('hasn't seen'), not as a main verb, so aint = 1."
 }
 - past-tense-swap: {
     "value": 1,
-    "rationale": "In 'he just seen it happen again', 'seen' (a participle form) is used as a simple past where SAE would require 'saw'. The time reference ('a week later' + event already completed) makes this a simple past, so this is a nonstandard substitution of a participle form in preterite position."
+    "rationale": "In 'he just seen it happen again', 'seen' (a participle form) is used as the only past-tense form where SAE requires 'saw', so past-tense-swap = 1."
 }
 - verb-stem: {
     "value": 0,
-    "rationale": "Neither 'seen' nor 'happen' is functioning as a bare-stem past: 'seen' is a participle used as simple past (captured by past-tense-swap), and 'happen' appears under 'seen it happen' without independent past marking. There is no clear case of a bare verb form directly realizing a past-time finite verb slot."
+    "rationale": "No bare stem verb serves as the finite past predicate: 'seen' is a participle used as simple past (captured by past-tense-swap), and 'happen' is a non-finite verb in 'seen it happen', so verb-stem = 0."
 }
 
-Use these as patterns for how to connect specific grammatical evidence to binary feature decisions.
+Use these as patterns: for each feature, look for the exact words that match the decision rule and base your 0/1 decision on that local evidence only.
 Do NOT reuse these sentences when analyzing the new target utterance.
 """
+
 
 
 
@@ -386,8 +410,8 @@ def build_system_msg(
             "You are a highly experienced sociolinguist and expert annotator of African American English (AAE).\n"
             "AAE is a rule-governed, systematic language variety. You must analyze the input according to AAE's "
             "internal grammatical rules, not Standard American English (SAE) norms.\n"
-            "Do NOT treat AAE constructions as 'incorrect' or 'broken' English; your job is to identify and justify "
-            "AAE patterns relative to SAE, not to correct them.\n"
+            "Treat African American English and Standard American English as equally valid.\n"
+            "Do not ‘correct’ or rate sentences. Your only task is to decide, for each feature, whether its definition matches this utterance (1) or not (0)."
             "Informal or slangy English that could be spoken by many speakers (regardless of race) does NOT automatically "
             "count as AAE. Only mark a feature as 1 if the utterance clearly matches the specific AAE morphosyntactic "
             "pattern described in the decision rule.\n\n"
@@ -442,6 +466,7 @@ def build_system_msg(
     base_content += (
         "EXPLICIT EVALUATION CONSTRAINTS:\n"
         "- Analyze ONLY syntax, morphology, and clause structure.\n"
+        "Base each decision only on the feature definitions and the words in the target utterance (and context, when explicitly allowed). Do not infer extra events or repair the sentence.\n"
         "- Informal, conversational, or slang (including missing subjects, contractions, or casual phrasing) "
         "  does NOT by itself imply an AAE feature. Only mark a feature when the specific AAE decision rule is satisfied.\n"
         "- SUBJECT DROPS IN SPONTANEOUS SPEECH:\n"
@@ -452,11 +477,9 @@ def build_system_msg(
         "     and briefly note that the structure is too fragmentary or ambiguous for a reliable feature decision.\n"
         "- For tense-related features (verb-stem, past-tense-swap, preterite-had, is-was-gen, zero-3sg-pres-s):\n"
         "   - First determine the intended reference time (past vs present vs habitual) using explicit time adverbs, aspect markers,\n"
-        "     and LOCAL discourse context (earlier/later clauses in the same utterance or the provided context sentences).\n"
+        "     and LOCAL discourse context (earlier/later clauses in the same utterance).\n"
         "   - Then compare the verb form to what SAE would require in that same context.\n"
-        "   - Only mark the feature as 1 when the mismatch fits the defined AAE pattern.\n"
-        "- Do NOT infer missing words, tense, or subjects purely from real-world plausibility or stereotypes about what speakers\n"
-        "  'probably meant.' Use only the textual and local discourse evidence that is actually present in the given context.\n\n"
+        "   - Only mark the feature as 1 when the mismatch fits the defined AAE pattern.\n\n"
     )
 
     # ---- ONLY when context is enabled ----
@@ -500,9 +523,7 @@ def build_system_response_instructions(
             "    'value': 1 or 0 (integer, not a string)\n"
             "    'rationale': 1–2 sentences of grammatical reasoning.\n"
             "- The rationale SHOULD:\n"
-            "    - Point to the specific grammatical evidence (e.g., bare verb with past adverb, duplicated tense, WH + missing copula).\n"
-            "    - If you considered an alternative interpretation, mention it briefly (e.g., 'Alt analysis: ... but the rule requires ...').\n"
-            "    - Avoid paraphrasing the sentence content or adding world knowledge; stay on syntax/morphology.\n\n"
+            "    - For each feature, point to the exact substring that justifies 1 (e.g., bare verb with past adverb, duplicated tense, WH + missing copula), or explicitly state that no such substring exists for 0.\n"
             "Example output structure (for illustration only):\n"
             "{\n"
             '  \"zero-poss\": {\"value\": 0, \"rationale\": \"No bare possessive noun–noun sequence; possessive is fully marked in SAE form.\"},\n'
