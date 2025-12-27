@@ -66,7 +66,7 @@ MASIS_FEATURE_BLOCK = f"""
    - Miss (label = 0): "No problem." (fragment; no clear subject–predicate copula slot)
    Ambiguity note:
    • Do not automatically exclude short or out‑of‑context strings as “fragments”; instead, ask whether there is a recoverable subject and predicate slot that would host BE in SAE. If not, prefer 0 and explain.
-
+# Although 'they talking' lacks 'are' before a V-ing, it occurs inside an obviously subordinate 'when' clause and the utterance is fragmentary; per rule, do not mark subordinate/list fragments.
 3. double-tense
    Decision rule (single element: DUPLICATED PAST MORPHOLOGY):
    Mark 1 when a single lexical verb shows duplicated overt past-tense morphology (usually repeated -ed) within one word.
@@ -170,6 +170,7 @@ MASIS_FEATURE_BLOCK = f"""
     - Miss (label = 0): "A dogs." (article–noun mismatch, not the AAE plural pattern)
     Ambiguity note:
     • If plurality is only inferable from distant context and not clear in the NP itself, prefer 0.
+# So it got to our-  our neck.	zero-pl-s	1	0	No plural noun lacking -s; 'neck' is singular and unquantified.
 
 16. double-object
     Decision rule (single element: PERSONAL DATIVE / SELF‑BENEFIT PRONOUN + NP):
@@ -230,6 +231,7 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     - Miss (label = 0): "I like them." (object pronoun)
     Ambiguity note:
     • Cases where them directly precedes a noun inside the same NP, and can be paraphrased as “those floor‑…”, do count as demonstrative‑them, even if the noun is truncated or repaired afterward. 
+also if it doesnt preceed a noun right? like "all them..." 
 
 20. appositive-pleonastic-pronoun
     Decision rule (single element: REDUNDANT/RESUMPTIVE PRONOUN):
@@ -241,6 +243,7 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     - Miss (label = 0): "A lot of people, you can tell they would tell me that." ('you' is the subject of can tell and does not repeat 'a lot of people' in the same role; 'they' is the subject of a different clause)
     Ambiguity note:
     • If the structure could equally be a self-correction or restart with a new subject, and not clearly a redundant pronoun, prefer 0 and mention disfluency.
+ # Left-dislocated NP 'the lawyer of RD-NAME-4' is resumed by a co‑referential object pronoun in the same clause 'I forgot about him' (object + object resumptive).
  
 21. bin
     Decision rule (single element: BEEN W/O 'HAVE'):
@@ -269,6 +272,9 @@ NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
     – Miss (label = 0): "I saw him yesterday." (standard preterite)
     Ambiguity note:
     • feature never applies to bare stems; those belong under 'verb-stem' when they function as finite past. If the verb has no overt tense morphology at all, do not mark past-tense-swap.
+# Although “builded” is a regularized form, it functions as a passive participle in a modal context, not as the main past/perfect tense carrier.
+# Although “builded” is a regularized form, it appears in a passive-like “be builded” context without clear simple-past/perfect reference as the main tense carrier.
+# Although 'builded' appears, it functions as a participial form after 'be' (passive‑like) without clear simple‑past reference; the rule targets tense distribution in past contexts.
 
 24. zero-rel-pronoun
     Decision rule (single element: MISSING SUBJECT RELATIVE PRONOUN):
