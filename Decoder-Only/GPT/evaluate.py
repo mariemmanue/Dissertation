@@ -387,6 +387,11 @@ def plot_f1_scores_per_feature(
 
 
 def plot_per_feature_confusion_matrix(cm_data: pd.DataFrame, model_name: str, features: list[str], save_path: Optional[str] = None):
+
+    if cm_data.empty:
+        print(f"[INFO] No confusion-matrix data for {model_name}; skipping heatmap.")
+        return
+
     plt.figure(figsize=(14, 10))
     sns.heatmap(cm_data, annot=True, fmt="d", cmap="Blues", xticklabels=["TP", "FP", "FN", "TN"], yticklabels=features)
     plt.title(f"Per-Feature TP/FP/FN/TN for {model_name}")
@@ -471,6 +476,11 @@ def evaluate_model(model_df: pd.DataFrame, truth_df: pd.DataFrame, model_name: s
 
     filtered_features = [feat for feat in available_features if feat not in skipped_features]
     cm_df = pd.DataFrame(cm_data_rows, columns=["TP", "FP", "FN", "TN"], index=filtered_features)
+
+    if cm_df.empty:
+        print(f"[INFO] No non-empty features for {model_name}; skipping confusion-matrix plot.")
+        return results
+        
     plot_per_feature_confusion_matrix(
         cm_df,
         model_name,
