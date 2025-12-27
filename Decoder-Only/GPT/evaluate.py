@@ -479,7 +479,7 @@ def evaluate_model(model_df: pd.DataFrame, truth_df: pd.DataFrame, model_name: s
 
     if cm_df.empty:
         print(f"[INFO] No non-empty features for {model_name}; skipping confusion-matrix plot.")
-        return results
+        return
         
     plot_per_feature_confusion_matrix(
         cm_df,
