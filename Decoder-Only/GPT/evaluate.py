@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
@@ -866,10 +867,20 @@ def evaluate_sheets(file_path: str):
         if str(sheet_name).startswith("~$"):
             continue
 
-        if str(sheet_name).endswith("_rationales"):
-            base_name = sheet_name[:-11]
+        sname = str(sheet_name)
+
+        # 1. Full "_rationales" sheets (old convention)
+        if sname.endswith("_rationales"):
+            base_name = sname[:-11]
             rationale_sheets[base_name] = df_raw
             continue
+
+        # 2. Any rationale-only sheet whose suffix starts with "_rats_"
+        #    e.g. "_rats_r", "_rats_rat", "_rats_rati", "_rats_rationales", etc.
+        if re.search(r"_rats_[A-Za-z]*$", sname):
+            print(f"[INFO] Skipping rationale-only sheet {sheet_name}")
+            continue
+
 
         name_up = str(sheet_name).upper()
         if not (name_up.startswith("GPT_") or name_up.startswith("BERT") or name_up.startswith("ROBERTA") or name_up.startswith("MODERNBERT")):
