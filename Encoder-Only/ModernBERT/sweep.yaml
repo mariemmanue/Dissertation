@@ -1,0 +1,28 @@
+program: train.py
+name: modernbert-aae-sweep
+project: aae-ddm-modernbert
+method: bayes
+metric:
+  name: eval_f1
+  goal: maximize
+
+parameters:
+  learning_rate:
+    distribution: log_uniform
+    min: 1e-5
+    max: 3e-5
+  batch_size:
+    values: [16, 32]
+  epochs:
+    values: [3, 5]
+  warmup_steps:
+    values: [0, 300, 800]
+  max_length:
+    values: [128, 256]
+
+command:
+  - /nlp/scr/mtano/miniconda3/envs/cgedit/bin/python
+  - train.py
+  - CGEdit
+  - AAE
+  - --wandb_project=aae-ddm-modernbert

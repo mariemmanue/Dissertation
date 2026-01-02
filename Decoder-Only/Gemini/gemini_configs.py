@@ -6,8 +6,7 @@ import re
 import time
 from tqdm import tqdm
 
-from openai import OpenAI
-import tiktoken
+from google import genai
 import argparse
 import math
 
@@ -19,9 +18,7 @@ api_call_count = 0
 
 
 
-OPENAI_MODEL_NAME = "gpt-5"
-# tokenizer for logging (will be overridden by main)
-enc = tiktoken.encoding_for_model("gpt-5")
+GEMINI_MODEL_NAME = "gemini-2.5-pro"  # or "gemini-1.5-pro"
 
 # -------------------- FEATURE LISTS --------------------
 
@@ -920,8 +917,7 @@ def parse_output_json(raw_str: str, features: list[str]):
 # -------------------- GPT QUERY --------------------
 
 def query_gpt(
-    client: OpenAI,
-    enc_obj,
+    client: genai,
     sentence: str,
     *,
     features: list[str],
@@ -966,7 +962,7 @@ def query_gpt(
         os.environ[dump_once_key] = "1"
 
         payload = {
-            "model": OPENAI_MODEL_NAME,
+            "model": GEMINI_MODEL_NAME,
             "messages": messages,
         }
         print("\n===== PROMPT DUMP (exact API payload) =====")
@@ -977,18 +973,24 @@ def query_gpt(
             with open(dump_prompt_path, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2, ensure_ascii=False)
 
-    input_tokens = sum(len(enc_obj.encode(msg["content"])) for msg in messages)
+    input_tokens = client.models.count_tokens(
+        model=GEMINI_MODEL_NAME,
+        contents=messages
+    ).total_tokens
     total_input_tokens += input_tokens
 
     for attempt in range(max_retries):
         try:
-            resp = client.responses.create(
-                model=OPENAI_MODEL_NAME,
-                input=messages,
+            resp = client.models.generate_content(
+                model=GEMINI_MODEL_NAME,
+                contents=messages,
             )
-            output_text = resp.output_text
+            output_text = resp.text
 
-            output_tokens = len(enc_obj.encode(output_text))
+            output_tokens = client.models.count_tokens(
+                model=GEMINI_MODEL_NAME, 
+                contents=output_text
+            ).total_tokens
             total_output_tokens += output_tokens
             api_call_count += 1
 
@@ -1095,12 +1097,10 @@ def main():
     print(f"Number of sentences to evaluate: {len(eval_sentences)}")
 
     # Read the OpenAI API key from an environment variable
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise ValueError("Please set the OPENAI_API_KEY environment variable.")
-
-    client = OpenAI(api_key=openai_api_key)
-    enc_obj = tiktoken.encoding_for_model(OPENAI_MODEL_NAME)
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_api_key:
+        raise ValueError("Please set the GEMINI_API_KEY environment variable.")
+    client = genai.Client(api_key=gemini_api_key)
 
     USE_EXTENDED = args.extended
     CURRENT_FEATURES = EXTENDED_FEATURES if USE_EXTENDED else MASIS_FEATURES
@@ -1151,7 +1151,6 @@ def main():
 
         raw, arm_used = query_gpt(
             client,
-            enc_obj,
             sentence,
             features=CURRENT_FEATURES,
             base_feature_block=BASE_FEATURE_BLOCK,

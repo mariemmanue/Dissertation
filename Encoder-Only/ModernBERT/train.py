@@ -1,5 +1,6 @@
 import sys, os, site
 
+
 # make sure we look in the env's site-packages first
 site_dirs = []
 try:
@@ -22,6 +23,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, random_split
 import os
 import numpy as np
+from sklearn.metrics import accuracy_score, f1_score
 
 MODEL_NAME = "answerdotai/ModernBERT-large"
 
@@ -164,23 +166,15 @@ def compute_metrics(eval_pred):
     logits, labels = eval_pred
     labels = labels.reshape(-1)
     preds = np.argmax(logits, axis=-1)
+    
+    acc = accuracy_score(labels, preds)
+    f1 = f1_score(labels, preds, average="macro")  # or "weighted" if you prefer
+    
+    return {
+        "eval_accuracy": acc,
+        "eval_f1": f1,
+    }
 
-    acc = (preds == labels).mean()
-
-    f1s = []
-    for cls in [0, 1]:
-        tp = np.sum((preds == cls) & (labels == cls))
-        fp = np.sum((preds == cls) & (labels != cls))
-        fn = np.sum((preds != cls) & (labels == cls))
-        if tp == 0 and fp == 0 and fn == 0:
-            f1 = 0.0
-        else:
-            prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-            rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-        f1s.append(f1)
-    macro_f1 = float(np.mean(f1s))
-    return {"accuracy": acc, "eval_f1": macro_f1}
 
 
 if __name__ == "__main__":
@@ -232,6 +226,8 @@ if __name__ == "__main__":
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
         overwrite_output_dir=True,
+        report_to="wandb",           # ← this is critical
+        run_name="modernbert-sweep",
         learning_rate=lr,
         do_train=True,
         do_eval=True,
@@ -241,7 +237,12 @@ if __name__ == "__main__":
         per_device_eval_batch_size=bs,
         save_steps=500,
         remove_unused_columns=False,
-        logging_steps=50,             
+        logging_steps=50,
+        evaluation_strategy="epoch",  # make sure eval is run
+        save_strategy="epoch",
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_f1",
+        greater_is_better=True,
     )
 
 
