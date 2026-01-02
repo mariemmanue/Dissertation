@@ -226,7 +226,7 @@ if __name__ == "__main__":
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
         overwrite_output_dir=True,
-        report_to="wandb",           # ← this is critical
+        report_to="wandb",           # enables W&B logging
         run_name="modernbert-sweep",
         learning_rate=lr,
         do_train=True,
@@ -238,12 +238,14 @@ if __name__ == "__main__":
         save_steps=500,
         remove_unused_columns=False,
         logging_steps=50,
-        evaluation_strategy="epoch",  # make sure eval is run
+        # --- Evaluation & saving ---
+        eval_strategy="epoch",        # ← was evaluation_strategy
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="eval_f1",
         greater_is_better=True,
     )
+
 
 
 
