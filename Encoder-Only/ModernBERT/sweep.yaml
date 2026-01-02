@@ -8,9 +8,10 @@ metric:
 
 parameters:
   learning_rate:
-    distribution: log_uniform
+    distribution: log_uniform_values
     min: 1e-5
     max: 3e-5
+
   batch_size:
     values: [16, 32]
   epochs:
