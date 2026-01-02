@@ -66,15 +66,22 @@ class MultitaskModel(transformers.PreTrainedModel):
 
 class MultitaskTrainer(transformers.Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        labels = torch.transpose(inputs["labels"], 0, 1)
-        labels = torch.flatten(labels)
+        labels = inputs["labels"]  # shape: (batch_size, num_tasks)
+        labels_flat = labels.view(-1)  # (batch_size * num_tasks,)
+
         outputs = model(
             input_ids=inputs["input_ids"],
             attention_mask=inputs.get("attention_mask"),
         )
+        # outputs: (batch_size * num_tasks, num_classes)
         loss_fct = nn.CrossEntropyLoss()
-        loss = loss_fct(outputs, labels)
-        return (loss, outputs) if return_outputs else loss
+        loss = loss_fct(outputs, labels_flat)
+
+        if return_outputs:
+            return (loss, outputs, labels_flat)  # ← return loss, logits, labels
+        else:
+            return loss
+
 
 
 class AAEFeatureDataset(Dataset):
@@ -163,17 +170,17 @@ def build_dataset(tokenizer, train_f, max_length=64):
 
 
 def compute_metrics(eval_pred):
-    logits, labels = eval_pred
-    labels = labels.reshape(-1)
-    preds = np.argmax(logits, axis=-1)
-    
+    print("compute_metrics called!")  # ← this should now appear
+    logits, labels = eval_pred  # labels is (batch_size * num_tasks,)
+    preds = logits.argmax(axis=1)
+    f1 = f1_score(labels, preds, average="macro")
     acc = accuracy_score(labels, preds)
-    f1 = f1_score(labels, preds, average="macro")  # or "weighted" if you prefer
-    
     return {
-        "eval_accuracy": acc,
         "eval_f1": f1,
+        "eval_accuracy": acc,
     }
+
+
 
 
 
@@ -243,11 +250,9 @@ if __name__ == "__main__":
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="eval_f1",
+        prediction_loss_only=False,  # ← important: enables compute_metrics
         greater_is_better=True,
     )
-
-
-
 
     trainer = MultitaskTrainer(
         model=model,
