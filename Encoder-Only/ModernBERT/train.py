@@ -84,6 +84,7 @@ class MultitaskTrainer(transformers.Trainer):
 
 
 
+
 class AAEFeatureDataset(Dataset):
     def __init__(self, input_ids, attention_mask, labels):
         self.input_ids = input_ids
@@ -170,8 +171,8 @@ def build_dataset(tokenizer, train_f, max_length=64):
 
 
 def compute_metrics(eval_pred):
-    print("compute_metrics called!")  # ← this should now appear
-    logits, labels = eval_pred  # labels is (batch_size * num_tasks,)
+    print("compute_metrics called!")
+    logits, labels = eval_pred
     preds = logits.argmax(axis=1)
     f1 = f1_score(labels, preds, average="macro")
     acc = accuracy_score(labels, preds)
@@ -179,7 +180,6 @@ def compute_metrics(eval_pred):
         "eval_f1": f1,
         "eval_accuracy": acc,
     }
-
 
 
 
