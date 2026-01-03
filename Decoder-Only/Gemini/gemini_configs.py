@@ -917,7 +917,7 @@ def parse_output_json(raw_str: str, features: list[str]):
 # -------------------- GPT QUERY --------------------
 
 def query_gpt(
-    client: genai,
+    client: genai.Client,  # ✅ Correct type hint
     sentence: str,
     *,
     features: list[str],
@@ -937,11 +937,9 @@ def query_gpt(
     max_retries: int = 15,
     base_delay: int = 3,
 ) -> tuple[str | None, str]:
-
+    
     global api_call_count, total_input_tokens, total_output_tokens
-
-    use_icl_examples = instruction_type in ["icl", "few_shot_cot"]
-
+    
     messages, arm_used = build_messages(
         utterance=sentence,
         features=features,
@@ -949,72 +947,77 @@ def query_gpt(
         instruction_type=instruction_type,
         include_examples_in_block=include_examples_in_block,
         use_context=use_context,
-        context_mode=context_mode,
         left_context=left_context,
         right_context=right_context,
-        use_icl_examples=use_icl_examples,
+        context_mode=context_mode,
+        use_icl_examples=(instruction_type in ["icl", "few_shot_cot"]),
         dialect_legitimacy=dialect_legitimacy,
         self_verification=self_verification,
         require_rationales=require_rationales,
     )
-    # ---- DEBUG: dump exact prompt payload ----
+    
+    # Convert OpenAI-style messages to single string for Gemini
+    prompt_parts = []
+    for msg in messages:
+        if msg["role"] == "system":
+            prompt_parts.append(f"SYSTEM INSTRUCTIONS:\n{msg['content']}\n")
+        elif msg["role"] == "user":
+            prompt_parts.append(msg['content'])
+    
+    full_prompt = "\n\n".join(prompt_parts)
+    
     if dump_prompt and dump_once_key and os.environ.get(dump_once_key, "0") != "1":
         os.environ[dump_once_key] = "1"
-
-        payload = {
-            "model": GEMINI_MODEL_NAME,
-            "messages": messages,
-        }
-        print("\n===== PROMPT DUMP (exact API payload) =====")
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
-        print("===== END PROMPT DUMP =====\n")
-
-        if dump_prompt_path:
-            with open(dump_prompt_path, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2, ensure_ascii=False)
-
+        print("===== PROMPT DUMP =====")
+        print(full_prompt)
+        print("===== END PROMPT DUMP =====")
+    
+    if dump_prompt_path:
+        with open(dump_prompt_path, "w", encoding="utf-8") as f:
+            f.write(full_prompt)
+    
+    # Count input tokens
     input_tokens = client.models.count_tokens(
         model=GEMINI_MODEL_NAME,
-        contents=messages
+        contents=full_prompt
     ).total_tokens
     total_input_tokens += input_tokens
-
+    
     for attempt in range(max_retries):
         try:
-            resp = client.models.generate_content(
+            # ✅ Matches the official example style
+            response = client.models.generate_content(
                 model=GEMINI_MODEL_NAME,
-                contents=messages,
+                contents=full_prompt
             )
-            output_text = resp.text
-
+            
+            output_text = response.text  # ✅ Use response.text
+            
+            # Count output tokens
             output_tokens = client.models.count_tokens(
-                model=GEMINI_MODEL_NAME, 
+                model=GEMINI_MODEL_NAME,
                 contents=output_text
             ).total_tokens
+            
             total_output_tokens += output_tokens
             api_call_count += 1
-
+            
             print(output_text)
-            print(
-                f"API Call #{api_call_count} | "
-                f"Input Tokens: {input_tokens} | "
-                f"Output Tokens: {output_tokens} | "
-                f"Total: {total_input_tokens + total_output_tokens}"
-            )
+            print(f"API Call {api_call_count} | Input Tokens: {input_tokens} | Output Tokens: {output_tokens} | Total: {total_input_tokens + total_output_tokens}")
+            
             return output_text, arm_used
-
+            
         except Exception as e:
             if "429" in str(e) or "rate" in str(e).lower():
                 wait_time = base_delay * (2 ** attempt)
                 print(f"Rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1})")
                 time.sleep(wait_time)
             else:
-                print(f"Error on sentence: {sentence[:40]}... = {e}")
+                print(f"Error on sentence {sentence[:40]}...: {e}")
                 return None, arm_used
-
-    print(f"Failed after {max_retries} retries.")
+    
+    print(f"Max retries exceeded for sentence: {sentence[:40]}...")
     return None, arm_used
-
 
 # -------------------- MAIN --------------------
 
@@ -1100,6 +1103,7 @@ def main():
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     if not gemini_api_key:
         raise ValueError("Please set the GEMINI_API_KEY environment variable.")
+    
     client = genai.Client(api_key=gemini_api_key)
 
     USE_EXTENDED = args.extended
