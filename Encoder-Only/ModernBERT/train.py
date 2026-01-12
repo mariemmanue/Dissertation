@@ -25,8 +25,6 @@ import os
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 
-MODEL_NAME = "answerdotai/ModernBERT-large"
-
 # try wandb
 use_wandb = False
 try:
@@ -57,30 +55,33 @@ class MultitaskModel(transformers.PreTrainedModel):
 
     def forward(self, input_ids=None, attention_mask=None, **kwargs):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        cls_repr = out.last_hidden_state[:, 0, :]
-        logits = []
+        cls_repr = out.last_hidden_state[:, 0, :]  # (B, H)
+        logits_per_task = []
         for _, head in self.taskmodels_dict.items():
-            logits.append(head(cls_repr))
-        return torch.vstack(logits)
+            logits_per_task.append(head(cls_repr))  # (B, 2)
+        # stack into (B, num_tasks, 2)
+        logits = torch.stack(logits_per_task, dim=1)
+        return logits
+
 
 
 class MultitaskTrainer(transformers.Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        labels = inputs["labels"]  # shape: (batch_size, num_tasks)
-        labels_flat = labels.view(-1)  # (batch_size * num_tasks,)
-
-        outputs = model(
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs["labels"]          # (B, T)
+        logits = model(
             input_ids=inputs["input_ids"],
             attention_mask=inputs.get("attention_mask"),
-        )
-        # outputs: (batch_size * num_tasks, num_classes)
-        loss_fct = nn.CrossEntropyLoss()
-        loss = loss_fct(outputs, labels_flat)
+        )                                  # (B, T, 2)
 
+        B, T, C = logits.shape
+        logits_flat = logits.view(B * T, C)
+        labels_flat = labels.view(B * T)
+
+        loss = nn.CrossEntropyLoss()(logits_flat, labels_flat)
         if return_outputs:
-            return (loss, outputs, labels_flat)  # ← return loss, logits, labels
-        else:
-            return loss
+            return (loss, logits)
+        return loss
+
 
 
 
@@ -171,15 +172,17 @@ def build_dataset(tokenizer, train_f, max_length=64):
 
 
 def compute_metrics(eval_pred):
-    print("compute_metrics called!")
-    logits, labels = eval_pred
-    preds = logits.argmax(axis=1)
-    f1 = f1_score(labels, preds, average="macro")
-    acc = accuracy_score(labels, preds)
-    return {
-        "eval_f1": f1,
-        "eval_accuracy": acc,
-    }
+    logits, labels = eval_pred    # logits: (B, T, 2), labels: (B, T)
+    # flatten both
+    B, T, C = logits.shape
+    logits_flat = logits.reshape(B * T, C)
+    labels_flat = labels.reshape(B * T)
+
+    preds = logits_flat.argmax(axis=1)
+    f1 = f1_score(labels_flat, preds, average="macro")
+    acc = accuracy_score(labels_flat, preds)
+    return {"eval_f1": f1, "eval_accuracy": acc}
+
 
 
 
@@ -249,9 +252,10 @@ if __name__ == "__main__":
         eval_strategy="epoch",        # ← was evaluation_strategy
         save_strategy="epoch",
         load_best_model_at_end=True,
-        metric_for_best_model="eval_f1",
         prediction_loss_only=False,  # ← important: enables compute_metrics
-        greater_is_better=True,
+        greater_is_better=False,
+        save_total_limit=2,          # keep last 2 checkpoints
+        metric_for_best_model="eval_loss",  # or "eval_f1" once it works
     )
 
     trainer = MultitaskTrainer(
@@ -263,6 +267,8 @@ if __name__ == "__main__":
     )
 
     trainer.train()
+    repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
+    trainer.push_to_hub(repo_name)
 
     os.makedirs(f"./models/{out_dir}", exist_ok=True)
     torch.save(
