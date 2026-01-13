@@ -116,9 +116,6 @@ class MultitaskTrainer(transformers.Trainer):
         return loss, logits, labels
 
 
-
-
-
 # class DebugMultitaskTrainer(MultitaskTrainer):
 #     def prediction_step(
 #         self, model, inputs, prediction_loss_only, ignore_keys=None
