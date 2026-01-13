@@ -334,6 +334,7 @@ if __name__ == "__main__":
         per_device_train_batch_size=bs,
         per_device_eval_batch_size=bs,
         save_steps=500,
+        weight_decay=weight_decay,
         remove_unused_columns=False,
         logging_steps=50,
         # --- Evaluation & saving ---
