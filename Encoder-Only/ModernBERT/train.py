@@ -67,7 +67,6 @@ class MultitaskModel(transformers.PreTrainedModel):
 
 class MultitaskTrainer(transformers.Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        print(">>> compute_loss called; return_outputs =", return_outputs)
         labels = inputs["labels"]          # (B, T)
         logits = model(
             input_ids=inputs["input_ids"],
@@ -83,48 +82,82 @@ class MultitaskTrainer(transformers.Trainer):
             return (loss, logits)
         return loss
 
-
-
-
-class DebugMultitaskTrainer(MultitaskTrainer):
     def prediction_step(
         self, model, inputs, prediction_loss_only, ignore_keys=None
     ):
+        """
+        Custom eval step that always returns (loss, logits, labels) with no grad,
+        so Trainer can compute eval_loss and call compute_metrics.
+        """
         # Shallow copy so we don't mutate original
         inputs = inputs.copy()
 
         # Extract labels
         labels = inputs.get("labels", None)
 
-        # Disable grad during eval
+        # Eval mode, no grad
         model.eval()
         with torch.no_grad():
             loss, logits = self.compute_loss(
                 model, inputs, return_outputs=True
             )
 
-        # Detach for Trainer's numpy conversion
+        # Detach for numpy conversion
         if loss is not None:
             loss = loss.detach()
         if logits is not None:
             logits = logits.detach()
-
         if labels is not None and isinstance(labels, torch.Tensor):
             labels = labels.detach()
-
-        # Debug print (eval only)
-        if not model.training:
-            print(
-                ">>> prediction_step (eval):",
-                "loss ok" if loss is not None else "loss None",
-                "logits", getattr(logits, "shape", None),
-                "labels", getattr(labels, "shape", None),
-            )
 
         if prediction_loss_only:
             return loss, None, None
 
         return loss, logits, labels
+
+
+
+
+
+# class DebugMultitaskTrainer(MultitaskTrainer):
+#     def prediction_step(
+#         self, model, inputs, prediction_loss_only, ignore_keys=None
+#     ):
+#         # Shallow copy so we don't mutate original
+#         inputs = inputs.copy()
+
+#         # Extract labels
+#         labels = inputs.get("labels", None)
+
+#         # Disable grad during eval
+#         model.eval()
+#         with torch.no_grad():
+#             loss, logits = self.compute_loss(
+#                 model, inputs, return_outputs=True
+#             )
+
+#         # Detach for Trainer's numpy conversion
+#         if loss is not None:
+#             loss = loss.detach()
+#         if logits is not None:
+#             logits = logits.detach()
+
+#         if labels is not None and isinstance(labels, torch.Tensor):
+#             labels = labels.detach()
+
+#         # Debug print (eval only)
+#         if not model.training:
+#             print(
+#                 ">>> prediction_step (eval):",
+#                 "loss ok" if loss is not None else "loss None",
+#                 "logits", getattr(logits, "shape", None),
+#                 "labels", getattr(labels, "shape", None),
+#             )
+
+#         if prediction_loss_only:
+#             return loss, None, None
+
+#         return loss, logits, labels
 
 
 
@@ -297,14 +330,14 @@ if __name__ == "__main__":
         # --- Evaluation & saving ---
         eval_strategy="epoch",        # ← was evaluation_strategy
         save_strategy="epoch",
-        load_best_model_at_end=False,
+        load_best_model_at_end=True, 
+        metric_for_best_model="eval_f1", 
+        greater_is_better=True,
         prediction_loss_only=False,  # ← important: enables compute_metrics
-        greater_is_better=False,
         save_total_limit=2,          # keep last 2 checkpoints
-        metric_for_best_model=None,  # or "eval_f1" once it works
     )
 
-    trainer = DebugMultitaskTrainer(
+    trainer = MultitaskTrainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
