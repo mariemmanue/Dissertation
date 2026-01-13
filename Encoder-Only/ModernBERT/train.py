@@ -252,7 +252,7 @@ if __name__ == "__main__":
         # --- Evaluation & saving ---
         eval_strategy="epoch",        # ← was evaluation_strategy
         save_strategy="epoch",
-        load_best_model_at_end=True,
+        load_best_model_at_end=False,
         prediction_loss_only=False,  # ← important: enables compute_metrics
         greater_is_better=False,
         save_total_limit=2,          # keep last 2 checkpoints
