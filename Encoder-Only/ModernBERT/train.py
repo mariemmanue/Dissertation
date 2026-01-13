@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
     MODEL_NAME = "answerdotai/ModernBERT-large"
     train_file = f"./data/{args.gen_method}/{args.lang}.tsv"
-    out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}"
+    # out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -312,9 +312,15 @@ if __name__ == "__main__":
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
 
+    run_name = os.environ.get("WANDB_RUN_ID", None) or \
+            os.environ.get("WANDB_RUN_NAME", None) or "no-wandb"
+
+    out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}_{run_name}"
+
+
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
-        overwrite_output_dir=True,
+        overwrite_output_dir=False,
         report_to="wandb",           # enables W&B logging
         run_name="modernbert-sweep",
         learning_rate=lr,
@@ -346,7 +352,11 @@ if __name__ == "__main__":
     )
 
     trainer.train()
-    repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
+    if use_wandb:
+        base = f"modernbert-aae-{args.gen_method}-{args.lang}"
+        repo_name = f"{base}-{wandb.run.name}-lr{lr}-bs{bs}"
+    else:
+        repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
     trainer.push_to_hub(repo_name)
     metrics = trainer.evaluate()
     print(">>> eval metrics dict:", metrics)

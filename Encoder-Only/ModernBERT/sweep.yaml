@@ -1,24 +1,30 @@
 program: train.py
-name: modernbert-aae-sweep
+name: modernbert-aae-sweep-v2
 project: aae-ddm-modernbert
 method: bayes
 metric:
-  name: eval_loss
-  goal: minimize
+  name: eval_f1
+  goal: maximize
+
 
 parameters:
   learning_rate:
     distribution: log_uniform_values
-    min: 1e-5
-    max: 3e-5
+    min: 5e-6             # tighten around current best
+    max: 2e-5
   batch_size:
-    values: [16, 32]
+    values: [32]          # fix to best (if best run used 32)
   epochs:
-    values: [3, 5]
+    values: [4, 5, 6]     # explore slightly longer; 3–5 looked good
   warmup_steps:
-    values: [0, 300, 800]
+    values: [300, 800]    # drop 0 if it was consistently worse
   max_length:
-    values: [128, 256]
+    values: [256]         # fix to best value
+
+  weight_decay:
+    distribution: uniform
+    min: 0.0
+    max: 0.1             # only if you expose this in your Trainer args
 
 command:
   - /nlp/scr/mtano/miniconda3/envs/cgedit/bin/python
