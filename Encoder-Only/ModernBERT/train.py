@@ -93,11 +93,13 @@ class DebugMultitaskTrainer(MultitaskTrainer):
         loss, logits, labels = super().prediction_step(
             model, inputs, prediction_loss_only, ignore_keys=ignore_keys
         )
-        print(">>> prediction_step:",
-              "loss is None" if loss is None else "loss ok",
-              "logits is None" if logits is None else f"logits shape={getattr(logits, 'shape', None)}",
-              "labels is None" if labels is None else f"labels shape={getattr(labels, 'shape', None)}")
+        if not self.model.training:  # only during eval
+            print(">>> prediction_step (eval):",
+                  "loss ok" if loss is not None else "loss None",
+                  "logits", getattr(logits, "shape", None),
+                  "labels", getattr(labels, "shape", None))
         return loss, logits, labels
+
 
 
 
