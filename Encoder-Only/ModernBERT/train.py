@@ -90,22 +90,30 @@ class DebugMultitaskTrainer(MultitaskTrainer):
     def prediction_step(
         self, model, inputs, prediction_loss_only, ignore_keys=None
     ):
-        """
-        Force labels to be used in eval so we always get (loss, logits, labels).
-        """
-        # Make a shallow copy so we don't mutate original
+        # Shallow copy so we don't mutate original
         inputs = inputs.copy()
 
-        # Extract labels explicitly
+        # Extract labels
         labels = inputs.get("labels", None)
 
-        # Use our compute_loss to get loss and logits
-        loss, logits = self.compute_loss(
-            model, inputs, return_outputs=True
-        )
+        # Disable grad during eval
+        model.eval()
+        with torch.no_grad():
+            loss, logits = self.compute_loss(
+                model, inputs, return_outputs=True
+            )
 
-        # For logging/debugging
-        if not model.training:  # eval mode
+        # Detach for Trainer's numpy conversion
+        if loss is not None:
+            loss = loss.detach()
+        if logits is not None:
+            logits = logits.detach()
+
+        if labels is not None and isinstance(labels, torch.Tensor):
+            labels = labels.detach()
+
+        # Debug print (eval only)
+        if not model.training:
             print(
                 ">>> prediction_step (eval):",
                 "loss ok" if loss is not None else "loss None",
@@ -113,11 +121,11 @@ class DebugMultitaskTrainer(MultitaskTrainer):
                 "labels", getattr(labels, "shape", None),
             )
 
-        # If Trainer only wants loss (e.g., prediction_loss_only=True), obey that
         if prediction_loss_only:
             return loss, None, None
 
         return loss, logits, labels
+
 
 
 
