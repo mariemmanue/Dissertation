@@ -90,15 +90,35 @@ class DebugMultitaskTrainer(MultitaskTrainer):
     def prediction_step(
         self, model, inputs, prediction_loss_only, ignore_keys=None
     ):
-        loss, logits, labels = super().prediction_step(
-            model, inputs, prediction_loss_only, ignore_keys=ignore_keys
+        """
+        Force labels to be used in eval so we always get (loss, logits, labels).
+        """
+        # Make a shallow copy so we don't mutate original
+        inputs = inputs.copy()
+
+        # Extract labels explicitly
+        labels = inputs.get("labels", None)
+
+        # Use our compute_loss to get loss and logits
+        loss, logits = self.compute_loss(
+            model, inputs, return_outputs=True
         )
-        if not self.model.training:  # only during eval
-            print(">>> prediction_step (eval):",
-                  "loss ok" if loss is not None else "loss None",
-                  "logits", getattr(logits, "shape", None),
-                  "labels", getattr(labels, "shape", None))
+
+        # For logging/debugging
+        if not model.training:  # eval mode
+            print(
+                ">>> prediction_step (eval):",
+                "loss ok" if loss is not None else "loss None",
+                "logits", getattr(logits, "shape", None),
+                "labels", getattr(labels, "shape", None),
+            )
+
+        # If Trainer only wants loss (e.g., prediction_loss_only=True), obey that
+        if prediction_loss_only:
+            return loss, None, None
+
         return loss, logits, labels
+
 
 
 
