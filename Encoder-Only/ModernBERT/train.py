@@ -286,15 +286,18 @@ if __name__ == "__main__":
         cfg = wandb.config
         lr = getattr(cfg, "learning_rate", args.lr)
         bs = getattr(cfg, "batch_size", args.bs)
-        epochs = getattr(cfg, "epochs", args.epochs)          # <--- MATCH YAML
+        epochs = getattr(cfg, "epochs", args.epochs)
         warmup = getattr(cfg, "warmup_steps", args.warmup)
         max_len = getattr(cfg, "max_length", args.max_length)
+        weight_decay = getattr(cfg, "weight_decay", 0.0)
     else:
         lr = args.lr
         bs = args.bs
         epochs = args.epochs
         warmup = args.warmup
         max_len = args.max_length
+        weight_decay = 0.0
+
 
     MODEL_NAME = "answerdotai/ModernBERT-large"
     train_file = f"./data/{args.gen_method}/{args.lang}.tsv"
