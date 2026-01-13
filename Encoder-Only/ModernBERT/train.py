@@ -67,6 +67,7 @@ class MultitaskModel(transformers.PreTrainedModel):
 
 class MultitaskTrainer(transformers.Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        print(">>> compute_loss called; return_outputs =", return_outputs)
         labels = inputs["labels"]          # (B, T)
         logits = model(
             input_ids=inputs["input_ids"],
@@ -84,6 +85,19 @@ class MultitaskTrainer(transformers.Trainer):
 
 
 
+
+class DebugMultitaskTrainer(MultitaskTrainer):
+    def prediction_step(
+        self, model, inputs, prediction_loss_only, ignore_keys=None
+    ):
+        loss, logits, labels = super().prediction_step(
+            model, inputs, prediction_loss_only, ignore_keys=ignore_keys
+        )
+        print(">>> prediction_step:",
+              "loss is None" if loss is None else "loss ok",
+              "logits is None" if logits is None else f"logits shape={getattr(logits, 'shape', None)}",
+              "labels is None" if labels is None else f"labels shape={getattr(labels, 'shape', None)}")
+        return loss, logits, labels
 
 
 
@@ -173,6 +187,7 @@ def build_dataset(tokenizer, train_f, max_length=64):
 
 
 def compute_metrics(eval_pred):
+    print(">>> compute_metrics CALLED")
     logits, labels = eval_pred    # logits: (B, T, 2), labels: (B, T)
     # flatten both
     B, T, C = logits.shape
@@ -256,10 +271,10 @@ if __name__ == "__main__":
         prediction_loss_only=False,  # ← important: enables compute_metrics
         greater_is_better=False,
         save_total_limit=2,          # keep last 2 checkpoints
-        metric_for_best_model="eval_loss",  # or "eval_f1" once it works
+        metric_for_best_model=None,  # or "eval_f1" once it works
     )
 
-    trainer = MultitaskTrainer(
+    trainer = DebugMultitaskTrainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
@@ -270,6 +285,8 @@ if __name__ == "__main__":
     trainer.train()
     repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
     trainer.push_to_hub(repo_name)
+    metrics = trainer.evaluate()
+    print(">>> eval metrics dict:", metrics)
 
     os.makedirs(f"./models/{out_dir}", exist_ok=True)
     torch.save(
