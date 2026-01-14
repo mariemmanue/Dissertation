@@ -1144,16 +1144,17 @@ def main():
         left = None
         right = None
 
-
+        # CONTEXT FROM NEIGHBOR ROWS ONLY
         if args.context:
-            if "prev_sentence" in gold_df.columns:
-                left = gold_df.loc[idx, "prev_sentence"]
-            if "next_sentence" in gold_df.columns:
-                right = gold_df.loc[idx, "next_sentence"]
+            if idx > 0:
+                left = gold_df.loc[idx - 1, "sentence"]
+            if idx < len(gold_df) - 1:
+                right = gold_df.loc[idx + 1, "sentence"]
 
         usable = has_usable_context(left, right)
         if args.context and usable:
             usable_ctx_count += 1
+
         context_included = bool(args.context and usable)
 
         raw, arm_used = query_gpt(
@@ -1166,7 +1167,7 @@ def main():
             use_context=args.context,
             left_context=left,
             right_context=right,
-            context_mode=args.context_mode,   # <-- NEW (comes from argparse)
+            context_mode=args.context_mode,
             dialect_legitimacy=args.dialect_legitimacy,
             self_verification=args.self_verification,
             require_rationales=require_rationales,
@@ -1174,6 +1175,7 @@ def main():
             dump_prompt_path=args.dump_prompt_path,
             dump_once_key=dump_once_key,
         )
+
         if arm_used == "two_turn":
             used_two_turn_count += 1
         else:
@@ -1195,8 +1197,6 @@ def main():
         missing_key_count = len(missing)
         missing_keys_str = "|".join(missing)
         write_meta(idx, sentence, usable, arm_used, context_included, "OK", missing_key_count, missing_keys_str)
-
-
 
         pred_row = {"sentence": sentence}
         pred_row.update(vals)

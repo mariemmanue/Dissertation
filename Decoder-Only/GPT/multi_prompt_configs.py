@@ -1015,15 +1015,14 @@ def query_gpt(
 
 
 # -------------------- MAIN --------------------
-
 def main():
-    dump_once_key = "DUMPED_PROMPT_ONCE"
-    # Argument Parsing
+    dumponcekey = "DUMPED_PROMPT_ONCE"
+
     parser = argparse.ArgumentParser(description="Run GPT Experiments for AAE feature annotation.")
     parser.add_argument("--file", type=str, help="Input Excel file path", required=True)
     parser.add_argument("--sheet", type=str, help="Sheet name to write GPT predictions into", required=True)
-    parser.add_argument("--extended", action="store_true", help="Use extended feature set (NEW_FEATURE_BLOCK + EXTENDED_FEATURES)")
-    parser.add_argument("--context", action="store_true", help="(Optional) Use prev/next sentence context from Gold sheet if available.")
+    parser.add_argument("--extended", action="store_true", help="Use extended feature set (NEW_FEATURE_BLOCK / EXTENDED_FEATURES)")
+    parser.add_argument("--context", action="store_true", help="Use prev/next sentence context from the same sheet (neighbor rows).")
     parser.add_argument(
         "--instruction_type",
         type=str,
@@ -1034,7 +1033,7 @@ def main():
     parser.add_argument(
         "--block_examples",
         action="store_true",
-        help="If set, keep + Example / - Miss lines inside the feature block (non-zero-shot conditions only).",
+        help="If set, keep 'Example' / '–' lines inside the feature block (non-zero-shot conditions only).",
     )
     parser.add_argument(
         "--dialect_legitimacy",
@@ -1049,109 +1048,139 @@ def main():
     parser.add_argument(
         "--labels_only",
         action="store_true",
-        help="If set, request flat JSON labels (0/1 only) with NO rationales.",
+        help="If set, request flat JSON labels (0/1) only with NO rationales.",
     )
     parser.add_argument("--output_dir", type=str, help="Output directory for CSV/Excel results", required=True)
-    parser.add_argument("--dump_prompt", action="store_true",
-                        help="Print the exact messages payload sent to the API (first example only).")
-    parser.add_argument("--dump_prompt_path", type=str, default=None,
-                        help="Optional path to write dumped prompt JSON (e.g., /tmp/prompt.json).")
+    parser.add_argument(
+        "--dump_prompt",
+        action="store_true",
+        help="Print the exact messages payload sent to the API (first example only).",
+    )
+    parser.add_argument(
+        "--dump_prompt_path",
+        type=str,
+        default=None,
+        help="If set, also write the exact prompt payload to this path as JSON.",
+    )
     parser.add_argument(
         "--context_mode",
         type=str,
         choices=["single_turn", "two_turn"],
-        default="single_turn",
-        help="How to inject context when --context is set."
+        default="two_turn",
+        help="Context mode (kept for compatibility with build_messages).",
     )
+
     args = parser.parse_args()
 
-
     file_title = os.path.splitext(os.path.basename(args.file))[0]
-    out_dir = os.path.join(args.output_dir, file_title)
-    os.makedirs(out_dir, exist_ok=True)
+    outdir = os.path.join(args.output_dir, file_title)
+    os.makedirs(outdir, exist_ok=True)
 
-    meta_path = os.path.join(out_dir, args.sheet + "_meta.csv")
-    if not os.path.exists(meta_path):
-        with open(meta_path, "w", newline="", encoding="utf-8") as f:
-            csv.writer(f).writerow(["idx","sentence","use_context_requested","has_usable_context",
-                        "requested_context_mode","arm_used", "context_included","parse_status",
-                        "missing_key_count","missing_keys"])
+    # META CSV path
+    metapath = os.path.join(outdir, args.sheet + "_meta.csv")
+    if not os.path.exists(metapath):
+        with open(metapath, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerow(
+                [
+                    "idx",
+                    "sentence",
+                    "use_context_requested",
+                    "has_usable_context",
+                    "requested_context_mode",
+                    "arm_used",
+                    "context_included",
+                    "parse_status",
+                    "missing_key_count",
+                    "missing_keys",
+                ]
+            )
 
-    def write_meta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count="", missing_keys=""):
-        with open(meta_path, "a", newline="", encoding="utf-8") as f:
+    def writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys):
+        with open(metapath, "a", newline="", encoding="utf-8") as f:
             use_ctx_req = int(args.context)
             requested = args.context_mode if args.context else ""
-            csv.writer(f).writerow([
-                idx, sentence, use_ctx_req, int(usable), requested, arm_used,
-                int(bool(context_included)), parse_status, missing_count, missing_keys
-            ])
+            csv.writer(f).writerow(
+                [
+                    idx,
+                    sentence,
+                    use_ctx_req,
+                    int(usable),
+                    requested,
+                    arm_used,
+                    int(bool(context_included)),
+                    parsestatus,
+                    missingcount,
+                    missingkeys,
+                ]
+            )
 
-
+    # -------------------- LOAD DATA --------------------
     sheets = pd.read_excel(args.file, sheet_name=None)
-    gold_df = sheets["Gold"]
-    gold_df = gold_df.dropna(subset=["sentence"]).reset_index(drop=True)
+    # Assuming your Gold sheet is named "Gold" as in the original pipeline
+    golddf = sheets["Gold"]
+    golddf = golddf.dropna(subset=["sentence"]).reset_index(drop=True)
 
-    eval_sentences = gold_df["sentence"].dropna().tolist()
+    eval_sentences = golddf["sentence"].dropna().tolist()
     print(f"Number of sentences to evaluate: {len(eval_sentences)}")
 
-    # Read the OpenAI API key from an environment variable
+    # -------------------- CLIENT SETUP --------------------
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError("Please set the OPENAI_API_KEY environment variable.")
 
     client = OpenAI(api_key=openai_api_key)
-    enc_obj = tiktoken.encoding_for_model(OPENAI_MODEL_NAME)
 
-    USE_EXTENDED = args.extended
-    CURRENT_FEATURES = EXTENDED_FEATURES if USE_EXTENDED else MASIS_FEATURES
-    BASE_FEATURE_BLOCK = NEW_FEATURE_BLOCK if USE_EXTENDED else MASIS_FEATURE_BLOCK
+    use_extended = args.extended
+    CURRENT_FEATURES = EXTENDED_FEATURES if use_extended else MASIS_FEATURES
+    BASE_FEATURE_BLOCK = NEW_FEATURE_BLOCK if use_extended else MASIS_FEATURE_BLOCK
 
     include_examples_in_block = args.block_examples
     require_rationales = not args.labels_only
 
-    preds_path = os.path.join(out_dir, args.sheet + "_predictions.csv")
-    rats_path = os.path.join(out_dir, args.sheet + "_rationales.csv")
+    preds_path = os.path.join(outdir, args.sheet + "_predictions.csv")
+    rats_path = os.path.join(outdir, args.sheet + "_rationales.csv")
 
     preds_header = ["sentence"] + CURRENT_FEATURES
     rats_header = ["sentence"] + CURRENT_FEATURES
 
     if not os.path.exists(preds_path):
         with open(preds_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(preds_header)
-
+            csv.writer(f).writerow(preds_header)
     if not os.path.exists(rats_path):
         with open(rats_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(rats_header)
+            csv.writer(f).writerow(rats_header)
 
     results = []
     rationale_rows = []
-    
     usable_ctx_count = 0
     used_two_turn_count = 0
     used_single_turn_count = 0
 
-    # Iterating through sentences to evaluate
+    start_time = time.time()
+    print("###############################")
+    print("start time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
+    print("###############################")
+
+    # -------------------- MAIN LOOP --------------------
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
         left = None
         right = None
 
-
+        # CONTEXT FROM NEIGHBOR ROWS ONLY
         if args.context:
-            if "prev_sentence" in gold_df.columns:
-                left = gold_df.loc[idx, "prev_sentence"]
-            if "next_sentence" in gold_df.columns:
-                right = gold_df.loc[idx, "next_sentence"]
+            if idx > 0:
+                left = golddf.loc[idx - 1, "sentence"]
+            if idx < len(golddf) - 1:
+                right = golddf.loc[idx + 1, "sentence"]
 
         usable = has_usable_context(left, right)
         if args.context and usable:
             usable_ctx_count += 1
+
         context_included = bool(args.context and usable)
 
         raw, arm_used = query_gpt(
             client,
-            enc_obj,
             sentence,
             features=CURRENT_FEATURES,
             base_feature_block=BASE_FEATURE_BLOCK,
@@ -1160,69 +1189,64 @@ def main():
             use_context=args.context,
             left_context=left,
             right_context=right,
-            context_mode=args.context_mode,   # <-- NEW (comes from argparse)
+            context_mode=args.context_mode,
             dialect_legitimacy=args.dialect_legitimacy,
             self_verification=args.self_verification,
             require_rationales=require_rationales,
             dump_prompt=args.dump_prompt,
             dump_prompt_path=args.dump_prompt_path,
-            dump_once_key=dump_once_key,
+            dump_once_key=dumponcekey,
         )
+
         if arm_used == "two_turn":
             used_two_turn_count += 1
-        else:
+        elif arm_used == "single_turn":
             used_single_turn_count += 1
 
-        # after raw is returned
         if not raw:
-            write_meta(idx, sentence, usable, arm_used, context_included, "EMPTY_RESPONSE", "", "")
+            parsestatus = "EMPTY_RESPONSE"
+            missingcount = ""
+            missingkeys_str = ""
+            writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys_str)
             continue
-
 
         try:
-            vals, rats, missing = parse_output_json(raw, features=CURRENT_FEATURES)
-        except Exception as e:
-            # Catch JSON errors + type coercion errors (e.g., "value": "N/A"), etc.
-            write_meta(idx, sentence, usable, arm_used, context_included, "PARSE_FAIL", "", "")
-            continue
+            vals, rats, missing = parse_output_json(raw, CURRENT_FEATURES)
+            parsestatus = "OK"
+            missingcount = len(missing)
+            missingkeys_str = " ".join(missing)
+        except Exception:
+            parsestatus = "PARSE_FAIL"
+            missingcount = ""
+            missingkeys_str = ""
+            vals = {feat: None for feat in CURRENT_FEATURES}
+            rats = {feat: "" for feat in CURRENT_FEATURES}
 
-        missing_key_count = len(missing)
-        missing_keys_str = "|".join(missing)
-        write_meta(idx, sentence, usable, arm_used, context_included, "OK", missing_key_count, missing_keys_str)
-
-
+        writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys_str)
 
         pred_row = {"sentence": sentence}
         pred_row.update(vals)
         results.append(pred_row)
 
         rat_row = {"sentence": sentence}
-        for feat in CURRENT_FEATURES:
-            rat_row[feat] = rats.get(feat, "")
+        rat_row.update(rats)
         rationale_rows.append(rat_row)
 
-        # Append line-level CSV for robustness against interruptions
         with open(preds_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [vals.get(feat, "") for feat in CURRENT_FEATURES])
+            writer.writerow([sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
 
         with open(rats_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [rats.get(feat, "") for feat in CURRENT_FEATURES])
+            writer.writerow([sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
 
-    # Aggregate predictions & rationales into DataFrames
-    predictions_df = pd.DataFrame(results)
-    rationales_df = pd.DataFrame(rationale_rows)
-
-    # Write back to the Excel file (replace target sheet)
-    with pd.ExcelWriter(args.file, mode='a', if_sheet_exists='replace') as writer:
-        predictions_df.to_excel(writer, sheet_name=args.sheet, index=False)
-        rats_sheet_name = f"{args.sheet}_rationales"
-        rationales_df.to_excel(writer, sheet_name=rats_sheet_name, index=False)
-    print(f"[CONTEXT] --context={args.context} | usable_context_rows={usable_ctx_count}/{len(eval_sentences)}")
-    print(f"[ARM] used_two_turn={used_two_turn_count} | used_single_turn={used_single_turn_count}")
     print_final_usage_summary()
-
+    
+    end_time = time.time()
+    print("###############################")
+    print("end time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end_time)))
+    print("elapsed time:", time.strftime("%H:%M:%S", time.gmtime(end_time - start_time)))
+    print("###############################")
 
 if __name__ == "__main__":
     main()
