@@ -334,12 +334,12 @@ if __name__ == "__main__":
         logging_steps=50,
         # --- Evaluation & saving ---
         eval_strategy="epoch",
-        save_strategy="no",        # <<< do not save intermediate checkpoints
+        save_strategy="epoch",   # match eval
+        save_total_limit=1,      # keep only latest checkpoint
         load_best_model_at_end=True,
         metric_for_best_model="eval_f1",
         greater_is_better=True,
-        prediction_loss_only=False,
-    )
+        )
 
 
     trainer = MultitaskTrainer(
