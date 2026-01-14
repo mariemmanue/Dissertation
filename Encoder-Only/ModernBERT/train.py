@@ -320,7 +320,7 @@ if __name__ == "__main__":
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
         overwrite_output_dir=False,
-        report_to="wandb",           # enables W&B logging
+        report_to="wandb",
         run_name="modernbert-sweep",
         learning_rate=lr,
         do_train=True,
@@ -329,19 +329,18 @@ if __name__ == "__main__":
         num_train_epochs=epochs,
         per_device_train_batch_size=bs,
         per_device_eval_batch_size=bs,
-        save_steps=500,
         weight_decay=weight_decay,
         remove_unused_columns=False,
         logging_steps=50,
         # --- Evaluation & saving ---
-        eval_strategy="epoch",        # ← was evaluation_strategy
-        save_strategy="epoch",
-        load_best_model_at_end=True, 
-        metric_for_best_model="eval_f1", 
+        eval_strategy="epoch",
+        save_strategy="no",        # <<< do not save intermediate checkpoints
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_f1",
         greater_is_better=True,
-        prediction_loss_only=False,  # ← important: enables compute_metrics
-        save_total_limit=2,          # keep last 2 checkpoints
+        prediction_loss_only=False,
     )
+
 
     trainer = MultitaskTrainer(
         model=model,
@@ -352,20 +351,28 @@ if __name__ == "__main__":
     )
 
     trainer.train()
+
     if use_wandb:
         base = f"modernbert-aae-{args.gen_method}-{args.lang}"
         repo_name = f"{base}-{wandb.run.name}-lr{lr}-bs{bs}"
     else:
         repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
+
+    # Push best-epoch model to Hugging Face
     trainer.push_to_hub(repo_name)
     metrics = trainer.evaluate()
     print(">>> eval metrics dict:", metrics)
 
+    # Optional: save a small local copy before deleting
     os.makedirs(f"./models/{out_dir}", exist_ok=True)
     torch.save(
         {"model_state_dict": model.state_dict()},
         f"./models/{out_dir}/final.pt",
     )
+
+    # Immediately delete the whole output_dir to free space
+    import shutil
+    shutil.rmtree(f"./models/{out_dir}", ignore_errors=True)
 
     if use_wandb:
         wandb.finish()
