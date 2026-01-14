@@ -975,38 +975,43 @@ def query_gpt(
     if dump_prompt_path:
         with open(dump_prompt_path, "w", encoding="utf-8") as f:
             f.write(full_prompt)
-    
-    # Count input tokens
-    input_tokens = client.models.count_tokens(
-        model=GEMINI_MODEL_NAME,
-        contents=full_prompt
-    ).total_tokens
+
+    def safe_count_tokens(client, model, contents, default=0):
+        try:
+            return client.models.count_tokens(
+                model=model,
+                contents=contents
+            ).total_tokens
+        except Exception as e:
+            print(f"[WARN] count_tokens failed: {e}")
+            return default
+
+    # Count input tokens (best-effort)
+    input_tokens = safe_count_tokens(client, GEMINI_MODEL_NAME, full_prompt)
     total_input_tokens += input_tokens
     
     for attempt in range(max_retries):
         try:
-            # ✅ Matches the official example style
             response = client.models.generate_content(
                 model=GEMINI_MODEL_NAME,
                 contents=full_prompt
             )
-            
-            output_text = response.text  # ✅ Use response.text
-            
-            # Count output tokens
-            output_tokens = client.models.count_tokens(
-                model=GEMINI_MODEL_NAME,
-                contents=output_text
-            ).total_tokens
-            
+            output_text = response.text
+
+            # Count output tokens (best-effort)
+            output_tokens = safe_count_tokens(client, GEMINI_MODEL_NAME, output_text)
             total_output_tokens += output_tokens
             api_call_count += 1
-            
+
             print(output_text)
-            print(f"API Call {api_call_count} | Input Tokens: {input_tokens} | Output Tokens: {output_tokens} | Total: {total_input_tokens + total_output_tokens}")
-            
+            print(
+                f"API Call {api_call_count} | "
+                f"Input Tokens: {input_tokens} | "
+                f"Output Tokens: {output_tokens} | "
+                f"Total: {total_input_tokens + total_output_tokens}"
+            )
             return output_text, arm_used
-            
+
         except Exception as e:
             if "429" in str(e) or "rate" in str(e).lower():
                 wait_time = base_delay * (2 ** attempt)
@@ -1015,9 +1020,7 @@ def query_gpt(
             else:
                 print(f"Error on sentence {sentence[:40]}...: {e}")
                 return None, arm_used
-    
-    print(f"Max retries exceeded for sentence: {sentence[:40]}...")
-    return None, arm_used
+
 
 # -------------------- MAIN --------------------
 
