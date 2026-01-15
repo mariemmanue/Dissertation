@@ -274,6 +274,8 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=300)
     parser.add_argument("--max_length", type=int, default=64)
     parser.add_argument("--wandb_project", type=str, default="cgedit-aae")
+    parser.add_argument("--encoder", type=str, default="modernbert",
+                    choices=["modernbert", "neobert", "roberta", "bert"])
     args = parser.parse_args()
 
     # --- pull from wandb if running under a sweep ---
@@ -294,8 +296,15 @@ if __name__ == "__main__":
         max_len = args.max_length
         weight_decay = 0.0
 
+    ENCODER_MAP = {
+        "modernbert": "answerdotai/ModernBERT-large",
+        "neobert": "sage-fc/neoBERT-large",          # example; pick the right IDs
+        "roberta": "roberta-large",
+        "bert": "bert-large-uncased",
+    }
+    MODEL_NAME = ENCODER_MAP[args.encoder]
 
-    MODEL_NAME = "answerdotai/ModernBERT-large"
+    # MODEL_NAME = "answerdotai/ModernBERT-large"
     train_file = f"./data/{args.gen_method}/{args.lang}.tsv"
     # out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}"
 
@@ -315,13 +324,15 @@ if __name__ == "__main__":
             os.environ.get("WANDB_RUN_NAME", None) or "no-wandb"
 
     out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}_{run_name}"
+    base = f"{args.encoder}-{args.gen_method}-{args.lang}"
+    repo_name = f"{base}-{wandb.run.name}-lr{lr}-bs{bs}"
 
 
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
         overwrite_output_dir=False,
         report_to="wandb",
-        run_name="modernbert-sweep",
+        run_name=f"{args.encoder}-sweep",   # e.g., modernbert-sweep, neobert-sweep
         learning_rate=lr,
         do_train=True,
         do_eval=True,
@@ -352,11 +363,11 @@ if __name__ == "__main__":
 
     trainer.train()
 
-    if use_wandb:
-        base = f"modernbert-aae-{args.gen_method}-{args.lang}"
-        repo_name = f"{base}-{wandb.run.name}-lr{lr}-bs{bs}"
-    else:
-        repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
+    # if use_wandb:
+    #     base = f"modernbert-aae-{args.gen_method}-{args.lang}"
+    #     repo_name = f"{base}-{wandb.run.name}-lr{lr}-bs{bs}"
+    # else:
+    #     repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
 
     # Push best-epoch model to Hugging Face
     trainer.push_to_hub(repo_name)

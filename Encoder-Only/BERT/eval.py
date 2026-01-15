@@ -5,19 +5,37 @@ from torch.utils.data import Dataset, DataLoader, SequentialSampler
 import sys
 import os
 
+"""
+nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
+  -n modernbert_eval_CGEdit_AAE_test1 \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/ModernBERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python eval.py \
+     CGEdit \
+     AAE \
+     my_test_set \
+     SociauxLing/modernbert-CGEdit-AAE-best"
+"""
 # args:
 # 1: CGEdit or CGEdit-ManualGen
 # 2: AAE or IndE
 # 3: test set name (file will be ./data/<name>.csv or .txt)
+# 4: HF model id (e.g. SociauxLing/modernbert-CGEdit-AAE-best)
+if len(sys.argv) != 5:
+    raise SystemExit(
+        "Usage: python eval.py <gen_method> <lang> <test_set> <hf_model_id>"
+    )
+
 gen_method = sys.argv[1]
 lang = sys.argv[2]
 test_set = sys.argv[3]
+MODEL_ID = sys.argv[4]   # fine-tuned model repo on Hugging Face
 
-MODEL_NAME = "answerdotai/ModernBERT-large"
-
-# match the naming from the ModernBERT train script
-model_dir = MODEL_NAME.replace("/", "_") + f"_{gen_method}_{lang}"
-out_dir = model_dir + "_" + test_set + ".tsv"
+# output file name encodes model + dataset
+model_tag = MODEL_ID.replace("/", "_")
+out_dir = f"{model_tag}_{gen_method}_{lang}_{test_set}.tsv"
 
 # try .csv first, fall back to .txt
 csv_path = f"./data/{test_set}.csv"
@@ -52,7 +70,7 @@ class MultitaskModel(transformers.PreTrainedModel):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
         cls_repr = out.last_hidden_state[:, 0, :]  # CLS
         logits = []
-        for name, head in self.taskmodels_dict.items():
+        for _, head in self.taskmodels_dict.items():
             logits.append(head(cls_repr))
         # [num_tasks * batch, 2]
         return torch.vstack(logits)
@@ -88,13 +106,12 @@ def build_dataset(tokenizer, test_f, max_length=64):
     with open(test_f) as r:
         for line in r:
             line = line.strip()
-            # keep 1-word lines too? original script skipped <2 words; let's keep the old behavior
             if len(line.split()) < 2:
                 continue
 
             enc = tokenizer(
                 line,
-                max_length=64,
+                max_length=max_length,
                 padding="max_length",
                 truncation=True,
                 return_tensors="pt",
@@ -149,16 +166,15 @@ if __name__ == "__main__":
     else:
         raise ValueError("lang must be AAE or IndE")
 
-    tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_NAME)
+    # Load tokenizer + fine-tuned model from Hugging Face
+    tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
 
-    dataset = build_dataset(tokenizer, test_file, max_length=64)
-
-    model = MultitaskModel.create(MODEL_NAME, head_type_list)
-    checkpoint = torch.load(f"./models/{model_dir}/final.pt", map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    # Trainer used MultitaskModel, so load it directly
+    model = MultitaskModel.from_pretrained(MODEL_ID)
     model.to(device)
     model.eval()
 
+    dataset = build_dataset(tokenizer, test_file, max_length=64)
     dataloader = eval_dataloader(dataset, batch_size=64)
 
     os.makedirs("./data/results", exist_ok=True)
@@ -170,18 +186,14 @@ if __name__ == "__main__":
 
             with torch.no_grad():
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            # outputs: [num_tasks * batch, 2]
             outputs = torch.nn.functional.softmax(outputs, dim=1)
-            # reshape to [num_tasks, batch, 2]
             num_tasks = len(head_type_list)
             bsz = input_ids.size(0)
             outputs = outputs.view(num_tasks, bsz, 2)
 
-            # write each example
             for i in range(bsz):
                 text = texts[i]
                 probs = []
                 for t in range(num_tasks):
-                    # prob of class 1
                     probs.append(str(float(outputs[t, i, 1].cpu())))
                 f.write(text + "\t" + "\t".join(probs) + "\n")

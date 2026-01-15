@@ -1,30 +1,31 @@
 program: train.py
-name: modernbert-aae-sweep-v2
+name: bert-aae-sweep-v2
 project: aae-ddm-modernbert
 method: bayes
+
 metric:
   name: eval_f1
   goal: maximize
 
-
 parameters:
+  encoder:
+    values: ["modernbert", "neobert", "roberta", "bert"]  # which base encoder to use
   learning_rate:
     distribution: log_uniform_values
-    min: 5e-6             # tighten around current best
+    min: 5e-6
     max: 2e-5
   batch_size:
-    values: [32]          # fix to best (if best run used 32)
+    values: [32]
   epochs:
-    values: [4, 5, 6]     # explore slightly longer; 3–5 looked good
+    values: [4, 5, 6]
   warmup_steps:
-    values: [300, 800]    # drop 0 if it was consistently worse
+    values: [300, 800]
   max_length:
-    values: [256]         # fix to best value
-
+    values: [256]
   weight_decay:
     distribution: uniform
     min: 0.0
-    max: 0.1             # only if you expose this in your Trainer args
+    max: 0.1
 
 command:
   - /nlp/scr/mtano/miniconda3/envs/cgedit/bin/python
@@ -32,3 +33,5 @@ command:
   - CGEdit
   - AAE
   - --wandb_project=aae-ddm-modernbert
+  - --encoder
+  - ${encoder}
