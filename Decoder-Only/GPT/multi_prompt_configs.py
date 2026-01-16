@@ -1140,8 +1140,22 @@ def main():
     preds_path = os.path.join(outdir, args.sheet + "_predictions.csv")
     rats_path = os.path.join(outdir, args.sheet + "_rationales.csv")
 
-    preds_header = ["sentence"] + CURRENT_FEATURES
-    rats_header = ["sentence"] + CURRENT_FEATURES
+    # -------------------- RESUME SUPPORT: LOAD EXISTING OUTPUTS --------------------
+    existing_done_idxs = set()
+    if os.path.exists(preds_path):
+        try:
+            existing_df = pd.read_csv(preds_path)
+            if "idx" in existing_df.columns:
+                existing_done_idxs = set(existing_df["idx"].tolist())
+            else:
+                # If older files lack idx, assume nothing is done
+                existing_done_idxs = set()
+        except Exception:
+            existing_done_idxs = set()
+
+
+    preds_header = ["idx", "sentence"] + CURRENT_FEATURES
+    rats_header = ["idx", "sentence"] + CURRENT_FEATURES
 
     if not os.path.exists(preds_path):
         with open(preds_path, "w", newline="", encoding="utf-8") as f:
@@ -1163,6 +1177,9 @@ def main():
 
     # -------------------- MAIN LOOP --------------------
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
+        # Skip if this idx is already in the predictions CSV
+        if idx in existing_done_idxs:
+            continue
         left = None
         right = None
 
@@ -1234,11 +1251,11 @@ def main():
 
         with open(preds_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
+            writer.writerow([idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
 
         with open(rats_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
+            writer.writerow([idx, sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
 
     print_final_usage_summary()
     

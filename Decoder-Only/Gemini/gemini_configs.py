@@ -1119,18 +1119,30 @@ def main():
     preds_path = os.path.join(out_dir, args.sheet + "_predictions.csv")
     rats_path = os.path.join(out_dir, args.sheet + "_rationales.csv")
 
-    preds_header = ["sentence"] + CURRENT_FEATURES
-    rats_header = ["sentence"] + CURRENT_FEATURES
+
+    # -------------------- RESUME SUPPORT: LOAD EXISTING OUTPUTS --------------------
+    existing_done_idxs = set()
+    if os.path.exists(preds_path):
+        try:
+            existing_df = pd.read_csv(preds_path)
+            if "idx" in existing_df.columns:
+                existing_done_idxs = set(existing_df["idx"].tolist())
+            else:
+                # If older files lack idx, assume nothing is done
+                existing_done_idxs = set()
+        except Exception:
+            existing_done_idxs = set()
+
+    preds_header = ["idx", "sentence"] + CURRENT_FEATURES
+    rats_header = ["idx", "sentence"] + CURRENT_FEATURES
 
     if not os.path.exists(preds_path):
         with open(preds_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(preds_header)
-
+            csv.writer(f).writerow(preds_header)
     if not os.path.exists(rats_path):
         with open(rats_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(rats_header)
+            csv.writer(f).writerow(rats_header)
+
 
     results = []
     rationale_rows = []
@@ -1141,6 +1153,9 @@ def main():
 
     # Iterating through sentences to evaluate
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
+        # Skip if this idx is already in the predictions CSV
+        if idx in existing_done_idxs:
+            continue
         left = None
         right = None
 
@@ -1210,11 +1225,12 @@ def main():
         # Append line-level CSV for robustness against interruptions
         with open(preds_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [vals.get(feat, "") for feat in CURRENT_FEATURES])
+            writer.writerow([idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
 
         with open(rats_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [rats.get(feat, "") for feat in CURRENT_FEATURES])
+            writer.writerow([idx, sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
+
 
     # Aggregate predictions & rationales into DataFrames
     predictions_df = pd.DataFrame(results)
