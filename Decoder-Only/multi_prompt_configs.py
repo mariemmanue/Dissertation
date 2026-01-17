@@ -13,6 +13,7 @@ import math
 from transformers import pipeline as hf_pipeline
 from transformers import AutoTokenizer
 from google import genai
+import google.generativeai as genai
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
