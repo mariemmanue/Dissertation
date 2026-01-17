@@ -6,15 +6,9 @@ import re
 import time
 from tqdm import tqdm
 
-from openai import OpenAI
-import tiktoken
+from google import genai
 import argparse
 import math
-from transformers import pipeline as hf_pipeline
-from transformers import AutoTokenizer
-from google import genai
-from dataclasses import dataclass
-from typing import List, Dict, Any
 
 
 # Initialize global variables
@@ -23,77 +17,8 @@ total_output_tokens = 0
 api_call_count = 0
 
 
-@dataclass
-class LLMBackend:
-    name: str
-    model: str
 
-    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
-        # Default: tiktoken-like encoder over concatenated contents
-        text = "\n".join(m["content"] for m in messages)
-        return len(enc_obj.encode(text))
-
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        raise NotImplementedError
-
-    
-
-class OpenAIBackend(LLMBackend):
-    def __init__(self, model: str):
-        super().__init__(name="openai", model=model)
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("Set OPENAI_API_KEY.")
-        self.client = OpenAI(api_key=api_key)
-
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        resp = self.client.responses.create(
-            model=self.model,
-            input=messages,
-        )
-        return resp.output_text
-
-class GeminiBackend(LLMBackend):
-    def __init__(self, model: str):
-        super().__init__(name="gemini", model=model)
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("Set GEMINI_API_KEY.")
-        genai.configure(api_key=api_key)
-        self.client = genai.GenerativeModel(model)
-
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        # Flatten OpenAI-style chat into a single prompt; or map roles if you prefer
-        text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
-        resp = self.client.generate_content(text)
-        return resp.text
-
-
-
-class PhiBackend(LLMBackend):
-    def __init__(self, model: str):
-        super().__init__(name="phi", model=model)
-
-        # HF tokenizer for token counting
-        self.tokenizer = AutoTokenizer.from_pretrained(model)
-        # Local generation pipeline
-        self.pipe = hf_pipeline(
-            "text-generation",
-            model=model,
-            model_kwargs={"torch_dtype": "auto"},
-            device_map="auto",
-        )
-
-    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
-        # Ignore enc_obj; use HF tokenizer
-        text = "\n".join(m["content"] for m in messages)
-        return len(self.tokenizer.encode(text))
-
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
-        out = self.pipe(text, max_new_tokens=512)
-        # HF pipeline returns list of dicts with "generated_text"
-        return out[0]["generated_text"]
+GEMINI_MODEL_NAME = "gemini-2.5-pro"  # or "gemini-1.5-pro"
 
 # -------------------- FEATURE LISTS --------------------
 
@@ -991,10 +916,10 @@ def parse_output_json(raw_str: str, features: list[str]):
 
 # -------------------- GPT QUERY --------------------
 
-def query_model(
-    backend: LLMBackend,
-    enc_obj,
+def query_gpt(
+    client: genai.Client,  # ✅ Correct type hint
     sentence: str,
+    *,
     features: list[str],
     base_feature_block: str,
     instruction_type: str,
@@ -1012,10 +937,9 @@ def query_model(
     max_retries: int = 15,
     base_delay: int = 3,
 ) -> tuple[str | None, str]:
+    
     global api_call_count, total_input_tokens, total_output_tokens
-
-    use_icl_examples = instruction_type in ["icl", "few_shot_cot"]
-
+    
     messages, arm_used = build_messages(
         utterance=sentence,
         features=features,
@@ -1023,65 +947,91 @@ def query_model(
         instruction_type=instruction_type,
         include_examples_in_block=include_examples_in_block,
         use_context=use_context,
-        context_mode=context_mode,
         left_context=left_context,
         right_context=right_context,
-        use_icl_examples=use_icl_examples,
+        context_mode=context_mode,
+        use_icl_examples=(instruction_type in ["icl", "few_shot_cot"]),
         dialect_legitimacy=dialect_legitimacy,
         self_verification=self_verification,
         require_rationales=require_rationales,
     )
-
+    
+    # Convert OpenAI-style messages to single string for Gemini
+    prompt_parts = []
+    for msg in messages:
+        if msg["role"] == "system":
+            prompt_parts.append(f"SYSTEM INSTRUCTIONS:\n{msg['content']}\n")
+        elif msg["role"] == "user":
+            prompt_parts.append(msg['content'])
+    
+    full_prompt = "\n\n".join(prompt_parts)
+    
     if dump_prompt and dump_once_key and os.environ.get(dump_once_key, "0") != "1":
         os.environ[dump_once_key] = "1"
-        payload = {"backend": backend.name, "model": backend.model, "messages": messages}
-        print("\n===== PROMPT DUMP =====")
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
-        print("===== END PROMPT DUMP =====\n")
-        if dump_prompt_path:
-            with open(dump_prompt_path, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2, ensure_ascii=False)
+        print("===== PROMPT DUMP =====")
+        print(full_prompt)
+        print("===== END PROMPT DUMP =====")
+    
+    if dump_prompt_path:
+        with open(dump_prompt_path, "w", encoding="utf-8") as f:
+            f.write(full_prompt)
 
-    input_tokens = backend.count_tokens(enc_obj, messages)
+    def safe_count_tokens(client, model, contents, default=0):
+        try:
+            return client.models.count_tokens(
+                model=model,
+                contents=contents
+            ).total_tokens
+        except Exception as e:
+            print(f"[WARN] count_tokens failed: {e}")
+            return default
+
+    # Count input tokens (best-effort)
+    input_tokens = safe_count_tokens(client, GEMINI_MODEL_NAME, full_prompt)
     total_input_tokens += input_tokens
-
+    
     for attempt in range(max_retries):
         try:
-            output_text = backend.call(messages)
-            output_tokens = len(enc_obj.encode(output_text))
+            response = client.models.generate_content(
+                model=GEMINI_MODEL_NAME,
+                contents=full_prompt
+            )
+            output_text = response.text
+
+            # Count output tokens (best-effort)
+            output_tokens = safe_count_tokens(client, GEMINI_MODEL_NAME, output_text)
             total_output_tokens += output_tokens
             api_call_count += 1
+
             print(output_text)
             print(
-                f"API Call #{api_call_count} | "
+                f"API Call {api_call_count} | "
                 f"Input Tokens: {input_tokens} | "
                 f"Output Tokens: {output_tokens} | "
                 f"Total: {total_input_tokens + total_output_tokens}"
             )
             return output_text, arm_used
+
         except Exception as e:
-            msg = str(e)
-            if "429" in msg or "rate" in msg.lower():
+            if "429" in str(e) or "rate" in str(e).lower():
                 wait_time = base_delay * (2 ** attempt)
                 print(f"Rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1})")
                 time.sleep(wait_time)
             else:
-                print(f"Error on sentence: {sentence[:40]}... = {e}")
+                print(f"Error on sentence {sentence[:40]}...: {e}")
                 return None, arm_used
-
-    print(f"Failed after {max_retries} retries.")
-    return None, arm_used
 
 
 # -------------------- MAIN --------------------
-def main():
-    dumponcekey = "DUMPED_PROMPT_ONCE"
 
+def main():
+    dump_once_key = "DUMPED_PROMPT_ONCE"
+    # Argument Parsing
     parser = argparse.ArgumentParser(description="Run GPT Experiments for AAE feature annotation.")
     parser.add_argument("--file", type=str, help="Input Excel file path", required=True)
     parser.add_argument("--sheet", type=str, help="Sheet name to write GPT predictions into", required=True)
-    parser.add_argument("--extended", action="store_true", help="Use extended feature set (NEW_FEATURE_BLOCK / EXTENDED_FEATURES)")
-    parser.add_argument("--context", action="store_true", help="Use prev/next sentence context from the same sheet (neighbor rows).")
+    parser.add_argument("--extended", action="store_true", help="Use extended feature set (NEW_FEATURE_BLOCK + EXTENDED_FEATURES)")
+    parser.add_argument("--context", action="store_true", help="(Optional) Use prev/next sentence context from Gold sheet if available.")
     parser.add_argument(
         "--instruction_type",
         type=str,
@@ -1092,7 +1042,7 @@ def main():
     parser.add_argument(
         "--block_examples",
         action="store_true",
-        help="If set, keep 'Example' / '–' lines inside the feature block (non-zero-shot conditions only).",
+        help="If set, keep + Example / - Miss lines inside the feature block (non-zero-shot conditions only).",
     )
     parser.add_argument(
         "--dialect_legitimacy",
@@ -1107,139 +1057,68 @@ def main():
     parser.add_argument(
         "--labels_only",
         action="store_true",
-        help="If set, request flat JSON labels (0/1) only with NO rationales.",
+        help="If set, request flat JSON labels (0/1 only) with NO rationales.",
     )
     parser.add_argument("--output_dir", type=str, help="Output directory for CSV/Excel results", required=True)
-    parser.add_argument(
-        "--dump_prompt",
-        action="store_true",
-        help="Print the exact messages payload sent to the API (first example only).",
-    )
-    parser.add_argument(
-        "--dump_prompt_path",
-        type=str,
-        default=None,
-        help="If set, also write the exact prompt payload to this path as JSON.",
-    )
+    parser.add_argument("--dump_prompt", action="store_true",
+                        help="Print the exact messages payload sent to the API (first example only).")
+    parser.add_argument("--dump_prompt_path", type=str, default=None,
+                        help="Optional path to write dumped prompt JSON (e.g., /tmp/prompt.json).")
     parser.add_argument(
         "--context_mode",
         type=str,
         choices=["single_turn", "two_turn"],
-        default="two_turn",
-        help="Context mode (kept for compatibility with build_messages).",
+        default="single_turn",
+        help="How to inject context when --context is set."
     )
-    parser.add_argument(
-        "--backend",
-        type=str,
-        choices=["openai", "gemini", "phi"],
-        default="openai",
-        help="LLM backend to use.",
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="gpt-5",
-        help="Model name for the chosen backend (e.g., gpt-5, gemini-2.0-flash, phi-4).",
-    )
-
-
     args = parser.parse_args()
 
+
     file_title = os.path.splitext(os.path.basename(args.file))[0]
-    outdir = os.path.join(args.output_dir, file_title)
-    os.makedirs(outdir, exist_ok=True)
+    out_dir = os.path.join(args.output_dir, file_title)
+    os.makedirs(out_dir, exist_ok=True)
 
-    # META CSV path
-    metapath = os.path.join(outdir, args.sheet + "_meta.csv")
-    if not os.path.exists(metapath):
-        with open(metapath, "w", newline="", encoding="utf-8") as f:
-            csv.writer(f).writerow(
-                [
-                    "idx",
-                    "sentence",
-                    "use_context_requested",
-                    "has_usable_context",
-                    "requested_context_mode",
-                    "arm_used",
-                    "context_included",
-                    "parse_status",
-                    "missing_key_count",
-                    "missing_keys",
-                ]
-            )
+    meta_path = os.path.join(out_dir, args.sheet + "_meta.csv")
+    if not os.path.exists(meta_path):
+        with open(meta_path, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerow(["idx","sentence","use_context_requested","has_usable_context",
+                        "requested_context_mode","arm_used", "context_included","parse_status",
+                        "missing_key_count","missing_keys"])
 
-    def writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys):
-        with open(metapath, "a", newline="", encoding="utf-8") as f:
+    def write_meta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count="", missing_keys=""):
+        with open(meta_path, "a", newline="", encoding="utf-8") as f:
             use_ctx_req = int(args.context)
             requested = args.context_mode if args.context else ""
-            csv.writer(f).writerow(
-                [
-                    idx,
-                    sentence,
-                    use_ctx_req,
-                    int(usable),
-                    requested,
-                    arm_used,
-                    int(bool(context_included)),
-                    parsestatus,
-                    missingcount,
-                    missingkeys,
-                ]
-            )
+            csv.writer(f).writerow([
+                idx, sentence, use_ctx_req, int(usable), requested, arm_used,
+                int(bool(context_included)), parse_status, missing_count, missing_keys
+            ])
 
-    # -------------------- LOAD DATA --------------------
+
     sheets = pd.read_excel(args.file, sheet_name=None)
-    # Assuming your Gold sheet is named "Gold" as in the original pipeline
-    golddf = sheets["Gold"]
-    golddf = golddf.dropna(subset=["sentence"]).reset_index(drop=True)
+    gold_df = sheets["Gold"]
+    gold_df = gold_df.dropna(subset=["sentence"]).reset_index(drop=True)
 
-    eval_sentences = golddf["sentence"].dropna().tolist()
+    eval_sentences = gold_df["sentence"].dropna().tolist()
     print(f"Number of sentences to evaluate: {len(eval_sentences)}")
 
-    if args.backend == "openai":
-        backend = OpenAIBackend(model=args.model)
-        try:
-            enc = tiktoken.encoding_for_model(args.model)
-        except Exception:
-            enc = tiktoken.get_encoding("cl100k_base")
-    elif args.backend == "gemini":
-        backend = GeminiBackend(model=args.model)
-        # No official Gemini tokenizer; use a stable approximate
-        enc = tiktoken.get_encoding("cl100k_base")
-    elif args.backend == "phi":
-        backend = PhiBackend(model=args.model)
-        # enc will be ignored by PhiBackend.count_tokens, but set something to satisfy the interface
-        enc = tiktoken.get_encoding("cl100k_base")
-    else:
-        raise ValueError(f"Unknown backend {args.backend}")
+    # Read the OpenAI API key from an environment variable
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_api_key:
+        raise ValueError("Please set the GEMINI_API_KEY environment variable.")
+    
+    client = genai.Client(api_key=gemini_api_key)
 
-
-    # -------------------- CLIENT SETUP --------------------
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise ValueError("Please set the OPENAI_API_KEY environment variable.")
-
-    # tokenizer
-    enc = tiktoken.encoding_for_model(args.model if args.backend == "openai" else "gpt-4o-mini")  # or a default
-
-    if args.backend == "openai":
-        backend = OpenAIBackend(model=args.model)
-    elif args.backend == "gemini":
-        backend = GeminiBackend(model=args.model)
-    elif args.backend == "phi":
-        backend = PhiBackend(model=args.model)
-    else:
-        raise ValueError(f"Unknown backend {args.backend}")
-
-    use_extended = args.extended
-    CURRENT_FEATURES = EXTENDED_FEATURES if use_extended else MASIS_FEATURES
-    BASE_FEATURE_BLOCK = NEW_FEATURE_BLOCK if use_extended else MASIS_FEATURE_BLOCK
+    USE_EXTENDED = args.extended
+    CURRENT_FEATURES = EXTENDED_FEATURES if USE_EXTENDED else MASIS_FEATURES
+    BASE_FEATURE_BLOCK = NEW_FEATURE_BLOCK if USE_EXTENDED else MASIS_FEATURE_BLOCK
 
     include_examples_in_block = args.block_examples
     require_rationales = not args.labels_only
 
-    preds_path = os.path.join(outdir, args.sheet + "_predictions.csv")
-    rats_path = os.path.join(outdir, args.sheet + "_rationales.csv")
+    preds_path = os.path.join(out_dir, args.sheet + "_predictions.csv")
+    rats_path = os.path.join(out_dir, args.sheet + "_rationales.csv")
+
 
     # -------------------- RESUME SUPPORT: LOAD EXISTING OUTPUTS --------------------
     existing_done_idxs = set()
@@ -1254,7 +1133,6 @@ def main():
         except Exception:
             existing_done_idxs = set()
 
-
     preds_header = ["idx", "sentence"] + CURRENT_FEATURES
     rats_header = ["idx", "sentence"] + CURRENT_FEATURES
 
@@ -1265,16 +1143,15 @@ def main():
         with open(rats_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(rats_header)
 
+
+    results = []
+    rationale_rows = []
+    
     usable_ctx_count = 0
     used_two_turn_count = 0
     used_single_turn_count = 0
 
-    start_time = time.time()
-    print("###############################")
-    print("start time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
-    print("###############################")
-
-    # -------------------- MAIN LOOP --------------------
+    # Iterating through sentences to evaluate
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
         # Skip if this idx is already in the predictions CSV
         if idx in existing_done_idxs:
@@ -1285,9 +1162,9 @@ def main():
         # CONTEXT FROM NEIGHBOR ROWS ONLY
         if args.context:
             if idx > 0:
-                left = golddf.loc[idx - 1, "sentence"]
-            if idx < len(golddf) - 1:
-                right = golddf.loc[idx + 1, "sentence"]
+                left = gold_df.loc[idx - 1, "sentence"]
+            if idx < len(gold_df) - 1:
+                right = gold_df.loc[idx + 1, "sentence"]
 
         usable = has_usable_context(left, right)
         if args.context and usable:
@@ -1295,9 +1172,8 @@ def main():
 
         context_included = bool(args.context and usable)
 
-        raw, arm_used = query_model(
-            backend,
-            enc,
+        raw, arm_used = query_gpt(
+            client,
             sentence,
             features=CURRENT_FEATURES,
             base_feature_block=BASE_FEATURE_BLOCK,
@@ -1312,42 +1188,41 @@ def main():
             require_rationales=require_rationales,
             dump_prompt=args.dump_prompt,
             dump_prompt_path=args.dump_prompt_path,
-            dump_once_key=dumponcekey,
+            dump_once_key=dump_once_key,
         )
-
 
         if arm_used == "two_turn":
             used_two_turn_count += 1
-        elif arm_used == "single_turn":
+        else:
             used_single_turn_count += 1
 
+        # after raw is returned
         if not raw:
-            parsestatus = "EMPTY_RESPONSE"
-            missingcount = ""
-            missingkeys_str = ""
-            writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys_str)
+            write_meta(idx, sentence, usable, arm_used, context_included, "EMPTY_RESPONSE", "", "")
             continue
 
-        try:
-            vals, rats, missing = parse_output_json(raw, CURRENT_FEATURES)
-            parsestatus = "OK"
-            missingcount = len(missing)
-            missingkeys_str = " ".join(missing)
-        except Exception:
-            parsestatus = "PARSE_FAIL"
-            missingcount = ""
-            missingkeys_str = ""
-            vals = {feat: None for feat in CURRENT_FEATURES}
-            rats = {feat: "" for feat in CURRENT_FEATURES}
 
-        writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys_str)
+        try:
+            vals, rats, missing = parse_output_json(raw, features=CURRENT_FEATURES)
+        except Exception as e:
+            # Catch JSON errors + type coercion errors (e.g., "value": "N/A"), etc.
+            write_meta(idx, sentence, usable, arm_used, context_included, "PARSE_FAIL", "", "")
+            continue
+
+        missing_key_count = len(missing)
+        missing_keys_str = "|".join(missing)
+        write_meta(idx, sentence, usable, arm_used, context_included, "OK", missing_key_count, missing_keys_str)
 
         pred_row = {"sentence": sentence}
         pred_row.update(vals)
+        results.append(pred_row)
 
         rat_row = {"sentence": sentence}
-        rat_row.update(rats)
+        for feat in CURRENT_FEATURES:
+            rat_row[feat] = rats.get(feat, "")
+        rationale_rows.append(rat_row)
 
+        # Append line-level CSV for robustness against interruptions
         with open(preds_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow([idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
@@ -1356,13 +1231,20 @@ def main():
             writer = csv.writer(f)
             writer.writerow([idx, sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
 
+
+    # Aggregate predictions & rationales into DataFrames
+    predictions_df = pd.DataFrame(results)
+    rationales_df = pd.DataFrame(rationale_rows)
+
+    # Write back to the Excel file (replace target sheet)
+    with pd.ExcelWriter(args.file, mode='a', if_sheet_exists='replace') as writer:
+        predictions_df.to_excel(writer, sheet_name=args.sheet, index=False)
+        rats_sheet_name = f"{args.sheet}_rationales"
+        rationales_df.to_excel(writer, sheet_name=rats_sheet_name, index=False)
+    print(f"[CONTEXT] --context={args.context} | usable_context_rows={usable_ctx_count}/{len(eval_sentences)}")
+    print(f"[ARM] used_two_turn={used_two_turn_count} | used_single_turn={used_single_turn_count}")
     print_final_usage_summary()
-    
-    end_time = time.time()
-    print("###############################")
-    print("end time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end_time)))
-    print("elapsed time:", time.strftime("%H:%M:%S", time.gmtime(end_time - start_time)))
-    print("###############################")
+
 
 if __name__ == "__main__":
     main()
