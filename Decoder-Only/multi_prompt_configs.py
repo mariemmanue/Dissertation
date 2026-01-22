@@ -13,7 +13,7 @@ import math
 from transformers import pipeline as hf_pipeline
 from transformers import AutoTokenizer
 from google import genai
-import google.generativeai as genai
+from google import genai
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
@@ -1216,12 +1216,12 @@ def main():
 
 
     # -------------------- CLIENT SETUP --------------------
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise ValueError("Please set the OPENAI_API_KEY environment variable.")
+    # openai_api_key = os.getenv("OPENAI_API_KEY")
+    # if not openai_api_key:
+    #     raise ValueError("Please set the OPENAI_API_KEY environment variable.")
 
     # tokenizer
-    enc = tiktoken.encoding_for_model(args.model if args.backend == "openai" else "gpt-4o-mini")  # or a default
+    # enc = tiktoken.encoding_for_model(args.model if args.backend == "openai" else "gpt-4o-mini")  # or a default
 
     if args.backend == "openai":
         backend = OpenAIBackend(model=args.model)

@@ -7,16 +7,29 @@ import os
 
 """
 nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
-  -n modernbert_eval_CGEdit_AAE_test1 \
+  -n modernbert_eval_CGEdit_AAE_fulltest_hf \
   -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/ModernBERT && \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python eval.py \
      CGEdit \
      AAE \
-     my_test_set \
-     SociauxLing/modernbert-CGEdit-AAE-best"
+     FullTest_Final.txt \
+     SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_klcncozo"
+
+
+nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
+  -n modernbert_eval_CGEdit_AAE_fulltest \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python eval.py \
+     CGEdit \
+     AAE \
+     FullTest_Final.txt \
+     /nlp/scr/mtano/Dissertation/Encoder-Only/Masis/models/final.pt"
 """
 # args:
 # 1: CGEdit or CGEdit-ManualGen
@@ -169,10 +182,28 @@ if __name__ == "__main__":
     # Load tokenizer + fine-tuned model from Hugging Face
     tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
 
-    # Trainer used MultitaskModel, so load it directly
-    model = MultitaskModel.from_pretrained(MODEL_ID)
+    if MODEL_ID.endswith(".pt"):
+        if lang == "AAE":
+            BASE_MODEL = "bert-base-cased"
+        elif lang == "IndE":
+            BASE_MODEL = "bert-base-uncased"
+        else:
+            raise ValueError("lang must be AAE or IndE")
+
+        model = MultitaskModel.create(BASE_MODEL, head_type_list)
+
+        checkpoint = torch.load(MODEL_ID, map_location=device)
+        state_dict = checkpoint.get("model_state_dict", checkpoint)
+        model.load_state_dict(state_dict)
+    else:  # HF model ID
+        model = MultitaskModel.from_pretrained(
+            MODEL_ID, 
+            trust_remote_code=True  # Required for custom models
+        )
+
     model.to(device)
     model.eval()
+
 
     dataset = build_dataset(tokenizer, test_file, max_length=64)
     dataloader = eval_dataloader(dataset, batch_size=64)
