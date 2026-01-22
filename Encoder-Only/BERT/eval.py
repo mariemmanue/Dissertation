@@ -15,7 +15,7 @@ nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
    python eval.py \
      CGEdit \
      AAE \
-     FullTest_Final.txt \
+     FullTest_Final \
      SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_klcncozo"
 
 
@@ -28,7 +28,7 @@ nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
    python eval.py \
      CGEdit \
      AAE \
-     FullTest_Final.txt \
+     FullTest_Final \
      /nlp/scr/mtano/Dissertation/Encoder-Only/Masis/models/final.pt"
 """
 # args:
