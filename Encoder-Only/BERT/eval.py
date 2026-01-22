@@ -142,67 +142,49 @@ def build_dataset(tokenizer, test_f, max_length=64):
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Load tokenizer + fine-tuned model from Hugging Face
+    tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
+
     # same order as training!
     if lang == "AAE":
         head_type_list = [
-            "zero-poss",
-            "zero-copula",
-            "double-tense",
-            "be-construction",
-            "resultant-done",
-            "finna",
-            "come",
-            "double-modal",
-            "multiple-neg",
-            "neg-inversion",
-            "n-inv-neg-concord",
-            "aint",
-            "zero-3sg-pres-s",
-            "is-was-gen",
-            "zero-pl-s",
-            "double-object",
-            "wh-qu",
+            "zero-poss", "zero-copula", "double-tense", "be-construction",
+            "resultant-done", "finna", "come", "double-modal",
+            "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint",
+            "zero-3sg-pres-s", "is-was-gen", "zero-pl-s", "double-object", "wh-qu",
         ]
     elif lang == "IndE":
         head_type_list = [
-            "foc_self",
-            "foc_only",
-            "left_dis",
-            "non_init_exis",
-            "obj_front",
-            "inv_tag",
-            "cop_omis",
-            "res_obj_pron",
-            "res_sub_pron",
-            "top_non_arg_con",
+            "foc_self", "foc_only", "left_dis", "non_init_exis",
+            "obj_front", "inv_tag", "cop_omis", "res_obj_pron",
+            "res_sub_pron", "top_non_arg_con",
         ]
     else:
         raise ValueError("lang must be AAE or IndE")
 
-    # Load tokenizer + fine-tuned model from Hugging Face
-    tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
-
+    # Load tokenizer + model based on MODEL_ID type
     if MODEL_ID.endswith(".pt"):
+        # MASIS BERT checkpoint
         if lang == "AAE":
             BASE_MODEL = "bert-base-cased"
         elif lang == "IndE":
             BASE_MODEL = "bert-base-uncased"
-        else:
-            raise ValueError("lang must be AAE or IndE")
-
+        
+        tokenizer = transformers.AutoTokenizer.from_pretrained(BASE_MODEL)
         model = MultitaskModel.create(BASE_MODEL, head_type_list)
-
+        
         checkpoint = torch.load(MODEL_ID, map_location=device)
         state_dict = checkpoint.get("model_state_dict", checkpoint)
         model.load_state_dict(state_dict)
-    else:  # HF model ID
-        model = MultitaskModel.from_pretrained(
-            MODEL_ID, 
-            trust_remote_code=True  # Required for custom models
-        )
+        
+    else:
+        # ModernBERT HF repo
+        tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
+        model = MultitaskModel.from_pretrained(MODEL_ID, trust_remote_code=True)
 
     model.to(device)
     model.eval()
+
 
 
     dataset = build_dataset(tokenizer, test_file, max_length=64)
