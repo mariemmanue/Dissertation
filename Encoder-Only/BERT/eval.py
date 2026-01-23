@@ -2,6 +2,7 @@ import transformers
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, SequentialSampler
+from transformers import PreTrainedConfig, AutoConfig, AutoModel
 import sys
 import os
 
@@ -31,37 +32,32 @@ nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
      FullTest_Final \
      /nlp/scr/mtano/Dissertation/Encoder-Only/Masis/models/final.pt"
 """
-# args:
-# 1: CGEdit or CGEdit-ManualGen
-# 2: AAE or IndE
-# 3: test set name (file will be ./data/<name>.csv or .txt)
-# 4: HF model id (e.g. SociauxLing/modernbert-CGEdit-AAE-best)
+
 if len(sys.argv) != 5:
-    raise SystemExit(
-        "Usage: python eval.py <gen_method> <lang> <test_set> <hf_model_id>"
-    )
+    raise SystemExit("Usage: python eval.py <gen_method> <lang> <test_set> <model_id>")
 
 gen_method = sys.argv[1]
 lang = sys.argv[2]
 test_set = sys.argv[3]
-MODEL_ID = sys.argv[4]   # fine-tuned model repo on Hugging Face
+MODEL_ID = sys.argv[4]
 
-# output file name encodes model + dataset
 model_tag = MODEL_ID.replace("/", "_")
 out_dir = f"{model_tag}_{gen_method}_{lang}_{test_set}.tsv"
 
-# try .csv first, fall back to .txt
 csv_path = f"./data/{test_set}.csv"
 txt_path = f"./data/{test_set}.txt"
-if os.path.exists(csv_path):
-    test_file = csv_path
-elif os.path.exists(txt_path):
-    test_file = txt_path
-else:
-    raise FileNotFoundError(f"Could not find ./data/{test_set}.csv or ./data/{test_set}.txt")
+test_file = csv_path if os.path.exists(csv_path) else txt_path if os.path.exists(txt_path) else None
+if test_file is None:
+    raise FileNotFoundError(f"Could not find ./data/{test_set}.csv or .txt")
 
+class MultitaskConfig(PreTrainedConfig):
+    model_type = "multitask"
+    def __init__(self, head_type_list=None, **kwargs):
+        super().__init__(**kwargs)
+        self.head_type_list = head_type_list or []
 
 class MultitaskModel(transformers.PreTrainedModel):
+    config_class = MultitaskConfig
     def __init__(self, encoder, taskmodels_dict, config):
         super().__init__(config)
         self.encoder = encoder
@@ -69,126 +65,80 @@ class MultitaskModel(transformers.PreTrainedModel):
 
     @classmethod
     def create(cls, model_name, head_type_list):
-        config = transformers.AutoConfig.from_pretrained(model_name)
+        config = MultitaskConfig.from_pretrained(model_name, head_type_list=head_type_list)
         encoder = transformers.AutoModel.from_pretrained(model_name, config=config)
         hidden_size = config.hidden_size
-
-        taskmodels_dict = {}
-        for task_name in head_type_list:
-            taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
-
+        taskmodels_dict = {task: nn.Linear(hidden_size, 2) for task in head_type_list}
         return cls(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
 
     def forward(self, input_ids=None, attention_mask=None, **kwargs):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        cls_repr = out.last_hidden_state[:, 0, :]  # CLS
-        logits = []
-        for _, head in self.taskmodels_dict.items():
-            logits.append(head(cls_repr))
-        # [num_tasks * batch, 2]
-        return torch.vstack(logits)
+        cls_repr = out.last_hidden_state[:, 0, :]
+        logits_per_task = [head(cls_repr) for head in self.taskmodels_dict.values()]
+        return torch.stack(logits_per_task, dim=1)  # (B, num_tasks, 2)
 
+# Register for HF compatibility
+AutoConfig.register("multitask", MultitaskConfig)
+AutoModel.register(MultitaskConfig, MultitaskModel)
 
-def eval_dataloader(eval_dataset, batch_size=64):
-    sampler = SequentialSampler(eval_dataset)
-    return DataLoader(eval_dataset, batch_size=batch_size, sampler=sampler)
-
+def eval_dataloader(dataset, batch_size=64):
+    return DataLoader(dataset, batch_size=batch_size, sampler=SequentialSampler(dataset))
 
 class CustomDataset(Dataset):
-    def __init__(self, input_ids, attention_mask, original_texts):
+    def __init__(self, input_ids, attention_mask, texts):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
-        self.original_texts = original_texts
+        self.texts = texts
 
-    def __len__(self):
-        return len(self.input_ids)
-
+    def __len__(self): return len(self.input_ids)
     def __getitem__(self, idx):
         return {
             "input_ids": self.input_ids[idx],
             "attention_mask": self.attention_mask[idx],
-            "text": self.original_texts[idx],
+            "text": self.texts[idx],
         }
 
-
 def build_dataset(tokenizer, test_f, max_length=64):
-    input_ids_list = []
-    attn_list = []
-    raw_texts = []
-
+    input_ids_list, attn_list, texts = [], [], []
     with open(test_f) as r:
         for line in r:
             line = line.strip()
-            if len(line.split()) < 2:
-                continue
-
-            enc = tokenizer(
-                line,
-                max_length=max_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt",
-            )
+            if len(line.split()) < 2: continue
+            enc = tokenizer(line, max_length=max_length, padding="max_length", truncation=True, return_tensors="pt")
             input_ids_list.append(enc["input_ids"].squeeze(0))
             attn_list.append(enc["attention_mask"].squeeze(0))
-            raw_texts.append(line)
-
-    input_ids = torch.stack(input_ids_list)
-    attention_mask = torch.stack(attn_list)
-
-    return CustomDataset(input_ids, attention_mask, raw_texts)
-
+            texts.append(line)
+    return CustomDataset(torch.stack(input_ids_list), torch.stack(attn_list), texts)
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load tokenizer + fine-tuned model from Hugging Face
-    tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
-
-    # same order as training!
+    # Head lists (exact training order)
     if lang == "AAE":
-        head_type_list = [
-            "zero-poss", "zero-copula", "double-tense", "be-construction",
-            "resultant-done", "finna", "come", "double-modal",
-            "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint",
-            "zero-3sg-pres-s", "is-was-gen", "zero-pl-s", "double-object", "wh-qu",
-        ]
+        head_type_list = ["zero-poss", "zero-copula", "double-tense", "be-construction", "resultant-done", "finna", "come", "double-modal", "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint", "zero-3sg-pres-s", "is-was-gen", "zero-pl-s", "double-object", "wh-qu"]
     elif lang == "IndE":
-        head_type_list = [
-            "foc_self", "foc_only", "left_dis", "non_init_exis",
-            "obj_front", "inv_tag", "cop_omis", "res_obj_pron",
-            "res_sub_pron", "top_non_arg_con",
-        ]
+        head_type_list = ["foc_self", "foc_only", "left_dis", "non_init_exis", "obj_front", "inv_tag", "cop_omis", "res_obj_pron", "res_sub_pron", "top_non_arg_con"]
     else:
         raise ValueError("lang must be AAE or IndE")
 
-    # Load tokenizer + model based on MODEL_ID type
+    num_tasks = len(head_type_list)
+
+    # Model loading
     if MODEL_ID.endswith(".pt"):
-        # MASIS BERT checkpoint
-        if lang == "AAE":
-            BASE_MODEL = "bert-base-cased"
-        elif lang == "IndE":
-            BASE_MODEL = "bert-base-uncased"
-        
-        tokenizer = transformers.AutoTokenizer.from_pretrained(BASE_MODEL)
-        model = MultitaskModel.create(BASE_MODEL, head_type_list)
-        
+        base_model = "bert-base-cased" if lang == "AAE" else "bert-base-uncased"
+        tokenizer = transformers.AutoTokenizer.from_pretrained(base_model)
+        model = MultitaskModel.create(base_model, head_type_list)
         checkpoint = torch.load(MODEL_ID, map_location=device)
-        state_dict = checkpoint.get("model_state_dict", checkpoint)
-        model.load_state_dict(state_dict)
-        
-    else:
-        # ModernBERT HF repo
+        model.load_state_dict(checkpoint.get("model_state_dict", checkpoint), strict=False)
+    else:  # HF ModernBERT
         tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
-        model = MultitaskModel.from_pretrained(MODEL_ID, trust_remote_code=True)
+        model = MultitaskModel.from_pretrained(MODEL_ID, head_type_list=head_type_list)
 
     model.to(device)
     model.eval()
 
-
-
-    dataset = build_dataset(tokenizer, test_file, max_length=64)
-    dataloader = eval_dataloader(dataset, batch_size=64)
+    dataset = build_dataset(tokenizer, test_file)
+    dataloader = eval_dataloader(dataset)
 
     os.makedirs("./data/results", exist_ok=True)
     with open(f"./data/results/{out_dir}", "w") as f:
@@ -196,17 +146,15 @@ if __name__ == "__main__":
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             texts = batch["text"]
+            bsz = input_ids.size(0)
 
             with torch.no_grad():
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            outputs = torch.nn.functional.softmax(outputs, dim=1)
-            num_tasks = len(head_type_list)
-            bsz = input_ids.size(0)
-            outputs = outputs.view(num_tasks, bsz, 2)
+                logits = model(input_ids=input_ids, attention_mask=attention_mask)  # (bsz, num_tasks, 2)
+            probs = torch.softmax(logits, dim=-1)[:, :, 1]  # (bsz, num_tasks)
 
             for i in range(bsz):
-                text = texts[i]
-                probs = []
-                for t in range(num_tasks):
-                    probs.append(str(float(outputs[t, i, 1].cpu())))
-                f.write(text + "\t" + "\t".join(probs) + "\n")
+                # Clean text like BERT eval
+                decoded = tokenizer.decode(texts[i], skip_special_tokens=True)
+                clean_text = " ".join(decoded.split())
+                prob_strs = "\t".join(f"{float(probs[i, t]):.4f}" for t in range(num_tasks))
+                f.write(f"{clean_text}\t{prob_strs}\n")
