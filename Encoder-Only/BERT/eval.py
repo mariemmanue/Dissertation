@@ -7,30 +7,7 @@ import sys
 import os
 
 """
-nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
-  -n modernbert_eval_CGEdit_AAE_fulltest_hf \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python eval.py \
-     CGEdit \
-     AAE \
-     FullTest_Final \
-     SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_klcncozo"
 
-
-nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
-  -n modernbert_eval_CGEdit_AAE_fulltest \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python eval.py \
-     CGEdit \
-     AAE \
-     FullTest_Final \
-     /nlp/scr/mtano/Dissertation/Encoder-Only/Masis/models/final.pt"
 """
 
 if len(sys.argv) != 5:
