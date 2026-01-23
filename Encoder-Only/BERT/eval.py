@@ -2,12 +2,19 @@ import transformers
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, SequentialSampler
-from transformers import AutoConfig, AutoModel
+from transformers import PretrainedConfig, AutoConfig, AutoModel
 import sys
 import os
 
 
 """
+nlprun -q jag -p standard -r 8G -c 2 \
+  -n bert-eval-fixed2 \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_no-wandb"
 
 """
 
@@ -28,7 +35,7 @@ test_file = csv_path if os.path.exists(csv_path) else txt_path if os.path.exists
 if test_file is None:
     raise FileNotFoundError(f"Could not find ./data/{test_set}.csv or .txt")
 
-class MultitaskConfig(transformers.PreTrainedConfig):
+class MultitaskConfig(PretrainedConfig):
     model_type = "multitask"
     def __init__(self, head_type_list=None, **kwargs):
         super().__init__(**kwargs)
