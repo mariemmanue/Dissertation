@@ -9,13 +9,13 @@ import os
 
 """
 nlprun -q jag -p standard -r 8G -c 2 \
-  -n bert-eval-fixed2 \
+  -n 3bert-eval-fixed \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python eval.py CGEdit AAE FullTest_Final SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_no-wandb"
-c
+
 """
 
 if len(sys.argv) != 5:
@@ -115,8 +115,8 @@ if __name__ == "__main__":
         model = MultitaskModel.create(base_model, head_type_list)
         checkpoint = torch.load(MODEL_ID, map_location=device)
         model.load_state_dict(checkpoint.get("model_state_dict", checkpoint), strict=False)
-    else:  # HF ModernBERT - ✅ Fixed loading
-        tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
+    else:  # HF ModernBERT
+        tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID, use_fast=False)
         config = transformers.AutoConfig.from_pretrained(MODEL_ID)
         model = MultitaskModel.create(MODEL_ID, config.head_type_list or head_type_list)  # Use config or fallback
 
