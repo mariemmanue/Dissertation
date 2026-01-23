@@ -116,7 +116,7 @@ if __name__ == "__main__":
         checkpoint = torch.load(MODEL_ID, map_location=device)
         model.load_state_dict(checkpoint.get("model_state_dict", checkpoint), strict=False)
     else:  # HF ModernBERT
-        tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID, use_fast=False, legacy=True)
+        tokenizer = transformers.AutoTokenizer.from_pretrained("answerdotai/ModernBERT-large", use_fast=False)
         config = transformers.AutoConfig.from_pretrained(MODEL_ID)
         model = MultitaskModel.create(MODEL_ID, config.head_type_list or head_type_list)  # Use config or fallback
 
