@@ -1,15 +1,4 @@
 import sys, os, site
-"""
-nlprun -q jag -p standard -r 80G -t 24:00:00   
--n wandb-sweep-fixed   
--o slurm_logs/%x-%j.out   
-"cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   unset \$(env | grep SLURM | cut -d= -f1) && \
-   wandb agent mtano-sta^Cord-university/aae-ddm-modernbert/ltjopwb2"
-
-"""
 
 # make sure we look in the env's site-packages first
 site_dirs = []
@@ -30,26 +19,21 @@ print("TRANSFORMERS VERSION:", transformers.__version__, file=sys.stderr)
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, random_split
-import numpy as np
+import shutil
 from sklearn.metrics import accuracy_score, f1_score
-from transformers import PretrainedConfig, AutoConfig, AutoModel 
+import json
 
-# wandb (keep as-is)
+# try wandb
 use_wandb = False
 try:
     import wandb
     use_wandb = True
 except ImportError:
-    pass
+    wandb = None
+    use_wandb = False
 
-class MultitaskConfig(PretrainedConfig):
-    model_type = "multitask"
-    def __init__(self, head_type_list=None, **kwargs):
-        super().__init__(**kwargs)
-        self.head_type_list = head_type_list or []
 
 class MultitaskModel(transformers.PreTrainedModel):
-    config_class = MultitaskConfig
     def __init__(self, encoder, taskmodels_dict, config):
         super().__init__(config)
         self.encoder = encoder
@@ -57,50 +41,139 @@ class MultitaskModel(transformers.PreTrainedModel):
 
     @classmethod
     def create(cls, model_name, head_type_list):
-        config = MultitaskConfig.from_pretrained(model_name, head_type_list=head_type_list)
+        config = transformers.AutoConfig.from_pretrained(model_name)
         encoder = transformers.AutoModel.from_pretrained(model_name, config=config)
         hidden_size = config.hidden_size
-        taskmodels_dict = {task: nn.Linear(hidden_size, 2) for task in head_type_list}
+
+        taskmodels_dict = {}
+        for task_name in head_type_list:
+            taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
+
         return cls(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
 
     def forward(self, input_ids=None, attention_mask=None, **kwargs):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        cls_repr = out.last_hidden_state[:, 0, :]
-        logits_per_task = [head(cls_repr) for head in self.taskmodels_dict.values()]
-        return torch.stack(logits_per_task, dim=1)  # (B, num_tasks, 2)
+        cls_repr = out.last_hidden_state[:, 0, :]  # (B, H)
+        logits_per_task = []
+        for _, head in self.taskmodels_dict.items():
+            logits_per_task.append(head(cls_repr))  # (B, 2)
+        # stack into (B, num_tasks, 2)
+        logits = torch.stack(logits_per_task, dim=1)
+        return logits
 
-# Register for HF save/load
-AutoConfig.register("multitask", MultitaskConfig)
-AutoModel.register(MultitaskConfig, MultitaskModel)
+
 
 class MultitaskTrainer(transformers.Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        labels = inputs["labels"]  # (B, num_tasks)
-        logits = model(input_ids=inputs["input_ids"], attention_mask=inputs.get("attention_mask"))  # (B, num_tasks, 2)
-        loss = nn.CrossEntropyLoss()(logits.view(-1, 2), labels.view(-1))
-        return (loss, logits) if return_outputs else loss
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        labels = inputs["labels"]          # (B, T)
+        logits = model(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs.get("attention_mask"),
+        )                                  # (B, T, 2)
 
-    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
+        B, T, C = logits.shape
+        logits_flat = logits.view(B * T, C)
+        labels_flat = labels.view(B * T)
+
+        loss = nn.CrossEntropyLoss()(logits_flat, labels_flat)
+        if return_outputs:
+            return (loss, logits)
+        return loss
+
+    def prediction_step(
+        self, model, inputs, prediction_loss_only, ignore_keys=None
+    ):
+        """
+        Custom eval step that always returns (loss, logits, labels) with no grad,
+        so Trainer can compute eval_loss and call compute_metrics.
+        """
+        # Shallow copy so we don't mutate original
         inputs = inputs.copy()
-        labels = inputs.pop("labels", None)
+
+        # Extract labels
+        labels = inputs.get("labels", None)
+
+        # Eval mode, no grad
         model.eval()
         with torch.no_grad():
-            loss, logits = self.compute_loss(model, inputs, return_outputs=True)
-        loss = loss.detach() if loss is not None else None
-        logits = logits.detach() if logits is not None else None
-        labels = labels.detach() if labels is not None else None
+            loss, logits = self.compute_loss(
+                model, inputs, return_outputs=True
+            )
+
+        # Detach for numpy conversion
+        if loss is not None:
+            loss = loss.detach()
+        if logits is not None:
+            logits = logits.detach()
+        if labels is not None and isinstance(labels, torch.Tensor):
+            labels = labels.detach()
+
         if prediction_loss_only:
-            return (loss, None, None)
+            return loss, None, None
+
         return loss, logits, labels
 
-class AAEFeatureDataset(Dataset):  # unchanged
-    def __init__(self, input_ids, attention_mask, labels):  # labels now (N, num_tasks)
+# class DebugMultitaskTrainer(MultitaskTrainer):
+#     def prediction_step(
+#         self, model, inputs, prediction_loss_only, ignore_keys=None
+#     ):
+#         # Shallow copy so we don't mutate original
+#         inputs = inputs.copy()
+
+#         # Extract labels
+#         labels = inputs.get("labels", None)
+
+#         # Disable grad during eval
+#         model.eval()
+#         with torch.no_grad():
+#             loss, logits = self.compute_loss(
+#                 model, inputs, return_outputs=True
+#             )
+
+#         # Detach for Trainer's numpy conversion
+#         if loss is not None:
+#             loss = loss.detach()
+#         if logits is not None:
+#             logits = logits.detach()
+
+#         if labels is not None and isinstance(labels, torch.Tensor):
+#             labels = labels.detach()
+
+#         # Debug print (eval only)
+#         if not model.training:
+#             print(
+#                 ">>> prediction_step (eval):",
+#                 "loss ok" if loss is not None else "loss None",
+#                 "logits", getattr(logits, "shape", None),
+#                 "labels", getattr(labels, "shape", None),
+#             )
+
+#         if prediction_loss_only:
+#             return loss, None, None
+
+#         return loss, logits, labels
+
+
+
+
+
+
+class AAEFeatureDataset(Dataset):
+    def __init__(self, input_ids, attention_mask, labels):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.labels = labels
-    def __len__(self): return len(self.labels)
+
+    def __len__(self):
+        return len(self.labels)
+
     def __getitem__(self, idx):
-        return {"input_ids": self.input_ids[idx], "attention_mask": self.attention_mask[idx], "labels": self.labels[idx]}
+        return {
+            "input_ids": self.input_ids[idx],
+            "attention_mask": self.attention_mask[idx],
+            "labels": self.labels[idx],
+        }
+
 
 def load_head_list(lang: str):
     if lang == "AAE":
@@ -138,7 +211,8 @@ def load_head_list(lang: str):
         ]
     else:
         raise ValueError("lang must be 'AAE' or 'IndE'")
-    
+
+
 def build_dataset(tokenizer, train_f, max_length=64):
     input_ids_list = []
     attn_list = []
@@ -168,14 +242,23 @@ def build_dataset(tokenizer, train_f, max_length=64):
 
     return AAEFeatureDataset(input_ids, attention_mask, labels)
 
+
 def compute_metrics(eval_pred):
-    logits, labels = eval_pred  # logits (TotalB, num_tasks, 2), labels (TotalB, num_tasks)
-    preds = logits.argmax(-1).flatten()
-    labels_flat = labels.flatten()
-    return {
-        "eval_f1": f1_score(labels_flat, preds, average="macro"),
-        "eval_accuracy": accuracy_score(labels_flat, preds)
-    }
+    print(">>> compute_metrics CALLED")
+    logits, labels = eval_pred    # logits: (B, T, 2), labels: (B, T)
+    # flatten both
+    B, T, C = logits.shape
+    logits_flat = logits.reshape(B * T, C)
+    labels_flat = labels.reshape(B * T)
+
+    preds = logits_flat.argmax(axis=1)
+    f1 = f1_score(labels_flat, preds, average="macro")
+    acc = accuracy_score(labels_flat, preds)
+    return {"eval_f1": f1, "eval_accuracy": acc}
+
+
+
+
 
 if __name__ == "__main__":
     import argparse
@@ -189,8 +272,6 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=300)
     parser.add_argument("--max_length", type=int, default=64)
     parser.add_argument("--wandb_project", type=str, default="cgedit-aae")
-    parser.add_argument("--encoder", type=str, default="modernbert",
-                    choices=["modernbert", "neobert", "roberta", "bert"])
     args = parser.parse_args()
 
     # --- pull from wandb if running under a sweep ---
@@ -211,54 +292,52 @@ if __name__ == "__main__":
         max_len = args.max_length
         weight_decay = 0.0
 
-    ENCODER_MAP = {
-        "modernbert": "answerdotai/ModernBERT-large",
-        "neobert": "sage-fc/neoBERT-large",
-        "roberta": "roberta-large",
-        "bert": "bert-large-uncased",
-    }
-    MODEL_NAME = ENCODER_MAP[args.encoder]
 
+    MODEL_NAME = "answerdotai/ModernBERT-large"
     train_file = f"./data/{args.gen_method}/{args.lang}.tsv"
+    # out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}"
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     head_type_list = load_head_list(args.lang)
     model = MultitaskModel.create(MODEL_NAME, head_type_list).to(device)
+
     tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_NAME)
-    dataset = build_dataset(tokenizer, train_file, max_length=args.max_length)
+    dataset = build_dataset(tokenizer, train_file, max_length=max_len)
 
     val_size = max(1, int(0.1 * len(dataset)))
-    train_ds, val_ds = random_split(dataset, [len(dataset) - val_size, val_size])
+    train_size = len(dataset) - val_size
+    train_ds, val_ds = random_split(dataset, [train_size, val_size])
 
-    run_name = os.environ.get("WANDB_RUN_ID") or os.environ.get("WANDB_RUN_NAME") or "no-wandb"
+    run_name = os.environ.get("WANDB_RUN_ID", os.environ.get("WANDB_RUN_NAME", "no-wandb"))
+
     out_dir = MODEL_NAME.replace("/", "_") + f"_{args.gen_method}_{args.lang}_{run_name}"
-    if use_wandb:
-        repo_name = f"{args.encoder}-{args.gen_method}-{args.lang}-{wandb.run.name}-lr{lr}-bs{bs}"
-    else:
-        repo_name = f"{args.encoder}-{args.gen_method}-{args.lang}-lr{lr}-bs{bs}"
+
 
     training_args = transformers.TrainingArguments(
-        output_dir=f"./models/{out_dir}",
-        overwrite_output_dir=True,
-        report_to="wandb" if use_wandb else "none",
-        run_name=f"{args.encoder}-sweep",
+        output_dir="./models/" + out_dir,
+        overwrite_output_dir=False,
+        report_to="wandb",
+        run_name="modernbert-sweep",
         learning_rate=lr,
         do_train=True,
         do_eval=True,
-        warmup_steps=args.warmup,
-        num_train_epochs=args.epochs,
+        warmup_steps=warmup,
+        num_train_epochs=epochs,
         per_device_train_batch_size=bs,
         per_device_eval_batch_size=bs,
         weight_decay=weight_decay,
         remove_unused_columns=False,
         logging_steps=50,
+        # --- Evaluation & saving ---
         eval_strategy="epoch",
-        save_strategy="epoch",
-        save_total_limit=1,
+        save_strategy="epoch",   # match eval
+        save_total_limit=1,      # keep only latest checkpoint
         load_best_model_at_end=True,
         metric_for_best_model="eval_f1",
         greater_is_better=True,
-    )
+        )
+
 
     trainer = MultitaskTrainer(
         model=model,
@@ -269,19 +348,35 @@ if __name__ == "__main__":
     )
 
     trainer.train()
-    trainer.save_model()  # Full HF save
-    tokenizer.save_pretrained(f"./models/{out_dir}")
-    model.config.save_pretrained(f"./models/{out_dir}")
-    trainer.push_to_hub(repo_name)  # Now works fully
+
+    # HF repo name
+    if use_wandb:
+        base = f"modernbert-{args.lang.lower()}-{args.gen_method}"
+        repo_name = f"{base}-{wandb.run.name}-lr{lr:.0e}-bs{bs}"
+    else:
+        repo_name = f"modernbert-{args.lang.lower()}-{args.gen_method}-lr{lr:.0e}-bs{bs}"
+
+    # 1. Save final.pt FIRST
+    models_dir = f"./models/{out_dir}"
+    os.makedirs(models_dir, exist_ok=True)
+    torch.save({"model_state_dict": model.state_dict()}, f"{models_dir}/final.pt")
+
+    # 2. Push to HF Hub (model + tokenizer + config)
+    trainer.push_to_hub(repo_name)
+    
+    # 3. Add eval essentials to HF repo
+    tokenizer.save_pretrained(f"{models_dir}")
+    json.dump({"heads": head_type_list, "gen_method": args.gen_method, "lang": args.lang}, 
+              open(f"{models_dir}/repo_config.json", "w"))
+
+    # Push local files to HF
+    model.push_to_hub(repo_name, path_or_repo= models_dir)  # redundant but ensures final.pt
+
     metrics = trainer.evaluate()
-    print("Final eval:", metrics)
+    print(">>> Final eval:", metrics)
 
-    # Local .pt for compat
-    torch.save({"model_state_dict": model.state_dict()}, f"./models/{out_dir}/final.pt")
-
-    # Optional cleanup
-    # import shutil; shutil.rmtree(f"./models/{out_dir}")
+    # Delete temp dir AFTER upload
+    shutil.rmtree(f"./models/{out_dir}", ignore_errors=True)
 
     if use_wandb:
         wandb.finish()
-
