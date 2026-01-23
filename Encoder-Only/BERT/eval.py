@@ -15,7 +15,7 @@ nlprun -q jag -p standard -r 8G -c 2 \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python eval.py CGEdit AAE FullTest_Final SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_no-wandb"
-
+c
 """
 
 if len(sys.argv) != 5:
