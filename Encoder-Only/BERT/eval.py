@@ -9,7 +9,7 @@ import os
 
 """
 nlprun -q jag -p standard -r 8G -c 2 \
-  -n 3bert-eval-fixed \
+  -n please-bitch \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     else:  # HF ModernBERT
         tokenizer = transformers.AutoTokenizer.from_pretrained("answerdotai/ModernBERT-large", use_fast=False)
         config = transformers.AutoConfig.from_pretrained(MODEL_ID)
-        model = MultitaskModel.create(MODEL_ID, config.head_type_list or head_type_list)  # Use config or fallback
+        model = MultitaskModel.create(MODEL_ID, head_type_list)   # Use config or fallback
 
     model.to(device)
     model.eval()

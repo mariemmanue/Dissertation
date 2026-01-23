@@ -370,6 +370,7 @@ if __name__ == "__main__":
               open(f"{models_dir}/repo_config.json", "w"))
 
     # Push local files to HF
+    tokenizer.push_to_hub(repo_name)
     model.push_to_hub(repo_name, path_or_repo= models_dir)  # redundant but ensures final.pt
 
     metrics = trainer.evaluate()
