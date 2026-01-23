@@ -12,8 +12,8 @@ import argparse
 import math
 from transformers import pipeline as hf_pipeline
 from transformers import AutoTokenizer
-from google import genai
-from google import genai
+# from google import genai
+import google.generativeai as genai
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
@@ -60,14 +60,14 @@ class GeminiBackend(LLMBackend):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("Set GEMINI_API_KEY.")
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=api_key)  # <- This will now work
         self.client = genai.GenerativeModel(model)
 
     def call(self, messages: List[Dict[str, str]]) -> str:
-        # Flatten OpenAI-style chat into a single prompt; or map roles if you prefer
         text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
         resp = self.client.generate_content(text)
         return resp.text
+
 
 
 
