@@ -2,7 +2,7 @@ import transformers
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, SequentialSampler
-from transformers import PreTrainedConfig, AutoConfig, AutoModel
+from transformers import AutoConfig, AutoModel
 import sys
 import os
 
