@@ -9,7 +9,7 @@ metric:
 
 parameters:
   encoder:
-    values: ["modernbert", "neobert", "roberta", "bert"]  # which base encoder to use
+    values: ["modernbert"]  # which base encoder to use
   learning_rate:
     distribution: log_uniform_values
     min: 5e-6
