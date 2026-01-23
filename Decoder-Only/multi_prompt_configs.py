@@ -69,8 +69,6 @@ class GeminiBackend(LLMBackend):
         return resp.text
 
 
-
-
 class PhiBackend(LLMBackend):
     def __init__(self, model: str):
         super().__init__(name="phi", model=model)

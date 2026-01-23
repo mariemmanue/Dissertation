@@ -6,6 +6,7 @@ from transformers import PreTrainedConfig, AutoConfig, AutoModel
 import sys
 import os
 
+
 """
 
 """
@@ -27,7 +28,7 @@ test_file = csv_path if os.path.exists(csv_path) else txt_path if os.path.exists
 if test_file is None:
     raise FileNotFoundError(f"Could not find ./data/{test_set}.csv or .txt")
 
-class MultitaskConfig(PreTrainedConfig):
+class MultitaskConfig(transformers.PreTrainedConfig):
     model_type = "multitask"
     def __init__(self, head_type_list=None, **kwargs):
         super().__init__(**kwargs)
@@ -107,9 +108,10 @@ if __name__ == "__main__":
         model = MultitaskModel.create(base_model, head_type_list)
         checkpoint = torch.load(MODEL_ID, map_location=device)
         model.load_state_dict(checkpoint.get("model_state_dict", checkpoint), strict=False)
-    else:  # HF ModernBERT
+    else:  # HF ModernBERT - ✅ Fixed loading
         tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
-        model = MultitaskModel.from_pretrained(MODEL_ID, head_type_list=head_type_list)
+        config = transformers.AutoConfig.from_pretrained(MODEL_ID)
+        model = MultitaskModel.create(MODEL_ID, config.head_type_list or head_type_list)  # Use config or fallback
 
     model.to(device)
     model.eval()
