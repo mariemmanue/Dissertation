@@ -32,6 +32,8 @@ command:
   - train.py
   - CGEdit
   - AAE
-  - --wandb_project=aae-ddm-modernbert
+  - --wandb_project
+  - aae-ddm-modernbert
   - --encoder
-  - ${encoder}
+  - "${encoder}"  # QUOTES fix empty value
+
