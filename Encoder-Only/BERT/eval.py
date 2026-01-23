@@ -116,10 +116,11 @@ if __name__ == "__main__":
         checkpoint = torch.load(MODEL_ID, map_location=device)
         model.load_state_dict(checkpoint.get("model_state_dict", checkpoint), strict=False)
     else:  # HF ModernBERT
+        # Load fine-tuned model from final.pt (proven working)
         tokenizer = transformers.AutoTokenizer.from_pretrained("answerdotai/ModernBERT-large", use_fast=False)
-        config = transformers.AutoConfig.from_pretrained(MODEL_ID)
-        base_model = transformers.AutoModel.from_pretrained(MODEL_ID, config=config)
-        model = MultitaskModel(encoder=base_model, taskmodels_dict={task: nn.Linear(config.hidden_size, 2) for task in head_type_list}, config=config)
+        model = MultitaskModel.create("answerdotai/ModernBERT-large", head_type_list)
+        checkpoint = torch.load("SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_no-wandb/final.pt", map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"], strict=False)
 
     model.to(device)
     model.eval()
