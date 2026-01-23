@@ -1,4 +1,15 @@
 import sys, os, site
+"""
+nlprun -q jag -p standard -r 80G -t 24:00:00   
+-n wandb-sweep-fixed   
+-o slurm_logs/%x-%j.out   
+"cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   unset \$(env | grep SLURM | cut -d= -f1) && \
+   wandb agent mtano-sta^Cord-university/aae-ddm-modernbert/ltjopwb2"
+
+"""
 
 # make sure we look in the env's site-packages first
 site_dirs = []

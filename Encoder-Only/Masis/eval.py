@@ -5,6 +5,20 @@ from torch.utils.data import Dataset, DataLoader, SequentialSampler
 import sys
 import os
 
+"""
+nlprun -q jag -p standard -r 16G -c 1 -t 02:00:00 \
+  -n modernbert_eval_CGEdit_AAE_fulltest \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/Masis && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python eval.py \
+     CGEdit \
+     AAE \
+     FullTest_Final \
+     /models/masis-final.pt"
+"""
+
 gen_method = sys.argv[1]    # 'CGEdit' or 'CGEdit-ManualGen'
 lang = sys.argv[2]          # 'AAE' or 'IndE'
 test_set = sys.argv[3]
