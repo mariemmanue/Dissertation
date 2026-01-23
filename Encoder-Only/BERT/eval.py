@@ -118,7 +118,8 @@ if __name__ == "__main__":
     else:  # HF ModernBERT
         tokenizer = transformers.AutoTokenizer.from_pretrained("answerdotai/ModernBERT-large", use_fast=False)
         config = transformers.AutoConfig.from_pretrained(MODEL_ID)
-        model = MultitaskModel.create(MODEL_ID, head_type_list)   # Use config or fallback
+        base_model = transformers.AutoModel.from_pretrained(MODEL_ID, config=config)
+        model = MultitaskModel(encoder=base_model, taskmodels_dict={task: nn.Linear(config.hidden_size, 2) for task in head_type_list}, config=config)
 
     model.to(device)
     model.eval()
