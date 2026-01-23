@@ -21,7 +21,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, random_split
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
-from transformers import PreTrainedConfig, AutoConfig, AutoModel
+from transformers import PretrainedConfig, AutoConfig, AutoModel 
 
 # wandb (keep as-is)
 use_wandb = False
@@ -31,7 +31,7 @@ try:
 except ImportError:
     pass
 
-class MultitaskConfig(PreTrainedConfig):
+class MultitaskConfig(PretrainedConfig):
     model_type = "multitask"
     def __init__(self, head_type_list=None, **kwargs):
         super().__init__(**kwargs)
