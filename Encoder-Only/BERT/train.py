@@ -65,26 +65,30 @@ class CustomDataset(Dataset):
 
 def build_dataset(tokenizer, train_f, max_length=64):
     input_ids_list, attn_list, labels_list, texts = [], [], [], []
-    with open(train_f) as r:
+    with open(train_f, 'r', encoding='utf-8') as r:
         header = next(r)  # Skip the header row
-        for line in r:
+        for i, line in enumerate(r):
             line = line.strip()
             if len(line.split()) < 2:  # Skip empty or malformed lines
+                print(f"Skipping line {i+1}: {line}")
                 continue
             parts = line.split()
             text = parts[0]
             try:
                 labels = [int(x) for x in parts[1:]]
             except ValueError as e:
-                print(f"Error parsing labels in line: {line}")
+                print(f"Error parsing labels in line {i+1}: {line}")
                 continue
             enc = tokenizer(text, max_length=max_length, padding="max_length", truncation=True, return_tensors="pt")
             input_ids_list.append(enc["input_ids"].squeeze(0))
             attn_list.append(enc["attention_mask"].squeeze(0))
             labels_list.append(torch.tensor(labels))
             texts.append(text)
+    
+    if not input_ids_list:  # Check if any valid data points were found
+        raise ValueError("No valid data points found in the training file.")
+    
     return CustomDataset(torch.stack(input_ids_list), torch.stack(attn_list), torch.stack(labels_list), texts)
-
 
 
 if __name__ == "__main__":
