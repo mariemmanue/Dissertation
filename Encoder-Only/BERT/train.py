@@ -91,6 +91,7 @@ def build_dataset(tokenizer, train_f, max_length=64):
     return CustomDataset(torch.stack(input_ids_list), torch.stack(attn_list), torch.stack(labels_list), texts)
 
 
+
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
