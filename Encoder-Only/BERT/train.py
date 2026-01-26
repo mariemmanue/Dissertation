@@ -68,6 +68,7 @@ def build_dataset(tokenizer, train_f, max_length=64):
     with open(train_f, 'r', encoding='utf-8') as r:
         header = next(r)  # Skip the header row
         for i, line in enumerate(r):
+            print(f"Line {i+1}: {line.strip()}")
             line = line.strip()
             if len(line.split()) < 2:  # Skip empty or malformed lines
                 print(f"Skipping line {i+1}: {line}")
