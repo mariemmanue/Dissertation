@@ -86,9 +86,9 @@ if __name__ == "__main__":
         raise ValueError("lang must be AAE or IndE")
 
     num_tasks = len(head_type_list)
-    # Load tokenizer and model
+    # Load tokenizer and model with eager attention implementation
     tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
-    model = transformers.AutoModel.from_pretrained(MODEL_ID)
+    model = transformers.AutoModel.from_pretrained(MODEL_ID, attn_implementation="eager")
 
     # Manually specify the heads list
     heads = head_type_list
