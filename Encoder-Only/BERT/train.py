@@ -359,15 +359,18 @@ if __name__ == "__main__":
     # 1. Save final.pt FIRST
     models_dir = f"./models/{out_dir}"
     os.makedirs(models_dir, exist_ok=True)
-    torch.save({"model_state_dict": model.state_dict()}, f"{models_dir}/final.pt")
+    # torch.save({"model_state_dict": model.state_dict()}, f"{models_dir}/final.pt")
 
-    # 2. Push to HF Hub (model + tokenizer + config)
-    trainer.push_to_hub(repo_name)
-    
     # 3. Add eval essentials to HF repo
     tokenizer.save_pretrained(f"{models_dir}")
-    json.dump({"heads": head_type_list, "gen_method": args.gen_method, "lang": args.lang}, 
-              open(f"{models_dir}/repo_config.json", "w"))
+    # json.dump({"heads": head_type_list, "gen_method": args.gen_method, "lang": args.lang}, 
+    #           open(f"{models_dir}/repo_config.json", "w"))
+
+    # Save model
+    trainer.save_model(models_dir)
+
+    # Save heads list
+    json.dump({"heads": head_type_list}, open(f"{models_dir}/heads.json", "w"))
 
     # Push local files to HF
     tokenizer.push_to_hub(repo_name)
