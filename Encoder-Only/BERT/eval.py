@@ -5,16 +5,15 @@ from torch.utils.data import Dataset, DataLoader, SequentialSampler
 import sys
 import os
 import json
-import requests
 
 """
 nlprun -q jag -p standard -r 8G -c 2 \
-  -n omgplease-bitch \
+  -n bert-eval-flowing-field \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_no-wandb"
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/modernbert-aae-CGEdit-flowing-field-372-lr2e-05-bs16"
 """
 
 if len(sys.argv) != 5:
@@ -91,10 +90,8 @@ if __name__ == "__main__":
     tokenizer = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
     model = transformers.AutoModel.from_pretrained(MODEL_ID)
 
-    # Load heads list from Hugging Face
-    heads_url = f"https://huggingface.co/{MODEL_ID}/raw/main/heads.json"
-    response = requests.get(heads_url)
-    heads = response.json()["heads"]
+    # Manually specify the heads list
+    heads = head_type_list
 
     # Create your multitask model
     taskmodels_dict = {task: nn.Linear(model.config.hidden_size, 2) for task in heads}
