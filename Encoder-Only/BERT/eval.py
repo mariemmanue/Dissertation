@@ -4,7 +4,6 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, SequentialSampler
 import sys
 import os
-import json
 
 """
 nlprun -q jag -p standard -r 8G -c 2 \
@@ -97,7 +96,8 @@ if __name__ == "__main__":
     taskmodels_dict = {task: nn.Linear(model.config.hidden_size, 2) for task in heads}
     multitask_model = MultitaskModel(encoder=model, taskmodels_dict=taskmodels_dict, config=model.config)
 
-    # Perform inference and write results to a TSV file
+    # Load the trained model
+    multitask_model.load_state_dict(torch.load(f"./models/{model_tag}_{gen_method}_{lang}_{test_set}.pt"))
     multitask_model.to(device)
     multitask_model.eval()
 
