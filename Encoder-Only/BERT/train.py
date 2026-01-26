@@ -66,6 +66,7 @@ class CustomDataset(Dataset):
 def build_dataset(tokenizer, train_f, max_length=64):
     input_ids_list, attn_list, labels_list, texts = [], [], [], []
     with open(train_f) as r:
+        header = next(r)  # Skip the header row
         for line in r:
             line = line.strip()
             if len(line.split()) < 2: continue
@@ -77,6 +78,7 @@ def build_dataset(tokenizer, train_f, max_length=64):
             labels_list.append(torch.tensor(labels))
             texts.append(line)
     return CustomDataset(torch.stack(input_ids_list), torch.stack(attn_list), torch.stack(labels_list), texts)
+
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
