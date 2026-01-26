@@ -117,8 +117,8 @@ if __name__ == "__main__":
             probs = torch.softmax(logits, dim=-1)[:, :, 1]  # (bsz, num_tasks)
 
             for i in range(bsz):
-                # Clean text like BERT eval
-                decoded = tokenizer.decode(texts[i], skip_special_tokens=True)
+                # Decode the input_ids to get the original text
+                decoded = tokenizer.decode(input_ids[i].cpu(), skip_special_tokens=True)
                 clean_text = " ".join(decoded.split())
                 prob_strs = "\t".join(f"{float(probs[i, t]):.4f}" for t in range(num_tasks))
                 f.write(f"{clean_text}\t{prob_strs}\n")
