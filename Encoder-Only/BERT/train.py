@@ -69,15 +69,22 @@ def build_dataset(tokenizer, train_f, max_length=64):
         header = next(r)  # Skip the header row
         for line in r:
             line = line.strip()
-            if len(line.split()) < 2: continue
-            enc = tokenizer(line, max_length=max_length, padding="max_length", truncation=True, return_tensors="pt")
+            if len(line.split()) < 2:  # Skip empty or malformed lines
+                continue
+            parts = line.split()
+            text = parts[0]
+            try:
+                labels = [int(x) for x in parts[1:]]
+            except ValueError as e:
+                print(f"Error parsing labels in line: {line}")
+                continue
+            enc = tokenizer(text, max_length=max_length, padding="max_length", truncation=True, return_tensors="pt")
             input_ids_list.append(enc["input_ids"].squeeze(0))
             attn_list.append(enc["attention_mask"].squeeze(0))
-            # Assume labels are provided in the train file
-            labels = [int(x) for x in line.split()[1:]]
             labels_list.append(torch.tensor(labels))
-            texts.append(line)
+            texts.append(text)
     return CustomDataset(torch.stack(input_ids_list), torch.stack(attn_list), torch.stack(labels_list), texts)
+
 
 
 if __name__ == "__main__":
