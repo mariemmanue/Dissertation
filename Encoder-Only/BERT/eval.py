@@ -98,8 +98,8 @@ if __name__ == "__main__":
     multitask_model = MultitaskModel(encoder=model, taskmodels_dict=taskmodels_dict, config=model.config)
 
     # Perform inference and write results to a TSV file
-    model.to(device)
-    model.eval()
+    multitask_model.to(device)
+    multitask_model.eval()
 
     dataset = build_dataset(tokenizer, test_file)
     dataloader = eval_dataloader(dataset)
@@ -113,7 +113,7 @@ if __name__ == "__main__":
             bsz = input_ids.size(0)
 
             with torch.no_grad():
-                logits = model(input_ids=input_ids, attention_mask=attention_mask)  # (bsz, num_tasks, 2)
+                logits = multitask_model(input_ids=input_ids, attention_mask=attention_mask)  # (bsz, num_tasks, 2)
             probs = torch.softmax(logits, dim=-1)[:, :, 1]  # (bsz, num_tasks)
 
             for i in range(bsz):
