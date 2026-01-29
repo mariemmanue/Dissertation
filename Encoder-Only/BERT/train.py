@@ -34,6 +34,24 @@ nlprun -q jag -p standard -r 20G -c 2 \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python train.py CGEdit AAE --lr 1e-4 --bs 32 --epochs 20 --wandb_project cgedit-aae"
+
+
+nlprun -q jag -p standard -r 32G -c 2 \
+  -n multitask_modernbert_train \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE \
+     --lr 2e-05 \
+     --bs 16 \
+     --epochs 10 \
+     --warmup 500 \
+     --wandb_project cgedit-aae \
+     --seed 42 \
+     --optimizer adamw_torch_fused \
+     --lr_scheduler_type linear"
+
 """
 
 # try wandb
