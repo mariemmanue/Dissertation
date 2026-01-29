@@ -148,8 +148,27 @@ class CustomDataset(Dataset):
 
 def build_dataset(tokenizer, test_f, max_length=128):
     input_ids_list, attn_list, texts = [], [], []
-    
+
+    # 1. Robust File Path Resolution
+    if not os.path.exists(test_f):
+        # Check if it's in ./data/
+        if os.path.exists(os.path.join("./data", test_f)):
+            test_f = os.path.join("./data", test_f)
+        # Check if it's missing extension
+        elif os.path.exists(test_f + ".csv"):
+            test_f = test_f + ".csv"
+        elif os.path.exists(test_f + ".txt"):
+            test_f = test_f + ".txt"
+        # Check if it's in ./data/ AND missing extension
+        elif os.path.exists(os.path.join("./data", test_f + ".csv")):
+             test_f = os.path.join("./data", test_f + ".csv")
+        elif os.path.exists(os.path.join("./data", test_f + ".txt")):
+             test_f = os.path.join("./data", test_f + ".txt")
+        else:
+            raise FileNotFoundError(f"Could not find file: {test_f}")
+
     print(f"Reading {test_f}...")
+    
     if test_f.endswith('.csv'):
         import pandas as pd
         df = pd.read_csv(test_f)
@@ -162,6 +181,7 @@ def build_dataset(tokenizer, test_f, max_length=128):
             lines = [line.strip() for line in r if line.strip()]
 
     print(f"Tokenizing {len(lines)} examples...")
+
     for text in lines:
         if not text: continue
         enc = tokenizer(text, max_length=max_length, padding="max_length", truncation=True, return_tensors="pt")
