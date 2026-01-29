@@ -37,3 +37,51 @@ command:
   - --encoder
   - "${encoder}"  # QUOTES fix empty value
 
+# nlprun -q jag -p standard -r 8G -c 2 \
+  # -n bert-sweep-multilabel \
+  # -o slurm_logs/%x-%j.out \
+  # "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+  #  . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+  #  conda activate cgedit && \
+  #  wandb sweep sweep.yaml && \
+  #  wandb agent <your_sweep_id>"
+
+
+# program: train.py
+# name: multilabel_modernbert_train
+# project: multilabel_modernbert
+# method: bayes
+
+# metric:
+#   name: eval_f1
+#   goal: maximize
+
+# parameters:
+#   encoder:
+#     values: ["modernbert"]
+#   learning_rate:
+#     distribution: log_uniform_values
+#     min: 5e-6
+#     max: 2e-5
+#   batch_size:
+#     values: [32]
+#   epochs:
+#     values: [4, 5, 6]
+#   warmup_steps:
+#     values: [300, 800]
+#   max_length:
+#     values: [256]
+#   weight_decay:
+#     distribution: uniform
+#     min: 0.0
+#     max: 0.1
+
+# command:
+#   - /nlp/scr/mtano/miniconda3/envs/cgedit/bin/python
+#   - train.py
+#   - CGEdit
+#   - AAE
+#   - --wandb_project
+#   - multilabel_modernbert_train
+#   - --encoder
+#   - "${encoder}"
