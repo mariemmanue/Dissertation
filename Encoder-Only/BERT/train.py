@@ -27,7 +27,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 
 """
-nlprun -q jag -p standard -r 8G -c 2 \
+nlprun -q jag -p standard -r 20G -c 2 \
   -n multitask_modernbert_train \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
@@ -294,6 +294,11 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=300)
     parser.add_argument("--max_length", type=int, default=64)
     parser.add_argument("--wandb_project", type=str, default="cgedit-aae")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--optimizer", type=str, default="adamw_torch_fused")
+    parser.add_argument("--lr_scheduler_type", type=str, default="linear")
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+
     args = parser.parse_args()
 
     # --- pull from wandb if running under a sweep ---
