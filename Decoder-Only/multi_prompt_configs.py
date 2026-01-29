@@ -1167,7 +1167,7 @@ def main():
                 ]
             )
 
-    def writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys):
+    def writemeta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count, missingkeys):
         with open(metapath, "a", newline="", encoding="utf-8") as f:
             use_ctx_req = int(args.context)
             requested = args.context_mode if args.context else ""
@@ -1180,8 +1180,8 @@ def main():
                     requested,
                     arm_used,
                     int(bool(context_included)),
-                    parsestatus,
-                    missingcount,
+                    parse_status,
+                    missing_count,
                     missingkeys,
                 ]
             )
@@ -1252,12 +1252,6 @@ def main():
             print(f"Debug: Columns found: {list(existing_df.columns)}")
             print(f"Debug: {len(existing_df)} rows in existing file")
             
-            # Strategy 1: Explicit idx column (perfect match)
-            if 'idx' in existing_df.columns:
-                existing_done_idxs = set(existing_df['idx'].astype(int).tolist())
-                print(f"Debug: Found {len(existing_done_idxs)} existing idxs from 'idx' column")
-                return existing_done_idxs
-            
             # Strategy 2: Row count proxy + LAST SENTENCE VERIFICATION
             if 'sentence' in existing_df.columns and len(existing_df) > 0:
                 num_rows = len(existing_df)
@@ -1290,18 +1284,18 @@ def main():
             print(f"Debug: CSV read failed: {e}, starting fresh")
             return set()
 
-    # Use it in your main loop
+    # ==================== AFTER get_resume_idxs() ====================
     existing_done_idxs = get_resume_idxs(preds_path, eval_sentences)
 
-
+    # Headers (already correct - sentence first, no idx)
     preds_header = ["sentence"] + CURRENT_FEATURES
     rats_header = ["sentence"] + CURRENT_FEATURES
 
     if not os.path.exists(preds_path):
-        with open(preds_path, "w", newline="", encoding="utf-8") as f:
+        with open(preds_path, 'w', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow(preds_header)
     if not os.path.exists(rats_path):
-        with open(rats_path, "w", newline="", encoding="utf-8") as f:
+        with open(rats_path, 'w', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow(rats_header)
 
     usable_ctx_count = 0
@@ -1312,28 +1306,28 @@ def main():
     print("###############################")
     print("start time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
     print("###############################")
-
-    # -------------------- MAIN LOOP --------------------
-    for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
-        # Skip if this idx is already in the predictions CSV
+    # ==================== MAIN LOOP (idx is just loop counter) ====================
+    for idx, sentence in enumerate(tqdm(eval_sentences), desc="Evaluating sentences"):
+        # Skip already-processed rows
         if idx in existing_done_idxs:
             continue
+        
         left = None
         right = None
-
-        # CONTEXT FROM NEIGHBOR ROWS ONLY
+        
+        # Get context from neighboring rows (uses idx as row position in golddf)
         if args.context:
             if idx > 0:
-                left = golddf.loc[idx - 1, "sentence"]
+                left = golddf.loc[idx - 1, 'sentence']
             if idx < len(golddf) - 1:
-                right = golddf.loc[idx + 1, "sentence"]
-
-        usable = has_usable_context(left, right)
-        if args.context and usable:
-            usable_ctx_count += 1
-
+                right = golddf.loc[idx + 1, 'sentence']
+            usable = has_usable_context(left, right)
+            if args.context and usable:
+               usable_ctx_count += 1
+        
         context_included = bool(args.context and usable)
-
+        
+        # Call model
         raw, arm_used = query_model(
             backend,
             enc,
@@ -1353,48 +1347,48 @@ def main():
             dump_prompt_path=args.dump_prompt_path,
             dump_once_key=dumponcekey,
         )
-
-
-        if arm_used == "two_turn":
+        
+        if arm_used == "twoturn":
             used_two_turn_count += 1
-        elif arm_used == "single_turn":
+        elif arm_used == "singleturn":
             used_single_turn_count += 1
-
+        
         if not raw:
-            parsestatus = "EMPTY_RESPONSE"
-            missingcount = ""
-            missingkeys_str = ""
-            writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys_str)
+            parse_status = "EMPTYRESPONSE"
+            missing_count = ""
+            missing_keys_str = ""
+            writemeta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count, missing_keys_str)
             continue
-
+        
+        # Parse output
         try:
             vals, rats, missing = parse_output_json(raw, CURRENT_FEATURES)
-            parsestatus = "OK"
-            missingcount = len(missing)
-            missingkeys_str = " ".join(missing)
+            parse_status = "OK"
+            missing_count = len(missing)
+            missing_keys_str = ",".join(missing)
         except Exception:
-            parsestatus = "PARSE_FAIL"
-            missingcount = ""
-            missingkeys_str = ""
+            parse_status = "PARSEFAIL"
+            missing_count = ""
+            missing_keys_str = ""
             vals = {feat: None for feat in CURRENT_FEATURES}
             rats = {feat: "" for feat in CURRENT_FEATURES}
-
-        writemeta(idx, sentence, usable, arm_used, context_included, parsestatus, missingcount, missingkeys_str)
-
-        pred_row = {"sentence": sentence}
-        pred_row.update(vals)
-
-        rat_row = {"sentence": sentence}
-        rat_row.update(rats)
-
-        with open(preds_path, "a", newline="", encoding="utf-8") as f:
+        
+        writemeta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count, missing_keys_str)
+        
+        # Write predictions (sentence first, NO idx)
+        with open(preds_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow([idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
-
-        with open(rats_path, "a", newline="", encoding="utf-8") as f:
+            writer.writerow([sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
+        
+        # Write rationales (sentence first, NO idx)
+        with open(rats_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow([idx, sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
+            writer.writerow([sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
 
+    print("\n=== CONTEXT USAGE SUMMARY ===")
+    print(f"Sentences with usable context: {usable_ctx_count}")
+    print(f"  - Single-turn context delivery: {used_single_turn_count}")
+    print(f"  - Two-turn context delivery: {used_two_turn_count}")
     print_final_usage_summary()
     
     end_time = time.time()
