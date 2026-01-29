@@ -26,6 +26,16 @@ import os
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 
+"""
+nlprun -q jag -p standard -r 8G -c 2 \
+  -n multilabel_modernbert_train \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE --lr 1e-4 --bs 32 --epochs 20 --wandb_project cgedit-aae"
+"""
+
 # try wandb
 use_wandb = False
 try:

@@ -5,18 +5,29 @@ import sys
 import os
 import torch.nn as nn
 
+"""
+nlprun -q jag -p standard -r 8G -c 2 \
+  -n multilabel_modernbert_eval \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python eval.py CGEdit AAE SociauxLing/multilabel_modernbert"
+"""
+
 gen_method = sys.argv[1]
 lang = sys.argv[2]
-MODEL_ID = sys.argv[3]
+test_set = sys.argv[3]
+MODEL_ID = sys.argv[4]
 
 model_tag = MODEL_ID.replace("/", "_")
-out_dir = f"{model_tag}_{gen_method}_{lang}_{lang}.tsv"
+out_dir = f"{model_tag}_{gen_method}_{lang}_{test_set}.tsv"
 
-csv_path = f"./data/{lang}.csv"
-txt_path = f"./data/{lang}.txt"
+csv_path = f"./data/{test_set}.csv"
+txt_path = f"./data/{test_set}.txt"
 test_file = csv_path if os.path.exists(csv_path) else txt_path if os.path.exists(txt_path) else None
 if test_file is None:
-    raise FileNotFoundError(f"Could not find ./data/{lang}.csv or .txt")
+    raise FileNotFoundError(f"Could not find ./data/{test_set}.csv or .txt")
 
 # Register your model
 from transformers import AutoConfig, AutoModel
