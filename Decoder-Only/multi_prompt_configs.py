@@ -1307,7 +1307,7 @@ def main():
     print("start time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
     print("###############################")
     # ==================== MAIN LOOP (idx is just loop counter) ====================
-    for idx, sentence in enumerate(tqdm(eval_sentences), desc="Evaluating sentences"):
+    for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
         # Skip already-processed rows
         if idx in existing_done_idxs:
             continue
