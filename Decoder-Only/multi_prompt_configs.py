@@ -1312,6 +1312,11 @@ def main():
     print("###############################")
     # ==================== MAIN LOOP (idx is just loop counter) ====================
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
+        usable = False
+        arm_used = "no_context"
+        context_included = False
+        left = None
+        right = None
         # Skip already-processed rows
         if idx in existing_done_idxs:
             continue
