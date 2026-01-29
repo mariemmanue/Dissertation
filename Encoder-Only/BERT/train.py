@@ -28,7 +28,7 @@ from sklearn.metrics import accuracy_score, f1_score
 
 """
 nlprun -q jag -p standard -r 8G -c 2 \
-  -n multilabel_modernbert_train \
+  -n multitask_modernbert_train \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -46,9 +46,6 @@ except ImportError:
     use_wandb = False
 
 
-# Register your model
-AutoConfig.register("multitask_model", MultitaskModel.config_class)
-AutoModel.register(MultitaskModel.config_class, MultitaskModel)
 
 
 class MultitaskModel(transformers.PreTrainedModel):
@@ -79,6 +76,9 @@ class MultitaskModel(transformers.PreTrainedModel):
         logits = torch.stack(logits_per_task, dim=1)
         return logits
 
+# Register your model
+AutoConfig.register("multitask_model", MultitaskModel.config_class)
+AutoModel.register(MultitaskModel.config_class, MultitaskModel)
 
 
 class MultitaskTrainer(transformers.Trainer):
