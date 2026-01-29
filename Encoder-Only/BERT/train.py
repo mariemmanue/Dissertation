@@ -47,8 +47,12 @@ except ImportError:
 
 
 
+class MultitaskModelConfig(transformers.PretrainedConfig):
+    model_type = "multitask_model"
 
 class MultitaskModel(transformers.PreTrainedModel):
+    config_class = MultitaskModelConfig  # Assign the config class
+
     def __init__(self, encoder, taskmodels_dict, config):
         super().__init__(config)
         self.encoder = encoder
