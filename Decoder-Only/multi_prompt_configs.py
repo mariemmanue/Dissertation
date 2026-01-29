@@ -1241,7 +1241,7 @@ def main():
     rats_path = os.path.join(outdir, args.sheet + "_rationales.csv")
 
     # -------------------- RESUME SUPPORT: LOAD EXISTING OUTPUTS --------------------
-    def get_resume_idxs(preds_path, evalsentences):
+    def get_resume_idxs(preds_path, eval_sentences):
         """Robust resume: row count proxy + last sentence verification"""
         if not os.path.exists(preds_path):
             print(f"Debug: No predictions file at {preds_path}")
@@ -1264,20 +1264,20 @@ def main():
                 resume_idx_candidate = num_rows
                 
                 # Verify LAST sentence matches expected position
-                if len(evalsentences) > num_rows - 1:
+                if len(eval_sentences) > num_rows - 1:
                     last_csv_sentence = str(existing_df.iloc[-1]['sentence']).strip().lower()
                     expected_sentence_idx = num_rows - 1
-                    expected_sentence = str(evalsentences[expected_sentence_idx]).strip().lower()
+                    expected_sentence = str(eval_sentences[expected_sentence_idx]).strip().lower()
                     
                     print(f"Debug: Verifying last sentence...")
                     print(f"  CSV last sentence: '{last_csv_sentence[:60]}...'")
                     print(f"  Expected at idx {expected_sentence_idx}: '{expected_sentence[:60]}...'")
                     
                     if last_csv_sentence == expected_sentence:
-                        print(f"✅ Verified! Resuming from idx {resume_idx_candidate}")
+                        print(f"Verified! Resuming from idx {resume_idx_candidate}")
                         return set(range(resume_idx_candidate))
                     else:
-                        print("❌ MISMATCH! Starting fresh (order changed?)")
+                        print("MISMATCH! Starting fresh (order changed?)")
                         return set()
                 else:
                     print(f"Debug: File longer than evalsentences, starting fresh")
@@ -1294,8 +1294,8 @@ def main():
     existing_done_idxs = get_resume_idxs(preds_path, eval_sentences)
 
 
-    preds_header = ["idx", "sentence"] + CURRENT_FEATURES
-    rats_header = ["idx", "sentence"] + CURRENT_FEATURES
+    preds_header = ["sentence"] + CURRENT_FEATURES
+    rats_header = ["sentence"] + CURRENT_FEATURES
 
     if not os.path.exists(preds_path):
         with open(preds_path, "w", newline="", encoding="utf-8") as f:
