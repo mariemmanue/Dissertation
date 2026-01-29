@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 import pandas as pd
 import glob
+import os
 
-incomplete = []
-for csv in glob.glob("*predictions.csv"):
-    df = pd.read_csv(csv, nrows=1000)  # Fast check
-    rows = sum(1 for _ in open(csv)) 
-    idx_col = 'idx' if 'idx' in df.columns else None
-    valid_idx = len(df.dropna(subset=[idx_col])) if idx_col else 0
-    incomplete.append((csv, rows, valid_idx, valid_idx == rows))
-print("BROKEN CSVs (<1009 rows OR bad idx):")
-for csv, rows, valid, ok in incomplete:
-    if rows < 1009 or not ok:
-        print(f"  {csv}: {rows} rows, {valid} valid idx → {'FIX NEEDED' if not ok else 'OK'}")
+for csv_path in glob.glob("*.csv"):
+    if "_meta.csv" in csv_path: continue  # Skip meta
+    
+    print(f"Fixing {csv_path}...")
+    df = pd.read_csv(csv_path)
+    
+    # Fix idx column
+    if 'idx' not in df.columns or df['idx'].isna().all():
+        df.insert(0, 'idx', range(len(df)))
+    
+    # Dedupe by idx, keep LAST prediction (most recent run wins)
+    df_clean = df.drop_duplicates('idx', keep='last')
+    
+    # Save
+    df_clean.to_csv(csv_path, index=False)
+    print(f"  {len(df)} → {len(df_clean)} rows (deduped)\n")
+
+print("✅ ALL CSVs fixed!")
 # #!/usr/bin/env python3
 # import pandas as pd
 # import glob
