@@ -1252,6 +1252,10 @@ def main():
             print(f"Debug: Columns found: {list(existing_df.columns)}")
             print(f"Debug: {len(existing_df)} rows in existing file")
             
+                # Strategy 1: Explicit 'idx' column (The preferred way now)
+            if 'idx' in existing_df.columns:
+                return set(existing_df['idx'].tolist())
+        
             # Strategy 2: Row count proxy + LAST SENTENCE VERIFICATION
             if 'sentence' in existing_df.columns and len(existing_df) > 0:
                 num_rows = len(existing_df)
@@ -1288,8 +1292,8 @@ def main():
     existing_done_idxs = get_resume_idxs(preds_path, eval_sentences)
 
     # Headers (already correct - sentence first, no idx)
-    preds_header = ["sentence"] + CURRENT_FEATURES
-    rats_header = ["sentence"] + CURRENT_FEATURES
+    preds_header = ["idx", "sentence"] + CURRENT_FEATURES
+    rats_header = ["idx", "sentence"] + CURRENT_FEATURES
 
     if not os.path.exists(preds_path):
         with open(preds_path, 'w', newline='', encoding='utf-8') as f:
@@ -1378,12 +1382,12 @@ def main():
         # Write predictions (sentence first, NO idx)
         with open(preds_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
+            writer.writerow([idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
         
         # Write rationales (sentence first, NO idx)
         with open(rats_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow([sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
+            writer.writerow([idx, sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
 
     print("\n=== CONTEXT USAGE SUMMARY ===")
     print(f"Sentences with usable context: {usable_ctx_count}")
