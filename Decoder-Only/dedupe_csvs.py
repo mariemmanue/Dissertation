@@ -131,7 +131,7 @@ for csv_path in csv_files:
             continue
             
         # Assume first column is sentence/utterance (handles both idx and sentence naming)
-        sentence_col = df.columns[0]
+        sentence_col = df.columns[1]
         print(f"  Using column '{sentence_col}' for deduplication")
         
         # Drop duplicates by sentence, keep last row
