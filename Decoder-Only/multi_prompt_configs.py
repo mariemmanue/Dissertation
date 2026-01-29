@@ -1241,17 +1241,57 @@ def main():
     rats_path = os.path.join(outdir, args.sheet + "_rationales.csv")
 
     # -------------------- RESUME SUPPORT: LOAD EXISTING OUTPUTS --------------------
-    existing_done_idxs = set()
-    if os.path.exists(preds_path):
+    def get_resume_idxs(preds_path, evalsentences):
+        """Robust resume: row count proxy + last sentence verification"""
+        if not os.path.exists(preds_path):
+            print(f"Debug: No predictions file at {preds_path}")
+            return set()
+        
         try:
             existing_df = pd.read_csv(preds_path)
-            if "idx" in existing_df.columns:
-                existing_done_idxs = set(existing_df["idx"].tolist())
+            print(f"Debug: Columns found: {list(existing_df.columns)}")
+            print(f"Debug: {len(existing_df)} rows in existing file")
+            
+            # Strategy 1: Explicit idx column (perfect match)
+            if 'idx' in existing_df.columns:
+                existing_done_idxs = set(existing_df['idx'].astype(int).tolist())
+                print(f"Debug: Found {len(existing_done_idxs)} existing idxs from 'idx' column")
+                return existing_done_idxs
+            
+            # Strategy 2: Row count proxy + LAST SENTENCE VERIFICATION
+            if 'sentence' in existing_df.columns and len(existing_df) > 0:
+                num_rows = len(existing_df)
+                resume_idx_candidate = num_rows
+                
+                # Verify LAST sentence matches expected position
+                if len(evalsentences) > num_rows - 1:
+                    last_csv_sentence = str(existing_df.iloc[-1]['sentence']).strip().lower()
+                    expected_sentence_idx = num_rows - 1
+                    expected_sentence = str(evalsentences[expected_sentence_idx]).strip().lower()
+                    
+                    print(f"Debug: Verifying last sentence...")
+                    print(f"  CSV last sentence: '{last_csv_sentence[:60]}...'")
+                    print(f"  Expected at idx {expected_sentence_idx}: '{expected_sentence[:60]}...'")
+                    
+                    if last_csv_sentence == expected_sentence:
+                        print(f"✅ Verified! Resuming from idx {resume_idx_candidate}")
+                        return set(range(resume_idx_candidate))
+                    else:
+                        print("❌ MISMATCH! Starting fresh (order changed?)")
+                        return set()
+                else:
+                    print(f"Debug: File longer than evalsentences, starting fresh")
+                    return set()
             else:
-                # If older files lack idx, assume nothing is done
-                existing_done_idxs = set()
-        except Exception:
-            existing_done_idxs = set()
+                print("Debug: No 'sentence' column found")
+                return set()
+                
+        except Exception as e:
+            print(f"Debug: CSV read failed: {e}, starting fresh")
+            return set()
+
+    # Use it in your main loop
+    existing_done_idxs = get_resume_idxs(preds_path, eval_sentences)
 
 
     preds_header = ["idx", "sentence"] + CURRENT_FEATURES
