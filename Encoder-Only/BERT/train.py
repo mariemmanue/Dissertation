@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, random_split
 from sklearn.metrics import accuracy_score, f1_score
 import transformers
+from datetime import datetime 
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 # --- Environment Setup ---
@@ -247,12 +248,16 @@ if __name__ == "__main__":
     val_size = max(1, int(0.1 * len(dataset)))
     train_ds, val_ds = random_split(dataset, [len(dataset) - val_size, val_size])
 
-    run_name = os.environ.get("WANDB_RUN_ID") or os.environ.get("WANDB_RUN_NAME") or "no-wandb"
+    run_name = os.environ.get("WANDB_RUN_ID") or os.environ.get("WANDB_RUN_NAME")
+    if not run_name:
+        # Append timestamp to ensure unique directory for local runs
+        run_name = f"no-wandb-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    
     out_dir = f"{MODEL_NAME.replace('/', '_')}_{args.gen_method}_{args.lang}_{run_name}"
 
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
-        overwrite_output_dir=False,
+        overwrite_output_dir=True,
         report_to="wandb" if use_wandb else "none",
         run_name="modernbert-sweep",
         learning_rate=lr,
@@ -271,7 +276,7 @@ if __name__ == "__main__":
         logging_steps=50,
         eval_strategy="epoch",
         save_strategy="epoch",
-        save_total_limit=1,
+        save_total_limit=2,
         load_best_model_at_end=True,
         metric_for_best_model="eval_f1",
         greater_is_better=True,
