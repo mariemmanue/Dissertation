@@ -9,6 +9,8 @@
 # - FIX: safer string stripping on sentence columns (cast to str first)
 # - FIX: avoid accidental column collisions when concatenating factors_df (drop existing)
 # - NOTE: imports unchanged except minor typing convenience
+import argparse
+import sys
 
 import os
 import glob
@@ -1237,13 +1239,63 @@ def evaluate_sheets(file_path: str):
 
 
 def main():
-    file_paths = [fp for fp in glob.glob("data/*.xlsx") if not os.path.basename(fp).startswith("~$")]
-    if not file_paths:
-        print("[INFO] No .xlsx files found under data/.")
-        return
+    parser = argparse.ArgumentParser(
+        description="Evaluate AAE Model Predictions against Gold Standard."
+    )
+    
+    parser.add_argument(
+        "input_path", 
+        nargs="?", 
+        default="data/*.xlsx", 
+        help="Path to a specific .xlsx file, a directory, or a glob pattern (default: data/*.xlsx)"
+    )
+    
+    parser.add_argument(
+        "--output-dir", 
+        default="data/results", 
+        help="Base directory to save evaluation results (default: data/results)"
+    )
 
-    for file_path in file_paths:
-        evaluate_sheets(file_path)
+    args = parser.parse_args()
+
+    # 1. Update the global output directory variable used by evaluate_sheets
+    global output_dir
+    output_dir = args.output_dir
+    
+    # Ensure output directory exists
+    if not os.path.exists(output_dir):
+        print(f"[INFO] Creating output directory: {output_dir}")
+        os.makedirs(output_dir, exist_ok=True)
+
+    # 2. Resolve input paths (handle files, directories, and glob patterns)
+    filepaths = []
+    
+    # Check if input is a direct directory
+    if os.path.isdir(args.input_path):
+        filepaths = glob.glob(os.path.join(args.input_path, "*.xlsx"))
+    # Check if input is a glob pattern or specific file
+    else:
+        filepaths = glob.glob(args.input_path)
+
+    # Filter out temporary Excel files (starting with ~$)
+    filepaths = [fp for fp in filepaths if not os.path.basename(fp).startswith("~$")]
+
+    if not filepaths:
+        print(f"[ERROR] No valid .xlsx files found matching: {args.input_path}")
+        sys.exit(1)
+
+    print(f"\n[INIT] Found {len(filepaths)} file(s) to evaluate in '{output_dir}':")
+    for fp in filepaths:
+        print(f" - {fp}")
+
+    # 3. Run evaluation for each file
+    for filepath in filepaths:
+        try:
+            evaluate_sheets(filepath)
+        except Exception as e:
+            print(f"\n[ERROR] Failed to evaluate {filepath}: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
