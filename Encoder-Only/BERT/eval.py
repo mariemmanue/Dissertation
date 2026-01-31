@@ -231,6 +231,8 @@ if __name__ == "__main__":
     print(f"Starting inference, writing to {out_path}...")
     
     with open(out_path, "w", encoding='utf-8') as f:
+        all_texts = []
+        all_probs = []   # list of np arrays, each shape (num_tasks,)
         # Write Header
         header = "sentence\t" + "\t".join(head_list) + "\n"
         f.write(header)
@@ -247,6 +249,13 @@ if __name__ == "__main__":
                 # Softmax over last dim (classes 0 vs 1) -> get prob of class 1
                 probs = torch.softmax(logits, dim=-1)[:, :, 1] # [B, Num_Tasks]
                 probs = probs.cpu().numpy()
+                for i, text in enumerate(texts):
+                    clean_text = text.replace('\t', ' ').replace('\n', ' ')
+                    all_texts.append(clean_text)
+                    all_probs.append(probs[i])  # shape (num_tasks,)
+                    # still write to file as before
+                    prob_strs = "\t".join(f"{p:.4f}" for p in probs[i])
+                    f.write(f"{clean_text}\t{prob_strs}\n")
 
             # Write batch
             for i, text in enumerate(texts):
@@ -255,4 +264,5 @@ if __name__ == "__main__":
                 prob_strs = "\t".join(f"{p:.4f}" for p in probs[i])
                 f.write(f"{clean_text}\t{prob_strs}\n")
 
+            all_probs = np.stack(all_probs)
     print("Done.")

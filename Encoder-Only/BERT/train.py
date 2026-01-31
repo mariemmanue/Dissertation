@@ -111,11 +111,43 @@ AutoModel.register(MultitaskModel.config_class, MultitaskModel)
 
 class MultitaskTrainer(transformers.Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        labels = inputs["labels"]
-        logits = model(input_ids=inputs["input_ids"], attention_mask=inputs.get("attention_mask"))
+        labels = inputs["labels"]          # (B, T)
+        logits = model(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs.get("attention_mask"),
+        )                                  # (B, T, 2)
         B, T, C = logits.shape
-        loss = nn.CrossEntropyLoss()(logits.view(B * T, C), labels.view(B * T))
-        return (loss, logits) if return_outputs else loss
+        logits_flat = logits.view(B * T, C)
+        labels_flat = labels.view(B * T)
+        loss = nn.CrossEntropyLoss()(logits_flat, labels_flat)
+        if return_outputs:
+            return (loss, logits)
+        return loss
+
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
+        # Shallow copy so we don't mutate original dict
+        inputs = inputs.copy()
+        labels = inputs.get("labels", None)
+
+        model.eval()
+        with torch.no_grad():
+            loss, logits = self.compute_loss(
+                model, inputs, return_outputs=True
+            )
+
+        # Detach tensors
+        if loss is not None:
+            loss = loss.detach()
+        if logits is not None:
+            logits = logits.detach()
+        if labels is not None and isinstance(labels, torch.Tensor):
+            labels = labels.detach()
+
+        if prediction_loss_only:
+            return loss, None, None
+
+        return loss, logits, labels
+
 
 class AAEFeatureDataset(Dataset):
     def __init__(self, input_ids, attention_mask, labels):
@@ -146,6 +178,7 @@ def build_dataset(tokenizer, train_f, max_length=64):
     return AAEFeatureDataset(torch.stack(input_ids_list), torch.stack(attn_list), torch.stack(labels_list))
 
 def compute_metrics(eval_pred):
+    print(">>> compute_metrics CALLED")
     logits, labels = eval_pred
     B, T, C = logits.shape
     logits_flat = logits.reshape(B * T, C)
@@ -227,11 +260,18 @@ if __name__ == "__main__":
     
 
     # 3. Data & Training
-    dataset = build_dataset(tokenizer, train_file, max_length=max_len)
+    # dataset = build_dataset(tokenizer, train_file, max_length=max_len)
+    dataset = build_dataset(tokenizer, train_file, max_length=128)
+    print("Total examples:", len(dataset))
+    print("Example[0] keys:", dataset[0].keys())
+    print("input_ids shape:", dataset[0]["input_ids"].shape)
+    print("labels shape:", dataset[0]["labels"].shape)
+    print("First label vector:", dataset[0]["labels"])
 
     val_size = max(1, int(0.1 * len(dataset)))
     train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
+    print("Lengths:", len(dataset), len(train_ds), len(val_ds))
 
 
     run_name = os.environ.get("WANDB_RUN_ID") or f"run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -263,8 +303,8 @@ if __name__ == "__main__":
         eval_strategy="epoch",
         save_strategy="epoch",
         save_total_limit=1,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_f1",
+        # load_best_model_at_end=True,
+        # metric_for_best_model="eval_f1",
         greater_is_better=True,
         dataloader_drop_last=True,   # <- add just this line
     )
