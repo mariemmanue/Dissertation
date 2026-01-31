@@ -227,42 +227,62 @@ if __name__ == "__main__":
     os.makedirs("./data/results", exist_ok=True)
     out_name = f"{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_preds.tsv"
     out_path = f"./data/results/{out_name}"
+    aug_out_path = f"./data/results/{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_probs_and_preds.tsv"
 
     print(f"Starting inference, writing to {out_path}...")
     
-    with open(out_path, "w", encoding='utf-8') as f:
+    with open(out_path, "w", encoding='utf-8') as f_probs, open(aug_out_path, "w", encoding="utf-8") as f_aug:
+
         all_texts = []
-        all_probs = []   # list of np arrays, each shape (num_tasks,)
-        # Write Header
-        header = "sentence\t" + "\t".join(head_list) + "\n"
-        f.write(header)
-        
+        all_probs = []
+
+        # Header for simple probs file (same as before)
+        header_probs = "sentence\t" + "\t".join(head_list) + "\n"
+        f_probs.write(header_probs)
+
+        # Header for augmented file: for each feature, prob0, prob1, pred
+        aug_cols = []
+        for feat in head_list:
+            aug_cols.extend([f"{feat}_p0", f"{feat}_p1", f"{feat}_pred"])
+        header_aug = "sentence\t" + "\t".join(aug_cols) + "\n"
+        f_aug.write(header_aug)
+
+            
         for batch in dataloader:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             texts = batch["text"]
             
             with torch.no_grad():
-                # Forward pass returns [B, Num_Tasks, 2]
+                # logits: [B, Num_Tasks, 2]
                 logits = model(input_ids=input_ids, attention_mask=attention_mask)
-                
-                # Softmax over last dim (classes 0 vs 1) -> get prob of class 1
-                probs = torch.softmax(logits, dim=-1)[:, :, 1] # [B, Num_Tasks]
-                probs = probs.cpu().numpy()
-                for i, text in enumerate(texts):
-                    clean_text = text.replace('\t', ' ').replace('\n', ' ')
-                    all_texts.append(clean_text)
-                    all_probs.append(probs[i])  # shape (num_tasks,)
-                    # still write to file as before
-                    prob_strs = "\t".join(f"{p:.4f}" for p in probs[i])
-                    f.write(f"{clean_text}\t{prob_strs}\n")
 
-            # Write batch
+                # Convert logits -> probabilities for BOTH classes
+                probs = torch.softmax(logits, dim=-1)           # [B, T, 2]
+                probs_np = probs.cpu().numpy()                  # numpy for easy printing
+
+                # Hard predictions: pick class with higher probability
+                preds_np = probs_np.argmax(axis=-1)             # [B, T], each entry 0 or 1
+
+            # Now write lines for this batch
             for i, text in enumerate(texts):
-                # Clean text of tabs/newlines for safety
-                clean_text = text.replace('\t', ' ').replace('\n', ' ')
-                prob_strs = "\t".join(f"{p:.4f}" for p in probs[i])
-                f.write(f"{clean_text}\t{prob_strs}\n")
+                clean_text = text.replace("\t", " ").replace("\n", " ")
+                all_texts.append(clean_text)
+                all_probs.append(probs_np[i])
 
-            all_probs = np.stack(all_probs)
+                # File 1: same as before (prob of class 1 only)
+                prob1_strs = "\t".join(f"{p1:.4f}" for p1 in probs_np[i, :, 1])
+                f_probs.write(f"{clean_text}\t{prob1_strs}\n")
+
+                # File 2: prob0, prob1, and predicted label for each feature
+                feat_cells = []
+                for t in range(len(head_list)):
+                    p0 = probs_np[i, t, 0]
+                    p1 = probs_np[i, t, 1]
+                    pred = preds_np[i, t]
+                    feat_cells.extend([f"{p0:.4f}", f"{p1:.4f}", str(pred)])
+                f_aug.write(f"{clean_text}\t" + "\t".join(feat_cells) + "\n")
+
+
+        # all_probs = np.stack(all_probs)
     print("Done.")
