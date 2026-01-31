@@ -171,6 +171,13 @@ if __name__ == "__main__":
     parser.add_argument("--fix_vocab", action="store_true", help="Add dialect tokens to vocab")
     args = parser.parse_args()
 
+    lr = args.lr
+    bs = args.bs
+    epochs = args.epochs
+    warmup = args.warmup
+    max_len = args.max_length
+    weight_decay = 0.01
+
     # WandB setup
     if use_wandb:
         wandb.init(project=args.wandb_project)
