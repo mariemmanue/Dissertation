@@ -173,7 +173,7 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
 
     args = parser.parse_args()
-    
+
     warmup = args.warmup
     max_len = args.max_length
     weight_decay = 0.01
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         weight_decay=weight_decay,
         remove_unused_columns=False,
         logging_steps=50,
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         save_strategy="epoch",
         save_total_limit=1,
         load_best_model_at_end=True,
