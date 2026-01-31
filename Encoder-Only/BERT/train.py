@@ -242,6 +242,8 @@ if __name__ == "__main__":
         num_train_epochs=epochs,
         per_device_train_batch_size=bs,
         per_device_eval_batch_size=bs,
+        eval_strategy="epoch",  # Run evaluation at end of every epoch
+        save_strategy="epoch",  # Save checkpoint at end of every epoch
         save_total_limit=2,
         load_best_model_at_end=True,
         metric_for_best_model="eval_f1",
