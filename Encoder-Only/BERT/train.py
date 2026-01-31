@@ -170,12 +170,10 @@ if __name__ == "__main__":
     parser.add_argument("--auto_unfreeze_epoch", type=int, default=0, help="Epoch to unfreeze everything (Plan B)")
     parser.add_argument("--fix_vocab", action="store_true", help="Add dialect tokens to vocab")
     parser.add_argument("--max_length", type=int, default=128)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
 
     args = parser.parse_args()
-
-    lr = args.lr
-    bs = args.bs
-    epochs = args.epochs
+    
     warmup = args.warmup
     max_len = args.max_length
     weight_decay = 0.01
@@ -253,7 +251,7 @@ if __name__ == "__main__":
         do_eval=True,
         optim="adamw_torch_fused",
         seed=args.seed,
-        lr_scheduler_type=args.lr_scheduler_type,
+        lr_scheduler_type="linear",
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         warmup_steps=warmup,
         num_train_epochs=epochs,
