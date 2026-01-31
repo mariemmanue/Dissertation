@@ -169,6 +169,8 @@ if __name__ == "__main__":
     parser.add_argument("--freeze_mode", type=str, default="none", choices=["all", "bottom_12", "none"], help="Strategy for freezing layers")
     parser.add_argument("--auto_unfreeze_epoch", type=int, default=0, help="Epoch to unfreeze everything (Plan B)")
     parser.add_argument("--fix_vocab", action="store_true", help="Add dialect tokens to vocab")
+    parser.add_argument("--max_length", type=int, default=128)
+
     args = parser.parse_args()
 
     lr = args.lr
