@@ -6,7 +6,7 @@ nlprun -q jag -p standard -r 8G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py CGEdit AAE SociauxLing/multilabel_modernbert"
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_no-wandb-20260130-133308"
 """
 import transformers
 import torch
