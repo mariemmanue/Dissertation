@@ -220,11 +220,12 @@ if __name__ == "__main__":
     
 
     # 3. Data & Training
-    dataset = build_dataset(tokenizer, train_file, max_length=128)
-    n = len(dataset)
-    val_size = max(1, int(0.1 * n))
-    train_size = max(1, n - val_size)
+    dataset = build_dataset(tokenizer, train_file, max_length=max_len)
+
+    val_size = max(1, int(0.1 * len(dataset)))
+    train_size = len(dataset) - val_size
     train_ds, val_ds = random_split(dataset, [train_size, val_size])
+
 
     run_name = os.environ.get("WANDB_RUN_ID") or f"run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     out_dir = f"ModernBERT_{args.gen_method}_{args.lang}_{run_name}"
@@ -235,25 +236,32 @@ if __name__ == "__main__":
 
     training_args = transformers.TrainingArguments(
         output_dir="./models/" + out_dir,
-        overwrite_output_dir=True,
-        report_to="wandb" if use_wandb else "none",
+        overwrite_output_dir=False,
+        report_to="wandb",
+        run_name="modernbert-sweep",
         learning_rate=lr,
         do_train=True,
         do_eval=True,
         seed=args.seed,
-        optim="adamw_torch_fused",
-        warmup_steps=args.warmup,
+        optim=args.optimizer,
+        lr_scheduler_type=args.lr_scheduler_type,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        warmup_steps=warmup,
         num_train_epochs=epochs,
         per_device_train_batch_size=bs,
         per_device_eval_batch_size=bs,
-        eval_strategy="epoch",  # Run evaluation at end of every epoch
-        save_strategy="epoch",  # Save checkpoint at end of every epoch
-        dataloader_drop_last=True,
-        save_total_limit=2,
+        weight_decay=weight_decay,
+        remove_unused_columns=False,
+        logging_steps=50,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        save_total_limit=1,
         load_best_model_at_end=True,
         metric_for_best_model="eval_f1",
         greater_is_better=True,
+        dataloader_drop_last=True,   # <- add just this line
     )
+
 
     trainer = MultitaskTrainer(
         model=model,
