@@ -53,12 +53,11 @@ def load_multitask_model(model_id, head_list, loss_type):
     from transformers.utils import cached_file
     from safetensors.torch import load_file
 
-    # 1) Load config and build encoder skeleton
-    config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    encoder = AutoModel.from_config(config)
+    # 1) Load full encoder (with resized embeddings) from MODEL_ID
+    encoder = AutoModel.from_pretrained(model_id, trust_remote_code=True)
     hidden_size = encoder.config.hidden_size
 
-    # 2) Build heads
+    # 2) Build heads consistent with loss_type
     taskmodels_dict = {}
     for name in head_list:
         if loss_type == "ce":
@@ -68,10 +67,9 @@ def load_multitask_model(model_id, head_list, loss_type):
 
     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict)
 
-    # 3) Load state dict, stripping _orig_mod.
+    # 3) Load checkpoint state dict, strip _orig_mod.
     model_file = cached_file(model_id, "model.safetensors")
     sd = load_file(model_file)
-
     new_sd = {}
     for k, v in sd.items():
         if k.startswith("_orig_mod."):
@@ -88,6 +86,7 @@ def load_multitask_model(model_id, head_list, loss_type):
         print("Example unexpected:", unexpected[:10])
 
     return model
+
 
 
 # --- 3. Feature Definition (Must match train.py exactly) ---
