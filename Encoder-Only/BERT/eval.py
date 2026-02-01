@@ -37,30 +37,12 @@ class MultitaskModelConfig(transformers.PretrainedConfig):
 
 class MultitaskModel(transformers.PreTrainedModel):
     config_class = MultitaskModelConfig
-    base_model_prefix = "encoder"  # important for HF internals
 
-    def __init__(self, config):
+    def __init__(self, encoder, taskmodels_dict, config):
         super().__init__(config)
-        # When loading from_pretrained, HF will pass config only.
-        # So we must build encoder and heads from config.
-        # Assume config has attributes we saved at train time:
-        #   config.base_model_name_or_path
-        #   config.head_names
-        #   config.loss_type
-        base_name = getattr(config, "base_model_name_or_path", "answerdotai/ModernBERT-large")
-        loss_type = getattr(config, "loss_type", "ce")
-        head_names = getattr(config, "head_names", [])
-
-        self.encoder = AutoModel.from_pretrained(base_name)
-        hidden_size = self.encoder.config.hidden_size
-
-        taskmodels_dict = {}
-        for name in head_names:
-            if loss_type == "ce":
-                taskmodels_dict[name] = nn.Linear(hidden_size, 2)
-            else:
-                taskmodels_dict[name] = nn.Linear(hidden_size, 1)
+        self.encoder = encoder
         self.taskmodels_dict = nn.ModuleDict(taskmodels_dict)
+
 
     @classmethod
     def create(cls, base_name, head_type_list, loss_type="ce"):
@@ -87,70 +69,54 @@ class MultitaskModel(transformers.PreTrainedModel):
 
 
 # Register classes so AutoModel knows them (just in case)
-AutoConfig.register("multitask_model", MultitaskModelConfig)
-AutoModel.register(MultitaskModelConfig, MultitaskModel)
+AutoConfig.register("multitask_model", MultitaskModel.config_class)
+AutoModel.register(MultitaskModel.config_class, MultitaskModel)
+
 
 # --- 2. Helper to reconstruct the model instance ---
 def load_multitask_model(model_id, head_list, loss_type):
-    print(f"Loading multitask model from {model_id}...")
-    # Because MultitaskModelConfig.model_type is "multitask_model"
-    # and you registered the classes, this will pick up the right class.
-    model = MultitaskModel.from_pretrained(model_id)
+    from transformers.utils import cached_file
+    from safetensors.torch import load_file
+
+    # 1) Load config from checkpoint
+    config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+
+    # 2) Build a fresh encoder with the *same config*
+    encoder = AutoModel.from_config(config)  # not from_pretrained base; just skeleton
+    hidden_size = encoder.config.hidden_size
+
+    # 3) Build fresh heads
+    taskmodels_dict = {}
+    for task_name in head_list:
+        if loss_type == "ce":
+            taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
+        else:
+            taskmodels_dict[task_name] = nn.Linear(hidden_size, 1)
+
+    model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
+
+    # 4) Load state dict from model.safetensors
+    model_file = cached_file(model_id, "model.safetensors")
+    sd = load_file(model_file)
+
+    # 5) Rename keys: strip the `_orig_mod.` prefix
+    new_sd = {}
+    for k, v in sd.items():
+        if k.startswith("_orig_mod."):
+            new_k = k[len("_orig_mod."):]
+        else:
+            new_k = k
+        new_sd[new_k] = v
+
+    missing, unexpected = model.load_state_dict(new_sd, strict=False)
+    print("Missing:", len(missing), "Unexpected:", len(unexpected))
+    if missing:
+        print("Example missing:", missing[:10])
+    if unexpected:
+        print("Example unexpected:", unexpected[:10])
+
     return model
 
-# def load_multitask_model(model_id, head_list, loss_type):
-#     """
-#     Manually reconstructs the MultitaskModel to ensure architecture matches.
-#     """
-#     print(f"Loading base encoder from config in {model_id}...")
-#     # Load config first
-#     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    
-#     # We need the base encoder (ModernBERT)
-#     # The saved config likely has the base model type.
-#     # We can try loading the encoder from the original base if needed, 
-#     # but ideally we load weights from the checkpoint.
-    
-#     # 1. Initialize fresh encoder (skeleton)
-#     # We assume the base model is "answerdotai/ModernBERT-large" based on train.py
-#     # But we should respect the config from the checkpoint.
-#     base_model_name = "answerdotai/ModernBERT-large" # hardcoded from train.py
-#     encoder = AutoModel.from_pretrained(base_model_name)
-#     hidden_size = encoder.config.hidden_size
-#     taskmodels_dict = {}
-#     for task_name in head_list:
-#         if loss_type == "ce":
-#             taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
-#         else:  # bce
-#             taskmodels_dict[task_name] = nn.Linear(hidden_size, 1)
-#     # 3. Instantiate our wrapper
-#     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
-    
-#     # 4. Load State Dict
-#     print(f"Loading state dict from {model_id}...")
-#     # This downloads model.safetensors or pytorch_model.bin
-#     from transformers.utils import cached_file
-#     try:
-#         model_file = cached_file(model_id, "model.safetensors")
-#         state_dict = torch.load(model_file) if model_file.endswith('.pt') else {} # safetensors handled below
-#         if model_file.endswith('.safetensors'):
-#             from safetensors.torch import load_file
-#             state_dict = load_file(model_file)
-#     except:
-#         # Fallback to pytorch_model.bin
-#         model_file = cached_file(model_id, "pytorch_model.bin")
-#         state_dict = torch.load(model_file, map_location="cpu")
-
-#     # Load weights
-#     missing, unexpected = model.load_state_dict(state_dict, strict=False)
-#     print(f"Loaded weights. Missing: {len(missing)}, Unexpected: {len(unexpected)}")
-#     if missing:
-#         print("Example missing keys:", missing[:5])
-#     if unexpected:
-#         print("Example unexpected keys:", unexpected[:5])
-
-    
-#     return model
 
 # --- 3. Feature Definition (Must match train.py exactly) ---
 
@@ -289,7 +255,7 @@ if __name__ == "__main__":
     # 3. Load Model (Reconstructing Architecture)
 
     print(f"Loading model directly from {MODEL_ID}...")
-    model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
+    model = load_multitask_model(MODEL_ID, head_list, loss_type)
     model.to(device)
     model.eval()
 
