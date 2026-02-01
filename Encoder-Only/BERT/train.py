@@ -1,3 +1,82 @@
+"""
+# CE probe
+nlprun -q jag -p standard -r 32G -c 2 \
+  -n modernbert_probe_ce_all_frozen \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE \
+     --fix_vocab \
+     --freeze_mode all \
+     --auto_unfreeze_epoch 0 \
+     --lr 1e-3 \
+     --bs 32 \
+     --loss_type ce \
+     --epochs 20 \
+     --warmup 0 \
+     --wandb_project modernbert-probe"
+
+# BCE probe
+nlprun -q jag -p standard -r 32G -c 2 \
+  -n modernbert_probe_bce_all_frozen \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE \
+     --fix_vocab \
+     --freeze_mode all \
+     --auto_unfreeze_epoch 0 \
+     --lr 1e-3 \
+     --bs 32 \
+     --loss_type bce \
+     --epochs 20 \
+     --warmup 0 \
+     --wandb_project modernbert-probe"
+
+     
+
+# CE full FT
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n modernbert_fullft_ce \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE \
+     --fix_vocab \
+     --loss_type ce \
+     --freeze_mode none \
+     --auto_unfreeze_epoch 0 \
+     --lr 2e-5 \
+     --bs 32 \
+     --epochs 20 \
+     --warmup 500 \
+     --wandb_project modernbert-fullft"
+
+# BCE full FT
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n modernbert_fullft_bce \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE \
+     --fix_vocab \
+     --loss_type bce \
+     --freeze_mode none \
+     --auto_unfreeze_epoch 0 \
+     --lr 2e-5 \
+     --bs 32 \
+     --epochs 20 \
+     --warmup 500 \
+     --wandb_project modernbert-fullft"
+
+
+"""
+
+
 import sys
 import os
 import site
@@ -5,9 +84,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, random_split
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import average_precision_score, f1_score, accuracy_score
 import transformers
 from transformers import AutoConfig, AutoModel, AutoTokenizer, TrainerCallback
+from sklearn.metrics import average_precision_score
+import json, os
 
 # --- Environment Setup ---
 site_dirs = []
@@ -58,7 +139,20 @@ class MultitaskModel(transformers.PreTrainedModel):
         self.taskmodels_dict = nn.ModuleDict(taskmodels_dict)
 
     @classmethod
-    def create(cls, model_name, head_type_list, freeze_mode="none", new_vocab_size=None):
+    def create(cls, model_name, head_type_list, freeze_mode="none", new_vocab_size=None, loss_type="ce"):
+        class TaskHead(nn.Module):
+            def __init__(self, hidden_size, dropout=0.1):
+                super().__init__()
+                self.net = nn.Sequential(
+                    nn.Linear(hidden_size, hidden_size),
+                    nn.ReLU(),
+                    nn.Dropout(dropout),
+                    nn.Linear(hidden_size, 2),
+                )
+            def forward(self, x):
+                return self.net(x)
+            
+
         config = transformers.AutoConfig.from_pretrained(model_name)
         encoder = transformers.AutoModel.from_pretrained(model_name, config=config)
         
@@ -94,8 +188,12 @@ class MultitaskModel(transformers.PreTrainedModel):
         hidden_size = config.hidden_size
         taskmodels_dict = {}
         for task_name in head_type_list:
-            taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
-
+            if loss_type == "ce":
+                # 2 logits: no vs yes
+                taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
+            else:  # "bce"
+                # 1 logit: P(feature present)
+                taskmodels_dict[task_name] = nn.Linear(hidden_size, 1)
         return cls(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
 
     def forward(self, input_ids=None, attention_mask=None, **kwargs):
@@ -103,26 +201,46 @@ class MultitaskModel(transformers.PreTrainedModel):
         cls_repr = out.last_hidden_state[:, 0, :]
         logits_per_task = []
         for _, head in self.taskmodels_dict.items():
-            logits_per_task.append(head(cls_repr))
-        return torch.stack(logits_per_task, dim=1)
+            logits_per_task.append(head(cls_repr))  # [B, 2] or [B, 1]
+        logits = torch.stack(logits_per_task, dim=1)  # [B, T, C]
+
+        # If C == 1, squeeze that last dim → [B, T]
+        if logits.size(-1) == 1:
+            logits = logits.squeeze(-1)
+        return logits
+
 
 AutoConfig.register("multitask_model", MultitaskModel.config_class)
 AutoModel.register(MultitaskModel.config_class, MultitaskModel)
 
 class MultitaskTrainer(transformers.Trainer):
+    def __init__(self, *args, loss_type="ce", pos_weight=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loss_type = loss_type
+        if loss_type == "bce":
+            self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        labels = inputs["labels"]          # (B, T)
+        labels = inputs["labels"]  # [B, T]
         logits = model(
             input_ids=inputs["input_ids"],
             attention_mask=inputs.get("attention_mask"),
-        )                                  # (B, T, 2)
-        B, T, C = logits.shape
-        logits_flat = logits.view(B * T, C)
-        labels_flat = labels.view(B * T)
-        loss = nn.CrossEntropyLoss()(logits_flat, labels_flat)
+        )
+
+        if self.loss_type == "ce":
+            # logits: [B, T, 2], labels: [B, T] (0/1)
+            B, T, C = logits.shape
+            logits_flat = logits.view(B * T, C)
+            labels_flat = labels.view(B * T)
+            loss = nn.CrossEntropyLoss()(logits_flat, labels_flat)
+        else:
+            # BCE: logits: [B, T], labels: [B, T] (0/1)
+            loss = self.bce(logits, labels.float())
+
         if return_outputs:
             return (loss, logits)
         return loss
+
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         # Shallow copy so we don't mutate original dict
@@ -178,13 +296,81 @@ def build_dataset(tokenizer, train_f, max_length=64):
     return AAEFeatureDataset(torch.stack(input_ids_list), torch.stack(attn_list), torch.stack(labels_list))
 
 def compute_metrics(eval_pred):
-    print(">>> compute_metrics CALLED")
-    logits, labels = eval_pred
-    B, T, C = logits.shape
-    logits_flat = logits.reshape(B * T, C)
-    labels_flat = labels.reshape(B * T)
-    preds = logits_flat.argmax(axis=1)
-    return {"eval_f1": f1_score(labels_flat, preds, average="macro"), "eval_accuracy": accuracy_score(labels_flat, preds)}
+    logits, labels = eval_pred  # numpy
+    # logits: [B,T,2] (CE) or [B,T] (BCE)
+    if logits.ndim == 3:
+        # CE: probs1 from softmax
+        B, T, C = logits.shape
+        # stable softmax
+        exps = np.exp(logits - logits.max(axis=-1, keepdims=True))
+        probs = exps / exps.sum(axis=-1, keepdims=True)  # [B,T,2]
+        probs1 = probs[..., 1]  # [B,T]
+    else:
+        # BCE: sigmoid
+        if logits.ndim == 3 and logits.shape[-1] == 1:
+            logits = logits.squeeze(-1)
+        probs1 = 1 / (1 + np.exp(-logits))  # [B,T]
+
+    B, T = probs1.shape
+    y_true = labels.reshape(B * T)
+    y_score = probs1.reshape(B * T)
+
+    # Global AP and thresholded metrics (0.5)
+    ap_global = average_precision_score(y_true, y_score)
+    y_pred = (y_score >= 0.5).astype(int)
+    f1 = f1_score(y_true, y_pred, average="macro")
+    acc = accuracy_score(y_true, y_pred)
+
+    # Optional: per-feature AP and Prec@K
+    aps = []
+    prec100s = []
+    for t in range(T):
+        yt = labels[:, t]
+        ys = probs1[:, t]
+        if yt.sum() == 0:
+            continue  # skip all-negative feature in this split
+        aps.append(average_precision_score(yt, ys))
+
+        # Prec@100 style: sort by score, take top K, compute precision
+        order = ys.argsort()[::-1]
+        K = min(100, len(order))
+        topk = order[:K]
+        prec100s.append(yt[topk].mean())
+
+    metrics = {
+        "eval_ap_global": float(ap_global),
+        "eval_f1": float(f1),
+        "eval_accuracy": float(acc),
+    }
+    if aps:
+        metrics["eval_ap_macro"] = float(np.mean(aps))
+        metrics["eval_prec100_macro"] = float(np.mean(prec100s))
+    return metrics
+
+def find_best_thresholds(logits, labels, num_steps=21):
+    # logits, labels: numpy arrays [N, T]
+    import numpy as np
+    from sklearn.metrics import f1_score
+
+    N, T = logits.shape
+    thresholds = np.zeros(T)
+    for f in range(T):
+        y_true = labels[:, f]
+        z = logits[:, f]
+        best_f1 = 0.0
+        best_tau = 0.0
+        # sweep over probabilities 0..1
+        for p in np.linspace(0.0, 1.0, num_steps):
+            tau = np.log(p / (1 - p)) if p > 0 and p < 1 else (float("inf") if p == 1 else -float("inf"))
+            y_pred = (z > tau).astype(int)
+            if y_true.sum() == 0:
+                continue
+            f1 = f1_score(y_true, y_pred, zero_division=0)
+            if f1 > best_f1:
+                best_f1 = f1
+                best_tau = tau
+        thresholds[f] = best_tau
+    return thresholds
 
 if __name__ == "__main__":
     import argparse
@@ -204,6 +390,12 @@ if __name__ == "__main__":
     parser.add_argument("--fix_vocab", action="store_true", help="Add dialect tokens to vocab")
     parser.add_argument("--max_length", type=int, default=128)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument(
+        "--loss_type",
+        type=str,
+        default="ce",
+        choices=["ce", "bce"],
+        help="Use CrossEntropy (ce) or BCEWithLogits (bce)")
 
     args = parser.parse_args()
 
@@ -213,13 +405,17 @@ if __name__ == "__main__":
 
     # WandB setup
     if use_wandb:
-        wandb.init(project=args.wandb_project)
+        run = wandb.init(project=args.wandb_project)
         cfg = wandb.config
         lr = getattr(cfg, "learning_rate", args.lr)
         bs = getattr(cfg, "batch_size", args.bs)
         epochs = getattr(cfg, "epochs", args.epochs)
+        # use the W&B run id (or name) for matching
+        run_name = run.id   # or run.name if you prefer
     else:
         lr, bs, epochs = args.lr, args.bs, args.epochs
+        run_name = f"run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
 
     MODEL_NAME = "answerdotai/ModernBERT-large"
     train_file = f"./data/{args.gen_method}/{args.lang}.tsv"
@@ -241,14 +437,16 @@ if __name__ == "__main__":
     
     # If using Auto-Unfreeze, we MUST start with 'all' or 'bottom_12' frozen
     freeze_mode = args.freeze_mode
-    if args.auto_unfreeze_epoch > 0 and freeze_mode == "none":
-        freeze_mode = "all" # Default to Linear Probe start if unspecified
+    if args.auto_unfreeze_epoch > 0 and args.freeze_mode == "none":
+        raise ValueError("auto_unfreeze_epoch>0 requires freeze_mode != 'none'")
+
         
     model = MultitaskModel.create(
         MODEL_NAME, 
         head_type_list, 
         freeze_mode=freeze_mode,
-        new_vocab_size=new_vocab_size
+        new_vocab_size=new_vocab_size,
+        loss_type=args.loss_type,
     ).to(device)
 
     # Compile for speed
@@ -274,7 +472,6 @@ if __name__ == "__main__":
     print("Lengths:", len(dataset), len(train_ds), len(val_ds))
 
 
-    run_name = os.environ.get("WANDB_RUN_ID") or f"run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     out_dir = f"ModernBERT_{args.gen_method}_{args.lang}_{run_name}"
 
     callbacks = []
@@ -303,11 +500,21 @@ if __name__ == "__main__":
         eval_strategy="epoch",
         save_strategy="epoch",
         save_total_limit=1,
-        # load_best_model_at_end=True,
-        # metric_for_best_model="eval_f1",
-        greater_is_better=True,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_ap_macro",  # or eval_ap_global
+        greater_is_better=True, 
         dataloader_drop_last=True,   # <- add just this line
     )
+    pos_weight = None
+    if args.loss_type == "bce":
+        all_labels = dataset.labels  # [N, T]
+        pos_counts = all_labels.sum(dim=0)
+        neg_counts = all_labels.shape[0] - pos_counts
+        eps = 1e-6
+        pos_weight = (neg_counts / (pos_counts + eps)).to(device)
+        max_w = 20.0
+        pos_weight = torch.clamp(pos_weight, max=max_w)
+
 
 
     trainer = MultitaskTrainer(
@@ -316,10 +523,27 @@ if __name__ == "__main__":
         train_dataset=train_ds,
         eval_dataset=val_ds,
         compute_metrics=compute_metrics,
-        callbacks=callbacks
+        callbacks=callbacks,
+        loss_type=args.loss_type,
+        pos_weight=pos_weight,
     )
 
     trainer.train()
+
+    extra_cfg = {"loss_type": args.loss_type}
+    with open(f"./models/{out_dir}/extra_config.json", "w") as f:
+        json.dump(extra_cfg, f)
+
+    if args.loss_type == "bce":
+        preds_output = trainer.predict(val_ds)
+        val_logits = preds_output.predictions   # [N, T]
+        val_labels = preds_output.label_ids     # [N, T]
+
+        thresholds = find_best_thresholds(val_logits, val_labels, num_steps=21)
+        import numpy as np, os
+        os.makedirs(f"./models/{out_dir}", exist_ok=True)
+        np.save(f"./models/{out_dir}/thresholds.npy", thresholds)
+
 
     if use_wandb:
         repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-{wandb.run.name}"

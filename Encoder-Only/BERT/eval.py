@@ -16,6 +16,7 @@ import sys
 import os
 import numpy as np
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+import json, os
 
 # --- 1. Re-define the EXACT classes from train.py ---
 
@@ -61,7 +62,7 @@ AutoModel.register(MultitaskModelConfig, MultitaskModel)
 
 # --- 2. Helper to reconstruct the model instance ---
 
-def load_multitask_model(model_id, head_list):
+def load_multitask_model(model_id, head_list, loss_type):
     """
     Manually reconstructs the MultitaskModel to ensure architecture matches.
     """
@@ -79,13 +80,13 @@ def load_multitask_model(model_id, head_list):
     # But we should respect the config from the checkpoint.
     base_model_name = "answerdotai/ModernBERT-large" # hardcoded from train.py
     encoder = AutoModel.from_pretrained(base_model_name)
-    
-    # 2. Recreate heads
     hidden_size = encoder.config.hidden_size
     taskmodels_dict = {}
     for task_name in head_list:
-        taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
-        
+        if loss_type == "ce":
+            taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
+        else:  # bce
+            taskmodels_dict[task_name] = nn.Linear(hidden_size, 1)
     # 3. Instantiate our wrapper
     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
     
@@ -107,8 +108,11 @@ def load_multitask_model(model_id, head_list):
     # Load weights
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     print(f"Loaded weights. Missing: {len(missing)}, Unexpected: {len(unexpected)}")
-    if len(missing) > 0:
-        print("Missing keys (check if serious):", missing[:5])
+    if missing:
+        print("Example missing keys:", missing[:5])
+    if unexpected:
+        print("Example unexpected keys:", unexpected[:5])
+
     
     return model
 
@@ -194,15 +198,47 @@ def build_dataset(tokenizer, test_f, max_length=128):
 # --- 5. Main ---
 
 if __name__ == "__main__":
-    # Usage: python eval.py <gen_method> <lang> <test_file> <model_id>
+    # Usage: python eval.py <gen_method> <lang> <test_file> <model_id> [eval_labels_file]
     if len(sys.argv) < 5:
-        print("Usage: python eval.py <gen_method> <lang> <test_file> <model_id>")
+        print("Usage: python eval.py <gen_method> <lang> <test_file> <model_id> [eval_labels_file]")
         sys.exit(1)
 
     gen_method = sys.argv[1]
-    lang = sys.argv[2] # "AAE"
+    lang = sys.argv[2]
     test_file = sys.argv[3]
     MODEL_ID = sys.argv[4]
+    eval_labels_file = sys.argv[5] if len(sys.argv) > 5 else None
+    # Optional gold labels (CGEdit TSV) for ranking metrics
+    gold_labels = None
+    if eval_labels_file is not None:
+        texts_g = []
+        labels_g = []
+        with open(eval_labels_file, "r", encoding="utf-8") as f:
+            for i, line in enumerate(f):
+                parts = line.rstrip("\n").split("\t")
+                if i == 0 and len(parts) > 1 and not parts[1].isdigit():
+                    continue
+                texts_g.append(parts[0])
+                labels_g.append([int(x) for x in parts[1:]])
+        gold_labels = np.array(labels_g, dtype=np.int64)  # [N,T]
+
+    # After parsing MODEL_ID
+    model_dir = MODEL_ID  # works both for local path and HF repo if you mirror layout
+
+    # Try to load extra_config.json written by train.py
+    loss_type = "ce"
+    try:
+        with open(os.path.join(model_dir, "extra_config.json")) as f:
+            extra_cfg = json.load(f)
+            loss_type = extra_cfg.get("loss_type", "ce")
+    except FileNotFoundError:
+        pass
+
+    thresholds = None
+    if loss_type == "bce":
+        thr_path = os.path.join(model_dir, "thresholds.npy")
+        if os.path.exists(thr_path):
+            thresholds = np.load(thr_path)  # [T]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -215,7 +251,7 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 
     # 3. Load Model (Reconstructing Architecture)
-    model = load_multitask_model(MODEL_ID, head_list)
+    model = load_multitask_model(MODEL_ID, head_list, loss_type)
     model.to(device)
     model.eval()
 
@@ -228,10 +264,11 @@ if __name__ == "__main__":
     out_name = f"{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_preds.tsv"
     out_path = f"./data/results/{out_name}"
     aug_out_path = f"./data/results/{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_probs_and_preds.tsv"
+    labels_out_path = f"./data/results/{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_labels.tsv"
 
     print(f"Starting inference, writing to {out_path}...")
     
-    with open(out_path, "w", encoding='utf-8') as f_probs, open(aug_out_path, "w", encoding="utf-8") as f_aug:
+    with open(out_path, "w", encoding='utf-8') as f_probs, open(aug_out_path, "w", encoding="utf-8") as f_aug, open(labels_out_path, "w", encoding="utf-8") as f_labels:
 
         all_texts = []
         all_probs = []
@@ -241,48 +278,98 @@ if __name__ == "__main__":
         f_probs.write(header_probs)
 
         # Header for augmented file: for each feature, prob0, prob1, pred
-        aug_cols = []
-        for feat in head_list:
-            aug_cols.extend([f"{feat}_p0", f"{feat}_p1", f"{feat}_pred"])
+        if loss_type == "ce":
+            aug_cols = []
+            for feat in head_list:
+                aug_cols.extend([f"{feat}_p0", f"{feat}_p1", f"{feat}_pred"])
+        else:
+            aug_cols = []
+            for feat in head_list:
+                aug_cols.extend([f"{feat}_p1", f"{feat}_pred"])
         header_aug = "sentence\t" + "\t".join(aug_cols) + "\n"
         f_aug.write(header_aug)
 
-            
+        header_labels = "sentence\t" + "\t".join(head_list) + "\n"
+        f_labels.write(header_labels)
+
         for batch in dataloader:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             texts = batch["text"]
-            
+
             with torch.no_grad():
-                # logits: [B, Num_Tasks, 2]
                 logits = model(input_ids=input_ids, attention_mask=attention_mask)
 
-                # Convert logits -> probabilities for BOTH classes
-                probs = torch.softmax(logits, dim=-1)           # [B, T, 2]
-                probs_np = probs.cpu().numpy()                  # numpy for easy printing
+                if loss_type == "ce":
+                    probs = torch.softmax(logits, dim=-1)       # [B,T,2]
+                    probs_np = probs.cpu().numpy()
+                    prob1 = probs_np[..., 1]                    # [B,T]
+                    preds_np = probs_np.argmax(axis=-1)         # [B,T]
+                else:
+                    if logits.ndim == 3 and logits.shape[-1] == 1:
+                        logits = logits.squeeze(-1)
+                    z = logits.cpu().numpy()                    # [B,T]
+                    prob1 = 1.0 / (1.0 + np.exp(-z))            # [B,T]
+                    if thresholds is not None:
+                        preds_np = (z > thresholds).astype(int) # [B,T]
+                    else:
+                        preds_np = (z > 0).astype(int)          # [B,T]
 
-                # Hard predictions: pick class with higher probability
-                preds_np = probs_np.argmax(axis=-1)             # [B, T], each entry 0 or 1
-
-            # Now write lines for this batch
             for i, text in enumerate(texts):
                 clean_text = text.replace("\t", " ").replace("\n", " ")
-                all_texts.append(clean_text)
-                all_probs.append(probs_np[i])
 
-                # File 1: same as before (prob of class 1 only)
-                prob1_strs = "\t".join(f"{p1:.4f}" for p1 in probs_np[i, :, 1])
+                # labels file
+                label_strs = "\t".join(str(int(preds_np[i, t])) for t in range(len(head_list)))
+                f_labels.write(f"{clean_text}\t{label_strs}\n")
+
+                # probs1 file
+                prob1_strs = "\t".join(f"{p1:.4f}" for p1 in prob1[i])
                 f_probs.write(f"{clean_text}\t{prob1_strs}\n")
 
-                # File 2: prob0, prob1, and predicted label for each feature
-                feat_cells = []
-                for t in range(len(head_list)):
-                    p0 = probs_np[i, t, 0]
-                    p1 = probs_np[i, t, 1]
-                    pred = preds_np[i, t]
-                    feat_cells.extend([f"{p0:.4f}", f"{p1:.4f}", str(pred)])
-                f_aug.write(f"{clean_text}\t" + "\t".join(feat_cells) + "\n")
+                # augmented file
+                if loss_type == "ce":
+                    feat_cells = []
+                    for t in range(len(head_list)):
+                        p0 = probs_np[i, t, 0]
+                        p1 = probs_np[i, t, 1]
+                        pred = preds_np[i, t]
+                        feat_cells.extend([f"{p0:.4f}", f"{p1:.4f}", str(pred)])
+                    f_aug.write(f"{clean_text}\t" + "\t".join(feat_cells) + "\n")
+                else:
+                    feat_cells = []
+                    for t in range(len(head_list)):
+                        p1 = prob1[i, t]
+                        pred = preds_np[i, t]
+                        feat_cells.extend([f"{p1:.4f}", str(pred)])
+                    f_aug.write(f"{clean_text}\t" + "\t".join(feat_cells) + "\n")
 
+                all_texts.append(clean_text)
+                all_probs.append(prob1[i])
 
-        # all_probs = np.stack(all_probs)
+    all_probs = np.stack(all_probs)  # [N,T]
+
+    if gold_labels is not None:
+        assert all_probs.shape == gold_labels.shape
+        from sklearn.metrics import average_precision_score
+
+        N, T = all_probs.shape
+        aps = []
+        prec100s = []
+        for t in range(T):
+            y_true = gold_labels[:, t]
+            y_score = all_probs[:, t]
+            if y_true.sum() == 0:
+                continue
+            ap_t = average_precision_score(y_true, y_score)
+            aps.append(ap_t)
+
+            order = np.argsort(y_score)[::-1]
+            K = min(100, N)
+            topk = order[:K]
+            prec_t = y_true[topk].mean()
+            prec100s.append(prec_t)
+
+        print("Macro AP:", float(np.mean(aps)) if aps else 0.0)
+        print("Macro Prec@100:", float(np.mean(prec100s)) if prec100s else 0.0)
+
     print("Done.")
