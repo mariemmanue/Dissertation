@@ -80,6 +80,7 @@ def load_multitask_model(model_id, head_list, loss_type):
 
     # 1) Load config from checkpoint
     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+    config.attn_implementation = "eager"
 
     # 2) Build a fresh encoder with the *same config*
     encoder = AutoModel.from_config(config)  # not from_pretrained base; just skeleton
