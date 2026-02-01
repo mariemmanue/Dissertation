@@ -53,11 +53,11 @@ def load_multitask_model(model_id, head_list, loss_type):
     from transformers.utils import cached_file
     from safetensors.torch import load_file
 
-    # 1) Load full encoder (with resized embeddings) from MODEL_ID
+    # 1) Load full encoder (with correct resized embeddings) from MODEL_ID
     encoder = AutoModel.from_pretrained(model_id, trust_remote_code=True)
     hidden_size = encoder.config.hidden_size
 
-    # 2) Build heads consistent with loss_type
+    # 2) Build heads from scratch, but only load their weights from the checkpoint
     taskmodels_dict = {}
     for name in head_list:
         if loss_type == "ce":
@@ -67,16 +67,17 @@ def load_multitask_model(model_id, head_list, loss_type):
 
     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict)
 
-    # 3) Load checkpoint state dict, strip _orig_mod.
+    # 3) Load checkpoint state dict, but **keep encoder as already loaded**
     model_file = cached_file(model_id, "model.safetensors")
     sd = load_file(model_file)
+
     new_sd = {}
     for k, v in sd.items():
-        if k.startswith("_orig_mod."):
+        if k.startswith("_orig_mod.taskmodels_dict."):
+            # heads: strip prefix so they map
             new_k = k[len("_orig_mod."):]
-        else:
-            new_k = k
-        new_sd[new_k] = v
+            new_sd[new_k] = v
+        # skip encoder.* keys entirely so we don’t overwrite the correctly loaded encoder
 
     missing, unexpected = model.load_state_dict(new_sd, strict=False)
     print("Missing:", len(missing), "Unexpected:", len(unexpected))
@@ -86,7 +87,6 @@ def load_multitask_model(model_id, head_list, loss_type):
         print("Example unexpected:", unexpected[:10])
 
     return model
-
 
 
 # --- 3. Feature Definition (Must match train.py exactly) ---
@@ -226,6 +226,7 @@ if __name__ == "__main__":
     # 3. Load Model (Reconstructing Architecture)
 
     print(f"Loading model directly from {MODEL_ID}...")
+    print("Eval loss_type:", loss_type)
     model = load_multitask_model(MODEL_ID, head_list, loss_type)
     model.to(device)
     model.eval()
