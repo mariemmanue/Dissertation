@@ -54,31 +54,30 @@ def load_multitask_model(model_id, head_list, loss_type):
     from transformers.utils import cached_file
     from safetensors.torch import load_file
 
-    # 1) Load full encoder (with correct resized embeddings) from MODEL_ID
-    encoder = AutoModel.from_pretrained(model_id, trust_remote_code=True)
+    # 1) Build a *bare* ModernBERT encoder *from config only*
+    config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+    encoder = AutoModel.from_config(config)          # no pretrained weights here
     hidden_size = encoder.config.hidden_size
 
-    # 2) Build heads from scratch, but only load their weights from the checkpoint
+    # 2) Build heads from scratch with correct output dim
     taskmodels_dict = {}
     for name in head_list:
-        if loss_type == "ce":
-            taskmodels_dict[name] = nn.Linear(hidden_size, 2)
-        else:
-            taskmodels_dict[name] = nn.Linear(hidden_size, 1)
+        out_dim = 2 if loss_type == "ce" else 1
+        taskmodels_dict[name] = nn.Linear(hidden_size, out_dim)
 
     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict)
 
-    # 3) Load checkpoint state dict, but **keep encoder as already loaded**
+    # 3) Load *full* checkpoint, including encoder and heads
     model_file = cached_file(model_id, "model.safetensors")
     sd = load_file(model_file)
 
     new_sd = {}
     for k, v in sd.items():
-        if k.startswith("_orig_mod.taskmodels_dict."):
-            # heads: strip prefix so they map
-            new_k = k[len("_orig_mod."):]
-            new_sd[new_k] = v
-        # skip encoder.* keys entirely so we don’t overwrite the correctly loaded encoder
+        if k.startswith("_orig_mod."):
+            new_k = k[len("_orig_mod."):]  # strip prefix so keys are "encoder.*" or "taskmodels_dict.*"
+        else:
+            new_k = k
+        new_sd[new_k] = v
 
     missing, unexpected = model.load_state_dict(new_sd, strict=False)
     print("Missing:", len(missing), "Unexpected:", len(unexpected))
@@ -88,6 +87,7 @@ def load_multitask_model(model_id, head_list, loss_type):
         print("Example unexpected:", unexpected[:10])
 
     return model
+
 
 
 # --- 3. Feature Definition (Must match train.py exactly) ---
