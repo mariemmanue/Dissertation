@@ -39,9 +39,12 @@ class MultitaskModel(transformers.PreTrainedModel):
     config_class = MultitaskModelConfig
 
     def __init__(self, encoder, taskmodels_dict, config):
+        # force eager attention *before* calling super
+        config.attn_implementation = "eager"
         super().__init__(config)
         self.encoder = encoder
         self.taskmodels_dict = nn.ModuleDict(taskmodels_dict)
+
 
 
     @classmethod
