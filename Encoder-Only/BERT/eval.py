@@ -19,7 +19,6 @@ nlprun -q jag -p standard -r 8G -c 2 \
    python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_jsq8h8xo"
 """
 
-
 import transformers
 import torch
 import torch.nn as nn
@@ -288,9 +287,12 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 
     # 3. Load Model (Reconstructing Architecture)
-    model = load_multitask_model(MODEL_ID, head_list, loss_type)
+
+    print(f"Loading model directly from {MODEL_ID}...")
+    model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
     model.to(device)
     model.eval()
+
 
     # 4. Prepare Data
     dataset = build_dataset(tokenizer, test_file)
