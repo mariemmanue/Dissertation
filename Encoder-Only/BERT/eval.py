@@ -73,11 +73,13 @@ def load_multitask_model(model_id, head_list, loss_type):
 
     new_sd = {}
     for k, v in sd.items():
-        if k.startswith("_orig_mod."):
-            new_k = k[len("_orig_mod."):]  # strip prefix so keys are "encoder.*" or "taskmodels_dict.*"
-        else:
-            new_k = k
-        new_sd[new_k] = v
+        if not k.startswith("_orig_mod."):
+            continue
+        k2 = k[len("_orig_mod."):]
+        if k2 == "encoder.embeddings.tok_embeddings.weight":
+            continue  # skip the mismatched embedding
+        new_sd[k2] = v
+
 
     missing, unexpected = model.load_state_dict(new_sd, strict=False)
     print("Missing:", len(missing), "Unexpected:", len(unexpected))
