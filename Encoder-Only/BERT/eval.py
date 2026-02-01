@@ -6,8 +6,20 @@ nlprun -q jag -p standard -r 8G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/answerdotai_ModernBERT-large_CGEdit_AAE_no-wandb-20260130-133308"
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_39hmoef9"
+
+
+
+nlprun -q jag -p standard -r 8G -c 2 \
+  -n multilabel_modernbert_eval \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_jsq8h8xo"
 """
+
+
 import transformers
 import torch
 import torch.nn as nn
@@ -23,98 +35,123 @@ import json, os
 class MultitaskModelConfig(transformers.PretrainedConfig):
     model_type = "multitask_model"
 
+
 class MultitaskModel(transformers.PreTrainedModel):
     config_class = MultitaskModelConfig
+    base_model_prefix = "encoder"  # important for HF internals
 
-    def __init__(self, encoder, taskmodels_dict, config):
+    def __init__(self, config):
         super().__init__(config)
-        self.encoder = encoder
-        # The key is that taskmodels_dict keys must match what was saved.
-        # When loading from config, we usually need to reconstruct the heads.
-        # But 'from_pretrained' handles state_dict loading if structure matches.
+        # When loading from_pretrained, HF will pass config only.
+        # So we must build encoder and heads from config.
+        # Assume config has attributes we saved at train time:
+        #   config.base_model_name_or_path
+        #   config.head_names
+        #   config.loss_type
+        base_name = getattr(config, "base_model_name_or_path", "answerdotai/ModernBERT-large")
+        loss_type = getattr(config, "loss_type", "ce")
+        head_names = getattr(config, "head_names", [])
+
+        self.encoder = AutoModel.from_pretrained(base_name)
+        hidden_size = self.encoder.config.hidden_size
+
+        taskmodels_dict = {}
+        for name in head_names:
+            if loss_type == "ce":
+                taskmodels_dict[name] = nn.Linear(hidden_size, 2)
+            else:
+                taskmodels_dict[name] = nn.Linear(hidden_size, 1)
         self.taskmodels_dict = nn.ModuleDict(taskmodels_dict)
 
     @classmethod
-    def create(cls, model_name, head_type_list):
-        # We don't need this for inference, but keeping it for reference
-        pass
+    def create(cls, base_name, head_type_list, loss_type="ce"):
+        # this is what you used at train time
+        config = MultitaskModelConfig()
+        config.base_model_name_or_path = base_name
+        config.head_names = head_type_list
+        config.loss_type = loss_type
+
+        model = cls(config)
+        return model
 
     def forward(self, input_ids=None, attention_mask=None, **kwargs):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        # ModernBERT uses last_hidden_state
         cls_repr = out.last_hidden_state[:, 0, :]  # (B, H)
-        
+
         logits_per_task = []
-        # Crucial: We must iterate in the SAME ORDER as trained/saved.
-        # The ModuleDict is ordered by insertion in Python 3.7+, but we need to match keys.
-        # We will iterate over self.taskmodels_dict.keys() which should be preserved.
         for task_name in self.taskmodels_dict.keys():
             head = self.taskmodels_dict[task_name]
-            logits_per_task.append(head(cls_repr))  # (B, 2)
-            
-        # stack into (B, num_tasks, 2)
-        logits = torch.stack(logits_per_task, dim=1)
+            logits_per_task.append(head(cls_repr))  # (B, C)
+
+        logits = torch.stack(logits_per_task, dim=1)  # (B, T, C) or (B, T, 1)
         return logits
+
 
 # Register classes so AutoModel knows them (just in case)
 AutoConfig.register("multitask_model", MultitaskModelConfig)
 AutoModel.register(MultitaskModelConfig, MultitaskModel)
 
 # --- 2. Helper to reconstruct the model instance ---
-
 def load_multitask_model(model_id, head_list, loss_type):
-    """
-    Manually reconstructs the MultitaskModel to ensure architecture matches.
-    """
-    print(f"Loading base encoder from config in {model_id}...")
-    # Load config first
-    config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    
-    # We need the base encoder (ModernBERT)
-    # The saved config likely has the base model type.
-    # We can try loading the encoder from the original base if needed, 
-    # but ideally we load weights from the checkpoint.
-    
-    # 1. Initialize fresh encoder (skeleton)
-    # We assume the base model is "answerdotai/ModernBERT-large" based on train.py
-    # But we should respect the config from the checkpoint.
-    base_model_name = "answerdotai/ModernBERT-large" # hardcoded from train.py
-    encoder = AutoModel.from_pretrained(base_model_name)
-    hidden_size = encoder.config.hidden_size
-    taskmodels_dict = {}
-    for task_name in head_list:
-        if loss_type == "ce":
-            taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
-        else:  # bce
-            taskmodels_dict[task_name] = nn.Linear(hidden_size, 1)
-    # 3. Instantiate our wrapper
-    model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
-    
-    # 4. Load State Dict
-    print(f"Loading state dict from {model_id}...")
-    # This downloads model.safetensors or pytorch_model.bin
-    from transformers.utils import cached_file
-    try:
-        model_file = cached_file(model_id, "model.safetensors")
-        state_dict = torch.load(model_file) if model_file.endswith('.pt') else {} # safetensors handled below
-        if model_file.endswith('.safetensors'):
-            from safetensors.torch import load_file
-            state_dict = load_file(model_file)
-    except:
-        # Fallback to pytorch_model.bin
-        model_file = cached_file(model_id, "pytorch_model.bin")
-        state_dict = torch.load(model_file, map_location="cpu")
-
-    # Load weights
-    missing, unexpected = model.load_state_dict(state_dict, strict=False)
-    print(f"Loaded weights. Missing: {len(missing)}, Unexpected: {len(unexpected)}")
-    if missing:
-        print("Example missing keys:", missing[:5])
-    if unexpected:
-        print("Example unexpected keys:", unexpected[:5])
-
-    
+    print(f"Loading multitask model from {model_id}...")
+    # Because MultitaskModelConfig.model_type is "multitask_model"
+    # and you registered the classes, this will pick up the right class.
+    model = MultitaskModel.from_pretrained(model_id)
     return model
+
+# def load_multitask_model(model_id, head_list, loss_type):
+#     """
+#     Manually reconstructs the MultitaskModel to ensure architecture matches.
+#     """
+#     print(f"Loading base encoder from config in {model_id}...")
+#     # Load config first
+#     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+    
+#     # We need the base encoder (ModernBERT)
+#     # The saved config likely has the base model type.
+#     # We can try loading the encoder from the original base if needed, 
+#     # but ideally we load weights from the checkpoint.
+    
+#     # 1. Initialize fresh encoder (skeleton)
+#     # We assume the base model is "answerdotai/ModernBERT-large" based on train.py
+#     # But we should respect the config from the checkpoint.
+#     base_model_name = "answerdotai/ModernBERT-large" # hardcoded from train.py
+#     encoder = AutoModel.from_pretrained(base_model_name)
+#     hidden_size = encoder.config.hidden_size
+#     taskmodels_dict = {}
+#     for task_name in head_list:
+#         if loss_type == "ce":
+#             taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
+#         else:  # bce
+#             taskmodels_dict[task_name] = nn.Linear(hidden_size, 1)
+#     # 3. Instantiate our wrapper
+#     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
+    
+#     # 4. Load State Dict
+#     print(f"Loading state dict from {model_id}...")
+#     # This downloads model.safetensors or pytorch_model.bin
+#     from transformers.utils import cached_file
+#     try:
+#         model_file = cached_file(model_id, "model.safetensors")
+#         state_dict = torch.load(model_file) if model_file.endswith('.pt') else {} # safetensors handled below
+#         if model_file.endswith('.safetensors'):
+#             from safetensors.torch import load_file
+#             state_dict = load_file(model_file)
+#     except:
+#         # Fallback to pytorch_model.bin
+#         model_file = cached_file(model_id, "pytorch_model.bin")
+#         state_dict = torch.load(model_file, map_location="cpu")
+
+#     # Load weights
+#     missing, unexpected = model.load_state_dict(state_dict, strict=False)
+#     print(f"Loaded weights. Missing: {len(missing)}, Unexpected: {len(unexpected)}")
+#     if missing:
+#         print("Example missing keys:", missing[:5])
+#     if unexpected:
+#         print("Example unexpected keys:", unexpected[:5])
+
+    
+#     return model
 
 # --- 3. Feature Definition (Must match train.py exactly) ---
 

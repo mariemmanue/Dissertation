@@ -119,8 +119,9 @@ def parse_factors(sheet_name: str) -> dict:
     """
     Parse condition factors out of sheet names like:
       GPT_17_ZS_CTX_A
-      GPT_25_FSCOT_noCTX_B
+      GEMINI_25_FSCOT_noCTX_B
     Returns dict with keys:
+      model in {"GPT", "GEMINI"} or None
       feature_set in {"17","25"} or None
       instr in {"ZS","FSCOT"} or None
       ctx in {"CTX","noCTX"} or None
@@ -142,7 +143,6 @@ def parse_factors(sheet_name: str) -> dict:
         instr = "ZS"
 
     ctx = None
-    # prefer explicit NOCTX
     if "NOCTX" in toks or "_NOCTX" in m:
         ctx = "noCTX"
     elif "CTX" in toks or "_CTX" in m:
@@ -152,8 +152,8 @@ def parse_factors(sheet_name: str) -> dict:
     if toks and toks[-1] in ("A", "B"):
         trial = toks[-1]
 
+    # Add 'model' to the returned dictionary
     return {"feature_set": feature_set, "instr": instr, "ctx": ctx, "trial": trial}
-
 
 def safe_strip_sentence_col(df: pd.DataFrame) -> pd.DataFrame:
     if "sentence" in df.columns:
@@ -885,7 +885,7 @@ def evaluate_sheets(file_path: str):
 
 
         name_up = str(sheet_name).upper()
-        if not (name_up.startswith("GPT_") or name_up.startswith("BERT") or name_up.startswith("ROBERTA") or name_up.startswith("MODERNBERT")):
+        if not (name_up.startswith("GPT_") or name_up.startswith("BERT") or name_up.startswith("ROBERTA") or name_up.startswith("MODERNBERT") or name_up.startswith("GEM") or name_up.startswith("GEMINI")):
             continue
 
         df = drop_features_column(df_raw)
