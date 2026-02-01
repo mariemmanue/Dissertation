@@ -320,7 +320,25 @@ if __name__ == "__main__":
     )
 
     trainer.train()
-    
-    # Save final
+
+    if use_wandb:
+        repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-{wandb.run.name}"
+    else:
+        repo_name = f"modernbert-aae-{args.gen_method}-{args.lang}-local"
+        
     trainer.save_model(f"./models/{out_dir}")
     tokenizer.save_pretrained(f"./models/{out_dir}")
+    
+    try:
+        trainer.push_to_hub(repo_name)
+    except Exception as e:
+        print(f"Skipping hub push: {e}")
+
+    metrics = trainer.evaluate()
+    print(">>> eval metrics dict:", metrics)
+
+    import shutil
+    shutil.rmtree(f"./models/{out_dir}", ignore_errors=True)
+    if use_wandb: 
+        wandb.finish()
+    
