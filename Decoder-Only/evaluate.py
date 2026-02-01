@@ -912,7 +912,7 @@ def evaluate_sheets(file_path: str):
     
     # --- INSERT START: STRICT INTERSECTION FILTERING ---
     # 1. Start with Gold sentences
-    common_ids = set(golddf['sentence'].dropna())
+    common_ids = set(gold_df['sentence'].dropna())
     initial_gold_count = len(common_ids)
     print(f"DEBUG: Starting with {initial_gold_count} Gold sentences.")
 
@@ -934,7 +934,7 @@ def evaluate_sheets(file_path: str):
         print(f"STRICT MODE: Pruned evaluation set from {initial_gold_count} to {len(common_ids)} shared sentences.")
 
     # 4. Apply Filter to Gold
-    golddf = golddf[golddf['sentence'].isin(common_ids)].copy()
+    gold_df = gold_df[gold_df['sentence'].isin(common_ids)].copy()
 
     # 5. Apply Filter to All Models
     for name in model_sheets:
