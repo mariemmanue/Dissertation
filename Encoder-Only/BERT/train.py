@@ -390,6 +390,8 @@ if __name__ == "__main__":
     parser.add_argument("--fix_vocab", action="store_true", help="Add dialect tokens to vocab")
     parser.add_argument("--max_length", type=int, default=128)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None, help="Path to a Trainer checkpoint to resume from",)
+
     parser.add_argument(
         "--loss_type",
         type=str,
@@ -528,7 +530,8 @@ if __name__ == "__main__":
         pos_weight=pos_weight,
     )
 
-    trainer.train()
+    # trainer.train()
+    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
     extra_cfg = {"loss_type": args.loss_type}
     with open(f"./models/{out_dir}/extra_config.json", "w") as f:

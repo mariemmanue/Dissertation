@@ -885,7 +885,7 @@ def evaluate_sheets(file_path: str):
 
 
         name_up = str(sheet_name).upper()
-        if not (name_up.startswith("GPT_") or name_up.startswith("BERT") or name_up.startswith("ROBERTA") or name_up.startswith("MODERNBERT") or name_up.startswith("GEM") or name_up.startswith("GEMINI")):
+        if not (name_up.startswith("GPT") or name_up.startswith("BERT") or name_up.startswith("PHI") or name_up.startswith("MODERNBERT") or name_up.startswith("GEM") or name_up.startswith("GEMINI")):
             continue
 
         df = drop_features_column(df_raw)
@@ -901,8 +901,46 @@ def evaluate_sheets(file_path: str):
         model_sheets[sheet_name] = df
 
     if not model_sheets:
-        print(f"[WARN] No model sheets (GPT_*/BERT/ROBERTA/MODERNBERT) found in {file_path}.")
+        print(f"[WARN] No model sheets (GPT_*/BERT/PHI/MODERNBERT) found in {file_path}.")
         return
+
+    # [EXISTING CODE] ... 
+    # modelsheets[sheetname] = df 
+    # if not modelsheets:
+    #     print(f"WARN: No model sheets found...")
+    #     return
+    
+    # --- INSERT START: STRICT INTERSECTION FILTERING ---
+    # 1. Start with Gold sentences
+    common_ids = set(golddf['sentence'].dropna())
+    initial_gold_count = len(common_ids)
+    print(f"DEBUG: Starting with {initial_gold_count} Gold sentences.")
+
+    # 2. Intersect with EVERY model sheet found
+    for name, df in model_sheets.items():
+        model_sents = set(df['sentence'].dropna())
+        before_count = len(common_ids)
+        common_ids = common_ids.intersection(model_sents)
+        dropped = before_count - len(common_ids)
+        if dropped > 0:
+            print(f"DEBUG: Dropping {dropped} sentences missing from model '{name}' (Retaining {len(common_ids)})")
+
+    # 3. Safety Check
+    if not common_ids:
+        print("CRITICAL ERROR: Intersection of sentence IDs is EMPTY. No sentences are shared by all models.")
+        return # Or handle gracefully depending on preference
+    
+    if len(common_ids) < initial_gold_count:
+        print(f"STRICT MODE: Pruned evaluation set from {initial_gold_count} to {len(common_ids)} shared sentences.")
+
+    # 4. Apply Filter to Gold
+    golddf = golddf[golddf['sentence'].isin(common_ids)].copy()
+
+    # 5. Apply Filter to All Models
+    for name in model_sheets:
+        model_sheets[name] = model_sheets[name][model_sheets[name]['sentence'].isin(common_ids)].copy()
+    # --- INSERT END ---
+
 
     eval_results: list[pd.DataFrame] = []
     per_model_errors: dict[str, pd.DataFrame] = []

@@ -17,6 +17,16 @@ import google.generativeai as genai
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
+"""
+nlprun -q jag -p standard -r 48G -c 4 -t 4:00:00 \
+  -n phi4-gen \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/Phi4 && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python multi_prompt_configs.py --model microsoft/phi-4 --backend phi"
+
+"""
 
 # Initialize global variables
 total_input_tokens = 0
@@ -72,27 +82,58 @@ class GeminiBackend(LLMBackend):
 class PhiBackend(LLMBackend):
     def __init__(self, model: str):
         super().__init__(name="phi", model=model)
-
-        # HF tokenizer for token counting
-        self.tokenizer = AutoTokenizer.from_pretrained(model)
-        # Local generation pipeline
+        
+        print(f"Loading Phi-4 from {model}...")
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model, 
+            trust_remote_code=True
+        )
+        
+        # Phi-4 is ~14B params. 
+        # If running on A100 (40GB/80GB): torch_dtype="auto" is fine.
+        # If running on 24GB cards (3090/4090): add load_in_4bit=True
         self.pipe = hf_pipeline(
             "text-generation",
             model=model,
-            model_kwargs={"torch_dtype": "auto"},
+            model_kwargs={
+                "torch_dtype": "auto",
+                "trust_remote_code": True,
+                "attn_implementation": "flash_attention_2",  # FASTER inference
+            },
             device_map="auto",
         )
 
     def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
-        # Ignore enc_obj; use HF tokenizer
-        text = "\n".join(m["content"] for m in messages)
-        return len(self.tokenizer.encode(text))
+        # Phi-4 uses a chat template, counting raw text is inaccurate
+        try:
+            formatted_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted_prompt))
+        except:
+            # Fallback if template fails
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
 
     def call(self, messages: List[Dict[str, str]]) -> str:
-        text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
-        out = self.pipe(text, max_new_tokens=512)
-        # HF pipeline returns list of dicts with "generated_text"
-        return out[0]["generated_text"]
+        # 1. Apply Chat Template (CRITICAL for Phi-4)
+        # Phi-4 expects <|user|> ... <|assistant|> formatting
+        prompt = self.tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+
+        # 2. Generate
+        outputs = self.pipe(
+            prompt,
+            max_new_tokens=512,
+            do_sample=True,
+            temperature=0.1,  # Lower temp = more stable for annotation
+            top_p=0.9,
+            return_full_text=False # Only return the new tokens
+        )
+
+        return outputs[0]["generated_text"].strip()
+
 
 # -------------------- FEATURE LISTS --------------------
 
