@@ -28,6 +28,29 @@ import os
 import numpy as np
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 import json, os
+from huggingface_hub import hf_hub_download
+
+# MODEL_ID is like "SociauxLing/ModernBERT_CGEdit_AAE_39hmoef9"
+repo_id = MODEL_ID
+
+# --- loss_type from extra_config.json on HF ---
+loss_type = "ce"
+try:
+    extra_path = hf_hub_download(repo_id=repo_id, filename="extra_config.json")
+    with open(extra_path, "r") as f:
+        extra_cfg = json.load(f)
+        loss_type = extra_cfg.get("loss_type", "ce")
+except Exception:
+    pass  # fall back to "ce" if file missing
+
+# --- thresholds for BCE from HF (optional) ---
+thresholds = None
+if loss_type == "bce":
+    try:
+        thr_path = hf_hub_download(repo_id=repo_id, filename="thresholds.npy")
+        thresholds = np.load(thr_path)
+    except Exception:
+        thresholds = None
 
 
 
