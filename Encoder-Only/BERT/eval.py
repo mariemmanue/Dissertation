@@ -29,51 +29,23 @@ import numpy as np
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 import json, os
 
-# --- 1. Re-define the EXACT classes from train.py ---
-
-class MultitaskModelConfig(transformers.PretrainedConfig):
-    model_type = "multitask_model"
 
 
-class MultitaskModel(transformers.PreTrainedModel):
-    config_class = MultitaskModelConfig
-
-    def __init__(self, encoder, taskmodels_dict, config):
-        # force eager attention *before* calling super
-        config.attn_implementation = "eager"
-        super().__init__(config)
+class MultitaskModel(nn.Module):
+    def __init__(self, encoder, taskmodels_dict):
+        super().__init__()
         self.encoder = encoder
         self.taskmodels_dict = nn.ModuleDict(taskmodels_dict)
 
-
-
-    @classmethod
-    def create(cls, base_name, head_type_list, loss_type="ce"):
-        # this is what you used at train time
-        config = MultitaskModelConfig()
-        config.base_model_name_or_path = base_name
-        config.head_names = head_type_list
-        config.loss_type = loss_type
-
-        model = cls(config)
-        return model
-
     def forward(self, input_ids=None, attention_mask=None, **kwargs):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        cls_repr = out.last_hidden_state[:, 0, :]  # (B, H)
-
+        cls_repr = out.last_hidden_state[:, 0, :]
         logits_per_task = []
-        for task_name in self.taskmodels_dict.keys():
-            head = self.taskmodels_dict[task_name]
-            logits_per_task.append(head(cls_repr))  # (B, C)
-
-        logits = torch.stack(logits_per_task, dim=1)  # (B, T, C) or (B, T, 1)
+        for head in self.taskmodels_dict.values():
+            logits_per_task.append(head(cls_repr))
+        logits = torch.stack(logits_per_task, dim=1)  # [B,T,C] or [B,T,1]
         return logits
 
-
-# Register classes so AutoModel knows them (just in case)
-AutoConfig.register("multitask_model", MultitaskModel.config_class)
-AutoModel.register(MultitaskModel.config_class, MultitaskModel)
 
 
 # --- 2. Helper to reconstruct the model instance ---
@@ -81,29 +53,25 @@ def load_multitask_model(model_id, head_list, loss_type):
     from transformers.utils import cached_file
     from safetensors.torch import load_file
 
-    # 1) Load config from checkpoint
+    # 1) Load config and build encoder skeleton
     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    config.attn_implementation = "eager"
-
-    # 2) Build a fresh encoder with the *same config*
-    encoder = AutoModel.from_config(config)  # not from_pretrained base; just skeleton
+    encoder = AutoModel.from_config(config)
     hidden_size = encoder.config.hidden_size
 
-    # 3) Build fresh heads
+    # 2) Build heads
     taskmodels_dict = {}
-    for task_name in head_list:
+    for name in head_list:
         if loss_type == "ce":
-            taskmodels_dict[task_name] = nn.Linear(hidden_size, 2)
+            taskmodels_dict[name] = nn.Linear(hidden_size, 2)
         else:
-            taskmodels_dict[task_name] = nn.Linear(hidden_size, 1)
+            taskmodels_dict[name] = nn.Linear(hidden_size, 1)
 
-    model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict, config=config)
+    model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict)
 
-    # 4) Load state dict from model.safetensors
+    # 3) Load state dict, stripping _orig_mod.
     model_file = cached_file(model_id, "model.safetensors")
     sd = load_file(model_file)
 
-    # 5) Rename keys: strip the `_orig_mod.` prefix
     new_sd = {}
     for k, v in sd.items():
         if k.startswith("_orig_mod."):
