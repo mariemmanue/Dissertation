@@ -18,14 +18,24 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 
 """
-nlprun -q jag -p standard -r 48G -c 4 -t 4:00:00 \
+nlprun -q jag -p standard -r 48G -c 4 \
   -n phi4-gen \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/Phi4 && \
+  -o Phi4/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python multi_prompt_configs.py --model microsoft/phi-4 --backend phi"
-
+   python multi_prompt_configs.py \
+    --file ../GPT/data/FullTest_Final.xlsx \
+   --model microsoft/phi-4  \
+   --backend phi \
+    --sheet PHI4_25_ZS_CTX_two_legit_rats \
+    --instruction_type zero_shot \
+    --extended \
+    --dialect_legitimacy \
+    --context \
+    --context_mode two_turn \
+    --dump_prompt \
+    --output_dir data/Phi4"
 """
 
 # Initialize global variables
