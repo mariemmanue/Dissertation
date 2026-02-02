@@ -55,21 +55,19 @@ def load_multitask_model(model_id, head_list, loss_type):
     from transformers.utils import cached_file
     from safetensors.torch import load_file
 
-    # 1) Load encoder with pretrained weights
-    # 1) Load encoder with pretrained weights
+    # 1) Load Config
     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
     
-    # CRITICAL FIX: Disable compilation to prevent get_num_sms error
+    # CRITICAL FIX: Set it in config ONLY
     if hasattr(config, "reference_compile"):
         config.reference_compile = False
-        
+    
+    # 2) Load Encoder (remove reference_compile from kwargs here!)
     encoder = AutoModel.from_pretrained(
         model_id, 
         config=config, 
-        trust_remote_code=True,
-        reference_compile=False # Force disable here too
+        trust_remote_code=True
     )
-
 
     # Resize embeddings if needed
     tokenizer = AutoTokenizer.from_pretrained(model_id)
