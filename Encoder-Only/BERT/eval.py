@@ -30,9 +30,14 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 import json, os
 from huggingface_hub import hf_hub_download
 
+class MultitaskModelConfig(transformers.PretrainedConfig):
+    model_type = "multitask_model"
+
+class MultitaskModel(transformers.PreTrainedModel):
+    config_class = MultitaskModelConfig
 
 
-class MultitaskModel(nn.Module):
+# class MultitaskModel(nn.Module):
     def __init__(self, encoder, taskmodels_dict):
         super().__init__()
         self.encoder = encoder
@@ -47,7 +52,8 @@ class MultitaskModel(nn.Module):
         logits = torch.stack(logits_per_task, dim=1)  # [B,T,C] or [B,T,1]
         return logits
 
-
+AutoConfig.register("multitask_model", MultitaskModelConfig)
+AutoModel.register(MultitaskModelConfig, MultitaskModel)
 
 # --- 2. Helper to reconstruct the model instance ---
 def load_multitask_model(model_id, head_list, loss_type):
