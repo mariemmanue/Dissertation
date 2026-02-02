@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 
 """
-nlprun -q jag -p standard -r 48G -c 4 \
+nlprun -g 1 -q jag -p standard -r 100G -c 4 \
   -n phi4_gen \
   -o Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
@@ -28,8 +28,8 @@ nlprun -q jag -p standard -r 48G -c 4 \
     --file FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
-    --sheet PHI4_25_ZS_CTX_two_legit_rats \
-    --instruction_type zero_shot \
+    --sheet PHI4_25_ICL_CTX_two_legit_rats \
+    --instruction_type icl \
     --extended \
     --dialect_legitimacy \
     --context \
@@ -99,20 +99,17 @@ class PhiBackend(LLMBackend):
             trust_remote_code=True
         )
         
-        # FIXES:
-        # 1. Removed "attn_implementation" (fixes FlashAttention error)
-        # 2. Moved torch_dtype to top-level (fixes deprecation warning)
-        # 3. Passed trust_remote_code only once
+        # Use device=0 to FORCE GPU usage. 
+        # This will crash if CUDA is not found (which is good for debugging).
         self.pipe = hf_pipeline(
             "text-generation",
             model=model,
             trust_remote_code=True,
-            torch_dtype="auto", 
-            device_map="auto",
-            model_kwargs={
-                # Leave empty or add other specific args if needed
-            },
+            torch_dtype="auto",
+            device=0,           # <--- CHANGED from device_map="auto"
+            model_kwargs={},    # Removed "attn_implementation" to avoid flash_attn error
         )
+
 
     def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
         # Phi-4 uses a chat template, counting raw text is inaccurate
@@ -1126,6 +1123,12 @@ def query_model(
 
 # -------------------- MAIN --------------------
 def main():
+    import torch
+    print(f"DEBUG: torch.cuda.is_available() = {torch.cuda.is_available()}")
+    print(f"DEBUG: torch.version.cuda = {torch.version.cuda}")
+
+    
+    
     dumponcekey = "DUMPED_PROMPT_ONCE"
 
     parser = argparse.ArgumentParser(description="Run GPT Experiments for AAE feature annotation.")
