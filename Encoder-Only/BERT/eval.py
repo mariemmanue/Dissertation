@@ -55,23 +55,28 @@ def load_multitask_model(model_id, head_list, loss_type):
     from transformers.utils import cached_file
     from safetensors.torch import load_file
 
-    # 1) Build a *bare* ModernBERT encoder *from config only*
-    # config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    # encoder = AutoModel.from_config(config)          # no pretrained weights here
-    # hidden_size = encoder.config.hidden_size
+    # 1) Load encoder with pretrained weights
     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
     encoder = AutoModel.from_pretrained(model_id, config=config, trust_remote_code=True)
+
+    # IMPORTANT: make encoder’s vocab size match tokenizer / checkpoint
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    new_vocab_size = len(tokenizer)
+    if new_vocab_size > encoder.config.vocab_size:
+        print(f"Resizing embeddings {encoder.config.vocab_size} -> {new_vocab_size}")
+        encoder.resize_token_embeddings(new_vocab_size)
+
     hidden_size = encoder.config.hidden_size
 
-    # 2) Build heads from scratch with correct output dim
-    taskmodels_dict = {}
-    for name in head_list:
-        out_dim = 2 if loss_type == "ce" else 1
-        taskmodels_dict[name] = nn.Linear(hidden_size, out_dim)
+    # 2) Build heads
+    out_dim = 2 if loss_type == "ce" else 1
+    taskmodels_dict = {
+        name: nn.Linear(hidden_size, out_dim) for name in head_list
+    }
 
     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict)
 
-    # 3) Load *full* checkpoint, including encoder and heads
+    # 3) Load checkpoint and remap keys
     model_file = cached_file(model_id, "model.safetensors")
     sd = load_file(model_file)
 
@@ -80,12 +85,7 @@ def load_multitask_model(model_id, head_list, loss_type):
         if not k.startswith("_orig_mod."):
             continue
         k2 = k[len("_orig_mod."):]
-        # REMOVE this block:
-        # if k2 == "encoder.embeddings.tok_embeddings.weight":
-        #     continue
         new_sd[k2] = v
-
-
 
     missing, unexpected = model.load_state_dict(new_sd, strict=False)
     print("Missing:", len(missing), "Unexpected:", len(unexpected))
@@ -95,6 +95,7 @@ def load_multitask_model(model_id, head_list, loss_type):
         print("Example unexpected:", unexpected[:10])
 
     return model
+
 
 
 
