@@ -20,12 +20,12 @@ from typing import List, Dict, Any
 """
 nlprun -q jag -p standard -r 48G -c 4 \
   -n phi4-gen \
-  -o Phi4/slurm_logs/%x-%j.out \
+  -o Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python multi_prompt_configs.py \
-    --file ../GPT/data/FullTest_Final.xlsx \
+    --file FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
     --sheet PHI4_25_ZS_CTX_two_legit_rats \
@@ -35,7 +35,7 @@ nlprun -q jag -p standard -r 48G -c 4 \
     --context \
     --context_mode two_turn \
     --dump_prompt \
-    --output_dir data/Phi4"
+    --output_dir Phi-4/data"
 """
 
 # Initialize global variables
@@ -99,16 +99,14 @@ class PhiBackend(LLMBackend):
             trust_remote_code=True
         )
         
-        # Phi-4 is ~14B params. 
-        # If running on A100 (40GB/80GB): torch_dtype="auto" is fine.
-        # If running on 24GB cards (3090/4090): add load_in_4bit=True
         self.pipe = hf_pipeline(
             "text-generation",
             model=model,
+            trust_remote_code=True,  # Pass this ONLY here
             model_kwargs={
                 "torch_dtype": "auto",
-                "trust_remote_code": True,
-                "attn_implementation": "flash_attention_2",  # FASTER inference
+                # "trust_remote_code": True,  <-- REMOVE THIS LINE
+                "attn_implementation": "flash_attention_2",
             },
             device_map="auto",
         )
