@@ -1,6 +1,23 @@
 """
 
-     
+# CE full FT (resume)
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n modernbert_fullft_ce_resume \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE \
+     --fix_vocab \
+     --loss_type ce \
+     --freeze_mode none \
+     --auto_unfreeze_epoch 0 \
+     --lr 2e-5 \
+     --bs 32 \
+     --epochs 20 \
+     --warmup 500 \
+     --wandb_project modernbert-fullft \
+     --resume_from_checkpoint models/ModernBERT_CGEdit_AAE_run-20260131-161857/checkpoint-221"
 
 # CE full FT
 nlprun -q jag -p standard -r 40G -c 2 \
