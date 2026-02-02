@@ -6,7 +6,7 @@ nlprun -q jag -p standard -r 8G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_ous1w9mh"
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_6ahzr3lh"
 
 
 
@@ -16,7 +16,7 @@ nlprun -q jag -p standard -r 8G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_i33upuot"
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_yhm6qtug"
 """
 
 import transformers
@@ -59,7 +59,7 @@ def load_multitask_model(model_id, head_list, loss_type):
     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
     encoder = AutoModel.from_pretrained(model_id, config=config, trust_remote_code=True)
 
-    # IMPORTANT: make encoder’s vocab size match tokenizer / checkpoint
+    # Resize embeddings if needed
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     new_vocab_size = len(tokenizer)
     if new_vocab_size > encoder.config.vocab_size:
@@ -77,24 +77,34 @@ def load_multitask_model(model_id, head_list, loss_type):
     model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict)
 
     # 3) Load checkpoint and remap keys
-    model_file = cached_file(model_id, "model.safetensors")
-    sd = load_file(model_file)
+    try:
+        model_file = cached_file(model_id, "model.safetensors")
+        sd = load_file(model_file)
+    except:
+        # Fallback for bin files if safetensors fails
+        model_file = cached_file(model_id, "pytorch_model.bin")
+        sd = torch.load(model_file, map_location="cpu")
 
     new_sd = {}
     for k, v in sd.items():
-        if not k.startswith("_orig_mod."):
-            continue
-        k2 = k[len("_orig_mod."):]
+        # FIX IS HERE: Handle both compiled (_orig_mod) and clean keys
+        if k.startswith("_orig_mod."):
+            k2 = k[len("_orig_mod."):]
+        else:
+            k2 = k
         new_sd[k2] = v
 
     missing, unexpected = model.load_state_dict(new_sd, strict=False)
-    print("Missing:", len(missing), "Unexpected:", len(unexpected))
-    if missing:
-        print("Example missing:", missing[:10])
-    if unexpected:
-        print("Example unexpected:", unexpected[:10])
+    print("Missing keys:", len(missing))
+    if len(missing) > 0:
+        print("SAMPLE MISSING:", missing[:5])
+    
+    # Sanity check: if we are missing everything, crash.
+    if len(missing) > 100: 
+        raise RuntimeError("Model failed to load weights! Check key mapping.")
 
     return model
+
 
 
 

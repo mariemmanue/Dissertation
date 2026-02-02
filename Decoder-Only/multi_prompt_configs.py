@@ -28,12 +28,10 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --file FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
-    --sheet PHI4_25_ICL_CTX_two_legit_rats \
+    --sheet PHI4_25_ICL_noCTX_legit_rats \
     --instruction_type icl \
     --extended \
     --dialect_legitimacy \
-    --context \
-    --context_mode two_turn \
     --dump_prompt \
     --output_dir Phi-4/data"
 """
