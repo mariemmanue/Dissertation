@@ -4,24 +4,20 @@
 
 # CE full FT
 nlprun -q jag -p standard -r 40G -c 2 \
-  -n modernbert_fullft_ce \
+  -n PUSHnovocab_modernbert_fullft_ce \
   -o slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python train.py CGEdit AAE \
-     --fix_vocab \
      --loss_type ce \
      --freeze_mode none \
      --auto_unfreeze_epoch 0 \
      --lr 1e-5 \
      --bs 32 \
-     --epochs 500 \
+     --epochs 200 \
      --warmup 500 \
      --wandb_project modernbert-fullft"
-
-
-
 
 """
 
