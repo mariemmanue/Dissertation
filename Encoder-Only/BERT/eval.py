@@ -55,8 +55,11 @@ def load_multitask_model(model_id, head_list, loss_type):
     from safetensors.torch import load_file
 
     # 1) Build a *bare* ModernBERT encoder *from config only*
+    # config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+    # encoder = AutoModel.from_config(config)          # no pretrained weights here
+    # hidden_size = encoder.config.hidden_size
     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    encoder = AutoModel.from_config(config)          # no pretrained weights here
+    encoder = AutoModel.from_pretrained(model_id, config=config, trust_remote_code=True)
     hidden_size = encoder.config.hidden_size
 
     # 2) Build heads from scratch with correct output dim
@@ -76,9 +79,11 @@ def load_multitask_model(model_id, head_list, loss_type):
         if not k.startswith("_orig_mod."):
             continue
         k2 = k[len("_orig_mod."):]
-        if k2 == "encoder.embeddings.tok_embeddings.weight":
-            continue  # skip the mismatched embedding
+        # REMOVE this block:
+        # if k2 == "encoder.embeddings.tok_embeddings.weight":
+        #     continue
         new_sd[k2] = v
+
 
 
     missing, unexpected = model.load_state_dict(new_sd, strict=False)
@@ -235,7 +240,8 @@ if __name__ == "__main__":
 
     print(f"Loading model directly from {MODEL_ID}...")
     print("Eval loss_type:", loss_type)
-    model = load_multitask_model(MODEL_ID, head_list, loss_type)
+    # model = load_multitask_model(MODEL_ID, head_list, loss_type)
+    model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
     model.to(device)
     model.eval()
 
