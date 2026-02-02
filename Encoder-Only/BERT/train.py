@@ -1,39 +1,4 @@
 """
-# CE probe
-nlprun -q jag -p standard -r 32G -c 2 \
-  -n modernbert_probe_ce_all_frozen \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python train.py CGEdit AAE \
-     --fix_vocab \
-     --freeze_mode all \
-     --auto_unfreeze_epoch 0 \
-     --lr 1e-3 \
-     --bs 32 \
-     --loss_type ce \
-     --epochs 20 \
-     --warmup 0 \
-     --wandb_project modernbert-probe"
-
-# BCE probe
-nlprun -q jag -p standard -r 32G -c 2 \
-  -n modernbert_probe_bce_all_frozen \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python train.py CGEdit AAE \
-     --fix_vocab \
-     --freeze_mode all \
-     --auto_unfreeze_epoch 0 \
-     --lr 1e-3 \
-     --bs 32 \
-     --loss_type bce \
-     --epochs 20 \
-     --warmup 0 \
-     --wandb_project modernbert-probe"
 
      
 
@@ -49,29 +14,13 @@ nlprun -q jag -p standard -r 40G -c 2 \
      --loss_type ce \
      --freeze_mode none \
      --auto_unfreeze_epoch 0 \
-     --lr 2e-5 \
+     --lr 1e-5 \
      --bs 32 \
-     --epochs 20 \
+     --epochs 500 \
      --warmup 500 \
      --wandb_project modernbert-fullft"
 
-# BCE full FT
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n modernbert_fullft_bce \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python train.py CGEdit AAE \
-     --fix_vocab \
-     --loss_type bce \
-     --freeze_mode none \
-     --auto_unfreeze_epoch 0 \
-     --lr 2e-5 \
-     --bs 32 \
-     --epochs 20 \
-     --warmup 500 \
-     --wandb_project modernbert-fullft"
+
 
 
 """
@@ -130,6 +79,12 @@ class UnfreezeCallback(TrainerCallback):
 # --- Model Definitions ---
 class MultitaskModelConfig(transformers.PretrainedConfig):
     model_type = "multitask_model"
+    def __init__(self, base_model_name="answerdotai/ModernBERT-large", head_names=None, loss_type="ce", **kwargs):
+        self.base_model_name = base_model_name
+        self.head_names = head_names
+        self.loss_type = loss_type
+        super().__init__(**kwargs)
+
 
 class MultitaskModel(transformers.PreTrainedModel):
     config_class = MultitaskModelConfig
@@ -508,6 +463,7 @@ if __name__ == "__main__":
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         warmup_steps=warmup,
         num_train_epochs=epochs,
+        push_to_hub=True, 
         per_device_train_batch_size=bs,
         per_device_eval_batch_size=bs,
         weight_decay=weight_decay,
@@ -574,6 +530,27 @@ if __name__ == "__main__":
         trainer.push_to_hub(repo_name)
     except Exception as e:
         print(f"Skipping hub push: {e}")
+    # Add this block after trainer.push_to_hub(repo_name)
+    try:
+        trainer.create_model_card(model_name=repo_name)
+        # Manually upload the extra config file
+        if use_wandb:
+            # Use huggingface_hub API directly since Trainer won't push arbitrary JSONs
+            from huggingface_hub import upload_file
+            upload_file(
+                path_or_fileobj=f"./models/{out_dir}/extra_config.json",
+                path_in_repo="extra_config.json",
+                repo_id=f"{trainer.args.hub_model_id}", # Or construct your user/repo string
+            )
+            # Also upload thresholds.npy if it exists
+            if os.path.exists(f"./models/{out_dir}/thresholds.npy"):
+                upload_file(
+                    path_or_fileobj=f"./models/{out_dir}/thresholds.npy",
+                    path_in_repo="thresholds.npy",
+                    repo_id=f"{trainer.args.hub_model_id}",
+                )
+    except Exception as e:
+        print(f"Skipping extra file push: {e}")
 
     metrics = trainer.evaluate()
     print(">>> eval metrics dict:", metrics)
