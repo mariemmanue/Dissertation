@@ -6,7 +6,7 @@ nlprun -q jag -p standard -r 8G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_39hmoef9"
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_ous1w9mh"
 
 
 
@@ -16,7 +16,7 @@ nlprun -q jag -p standard -r 8G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_jsq8h8xo"
+   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_i33upuot"
 """
 
 import transformers
