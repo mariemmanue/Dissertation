@@ -56,8 +56,20 @@ def load_multitask_model(model_id, head_list, loss_type):
     from safetensors.torch import load_file
 
     # 1) Load encoder with pretrained weights
+    # 1) Load encoder with pretrained weights
     config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    encoder = AutoModel.from_pretrained(model_id, config=config, trust_remote_code=True)
+    
+    # CRITICAL FIX: Disable compilation to prevent get_num_sms error
+    if hasattr(config, "reference_compile"):
+        config.reference_compile = False
+        
+    encoder = AutoModel.from_pretrained(
+        model_id, 
+        config=config, 
+        trust_remote_code=True,
+        reference_compile=False # Force disable here too
+    )
+
 
     # Resize embeddings if needed
     tokenizer = AutoTokenizer.from_pretrained(model_id)
