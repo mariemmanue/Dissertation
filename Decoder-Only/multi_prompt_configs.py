@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 
 """
 nlprun -q jag -p standard -r 48G -c 4 \
-  -n phi4-gen \
+  -n phi4_gen \
   -o Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -99,16 +99,19 @@ class PhiBackend(LLMBackend):
             trust_remote_code=True
         )
         
+        # FIXES:
+        # 1. Removed "attn_implementation" (fixes FlashAttention error)
+        # 2. Moved torch_dtype to top-level (fixes deprecation warning)
+        # 3. Passed trust_remote_code only once
         self.pipe = hf_pipeline(
             "text-generation",
             model=model,
-            trust_remote_code=True,  # Pass this ONLY here
-            model_kwargs={
-                "torch_dtype": "auto",
-                # "trust_remote_code": True,  <-- REMOVE THIS LINE
-                "attn_implementation": "flash_attention_2",
-            },
+            trust_remote_code=True,
+            torch_dtype="auto", 
             device_map="auto",
+            model_kwargs={
+                # Leave empty or add other specific args if needed
+            },
         )
 
     def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
