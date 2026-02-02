@@ -89,6 +89,7 @@ import transformers
 from transformers import AutoConfig, AutoModel, AutoTokenizer, TrainerCallback
 from sklearn.metrics import average_precision_score
 import json, os
+from multitask_modeling import MultitaskModel, MultitaskModelConfig
 
 # --- Environment Setup ---
 site_dirs = []
@@ -437,6 +438,12 @@ if __name__ == "__main__":
     # 2. Create Model
     head_type_list = load_head_list(args.lang)
     
+    mt_config = MultitaskModelConfig(
+        base_model_name=MODEL_NAME,
+        head_names=head_type_list,
+        loss_type=args.loss_type,
+    )
+
     # If using Auto-Unfreeze, we MUST start with 'all' or 'bottom_12' frozen
     freeze_mode = args.freeze_mode
     if args.auto_unfreeze_epoch > 0 and args.freeze_mode == "none":
@@ -444,12 +451,19 @@ if __name__ == "__main__":
 
         
     model = MultitaskModel.create(
-        MODEL_NAME, 
-        head_type_list, 
-        freeze_mode=freeze_mode,
-        new_vocab_size=new_vocab_size,
-        loss_type=args.loss_type,
+    MODEL_NAME,
+    head_type_list,
+    freeze_mode=freeze_mode,
+    new_vocab_size=new_vocab_size,
+    loss_type=args.loss_type,
     ).to(device)
+
+# : attach the multitask config so Trainer saves it
+    model.config = mt_config
+
+    # Optional but nice: make it auto‑class aware so HF writes auto_map
+    mt_config.register_for_auto_class()
+    MultitaskModel.register_for_auto_class("AutoModel")
 
     # Compile for speed
     try:
