@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 
 """
-nlprun -g 1 -q jag -p standard -r 100G -c 4 \
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_gen \
   -o Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
@@ -101,14 +101,19 @@ class PhiBackend(LLMBackend):
         
         # Use device=0 to FORCE GPU usage. 
         # This will crash if CUDA is not found (which is good for debugging).
+
         self.pipe = hf_pipeline(
             "text-generation",
             model=model,
             trust_remote_code=True,
-            torch_dtype="auto",
-            device=0,           # <--- CHANGED from device_map="auto"
-            model_kwargs={},    # Removed "attn_implementation" to avoid flash_attn error
+            model_kwargs={
+                # Use "sdpa" (PyTorch native) instead of "flash_attention_2" (external lib)
+                "attn_implementation": "sdpa", 
+                "torch_dtype": "auto", 
+            },
+            device_map="auto",
         )
+
 
 
     def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
@@ -133,7 +138,7 @@ class PhiBackend(LLMBackend):
         # 2. Generate
         outputs = self.pipe(
             prompt,
-            max_new_tokens=512,
+            max_new_tokens=300,
             do_sample=True,
             temperature=0.1,  # Lower temp = more stable for annotation
             top_p=0.9,
