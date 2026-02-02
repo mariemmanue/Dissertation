@@ -240,8 +240,8 @@ if __name__ == "__main__":
 
     print(f"Loading model directly from {MODEL_ID}...")
     print("Eval loss_type:", loss_type)
-    # model = load_multitask_model(MODEL_ID, head_list, loss_type)
-    model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
+    model = load_multitask_model(MODEL_ID, head_list, loss_type)
+    # model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
     model.to(device)
     model.eval()
 
