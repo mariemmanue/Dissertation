@@ -8,6 +8,18 @@ from typing import List, Union, Dict
 import sys
 
 
+"""
+nlprun -q jag -p standard -r 24G -c 2 \
+  -n repro_bert_full_pipeline \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python repro_train.py CGEdit AAE --wandb_project repro-bert"
+
+"""
+
+
 gen_method = sys.argv[1]    # 'CGEdit' or 'CGEdit-ManualGen'
 lang = sys.argv[2]          # 'AAE' or 'IndE'
 if lang == 'AAE':
