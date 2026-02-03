@@ -149,7 +149,7 @@ def trainM(tokenizer, train_f):
     print(f"Pushed to HF Hub: {training_args.hub_model_id}")
 
 if __name__ == "__main__":
-    train_file = f"./data/{gen_method}/{lang}.tsv"
+    train_file = f"./{gen_method}/{lang}.tsv"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     head_type_list=[
