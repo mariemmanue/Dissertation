@@ -11,7 +11,7 @@ from huggingface_hub import hf_hub_download
 nlprun -q jag -p standard -r 40G -c 2 \
   -n eval_modernbert \
   -o ModernBERT/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python eval.py SociauxLing/modernbert-CGEdit-AAE-modernbert-CGEdit FullTest_Final"
