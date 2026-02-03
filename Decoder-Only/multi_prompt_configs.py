@@ -19,6 +19,31 @@ from typing import List, Dict, Any
 
 """
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_gen_zs_ctx_leg_lab \
+  -o Phi-4/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python multi_prompt_configs.py \
+    --file FullTest_Final.xlsx \
+   --model microsoft/phi-4  \
+   --backend phi \
+    --sheet PHI4_ZS_CTX_legit_labels \
+    --instruction_type zero_shot \
+    --extended \
+    --dialect_legitimacy \
+    --context \
+    --context_mode two_turn \
+    --dump_prompt \
+    --labels_only \
+    --output_dir Phi-4/data"
+
+    --context \
+    --context_mode two_turn \
+      --labels_only \
+    --dialect_legitimacy \
+
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_gen \
   -o Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
@@ -28,12 +53,55 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --file FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
-    --sheet PHI4_25_ICL_noCTX_legit_rats \
+    --sheet PHI4_25_ICL_noCTX_legit_labels \
     --instruction_type icl \
     --extended \
     --dialect_legitimacy \
     --dump_prompt \
+    --labels_only \
     --output_dir Phi-4/data"
+
+
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_gen \
+  -o Phi-4/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python multi_prompt_configs.py \
+    --file FullTest_Final.xlsx \
+   --model microsoft/phi-4  \
+   --backend phi \
+    --sheet PHI4_25_FSCOT_noCTX_legit_labels \
+    --instruction_type few_shot_cot \
+    --extended \
+    --dialect_legitimacy \
+    --dump_prompt \
+    --labels_only \
+    --output_dir Phi-4/data"
+
+
+
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_gen \
+  -o Phi-4/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python multi_prompt_configs.py \
+    --file FullTest_Final.xlsx \
+   --model microsoft/phi-4  \
+   --backend phi \
+    --sheet PHI4_25_ZSCOT_noCTX_legit_labels \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --dialect_legitimacy \
+    --dump_prompt \
+    --labels_only \
+    --output_dir Phi-4/data"
+
+
+
 """
 
 # Initialize global variables
@@ -1182,7 +1250,7 @@ def main():
         "--context_mode",
         type=str,
         choices=["single_turn", "two_turn"],
-        default="two_turn",
+        default="single_turn",
         help="Context mode (kept for compatibility with build_messages).",
     )
     parser.add_argument(
