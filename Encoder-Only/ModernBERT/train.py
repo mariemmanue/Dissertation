@@ -1,6 +1,7 @@
 # import transformers
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 import torch
+import transformers
 import torch.nn as nn
 from torch.utils.data import Dataset
 import sys
@@ -12,7 +13,7 @@ import shutil
 nlprun -q jag -p standard -r 40G -c 2 \
   -n modernbert_clean_train \
   -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/ModernBERT && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python train.py CGEdit AAE"
