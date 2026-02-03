@@ -142,6 +142,6 @@ if __name__ == "__main__":
     
     tokenizer = AutoTokenizer.from_pretrained(REPO_ID) # Loads the one we saved
     
-    test_path = f"./data/{test_file_name}.txt"
+    test_path = f"./{test_file_name}.txt"
     predict(model, tokenizer, test_path)
     print("Done.")
