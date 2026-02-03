@@ -8,6 +8,16 @@ import os
 import argparse
 import shutil
 
+"""
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n modernbert_clean_train \
+  -o slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python train.py CGEdit AAE"
+
+"""
 # --- ARGS ---
 parser = argparse.ArgumentParser()
 parser.add_argument("gen_method", type=str, help="CGEdit or CGEdit-ManualGen")
