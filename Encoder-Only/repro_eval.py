@@ -7,6 +7,17 @@ import os
 from transformers import AutoModel, AutoTokenizer
 from huggingface_hub import hf_hub_download
 
+"""
+nlprun -q jag -p standard -r 24G -c 2 \
+  -n eval_bert_repro \
+  -o BERT/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python repro_eval.py SociauxLing/repro-bert-base-cased-CGEdit-AAE-bert-base-cased-CGEdit FullTest_Final"
+
+"""
+
 # Usage: python repro_eval.py <repo_id> <test_file_name>
 # Example: python repro_eval.py mtano/repro-bert-base-cased-CGEdit-AAE-run123 FullTest_Final
 if len(sys.argv) < 3:

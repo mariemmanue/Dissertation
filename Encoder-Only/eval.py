@@ -7,6 +7,16 @@ import os
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 from huggingface_hub import hf_hub_download
 
+"""
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n eval_modernbert \
+  -o ModernBERT/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python eval.py SociauxLing/modernbert-CGEdit-AAE-modernbert-CGEdit FullTest_Final"
+
+"""
 # Usage: python modernbert_eval.py <repo_id> <test_file_name>
 if len(sys.argv) < 3:
     print("Usage: python modernbert_eval.py <hf_repo_id> <test_file_name>")
@@ -143,6 +153,6 @@ if __name__ == "__main__":
     model.to(device)
     model.eval()
     
-    test_path = f"./data/{test_file_name}.txt"
+    test_path = f"./{test_file_name}.txt"
     predict(model, tokenizer, test_path)
     print("Done.")
