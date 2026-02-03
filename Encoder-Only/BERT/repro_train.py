@@ -71,13 +71,15 @@ class MultitaskModel(transformers.PreTrainedModel):
 
 # --- TRAINER ---
 class MultitaskTrainer(transformers.Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
+    # Added **kwargs to handle 'num_items_in_batch' passed by newer Transformers
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         labels = inputs["labels"]
         input_ids = inputs["input_ids"]
         outputs = model(input_ids) # [B, T, 2]
         loss_fct = nn.CrossEntropyLoss()
         loss = loss_fct(outputs.view(-1, 2), labels.view(-1))
         return (loss, outputs) if return_outputs else loss
+
 
 # --- DATASET ---
 class CustomDataset(Dataset):
