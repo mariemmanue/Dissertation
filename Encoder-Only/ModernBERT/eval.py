@@ -1,393 +1,148 @@
-
-"""
-nlprun -q jag -p standard -r 8G -c 2 \
-  -n multilabel_modernbert_eval \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_6ahzr3lh"
-
-
-
-nlprun -q jag -p standard -r 8G -c 2 \
-  -n multilabel_modernbert_eval \
-  -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only/BERT && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python eval.py CGEdit AAE FullTest_Final SociauxLing/ModernBERT_CGEdit_AAE_yhm6qtug"
-"""
-
 import transformers
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import sys
 import os
-import numpy as np
-from transformers import AutoConfig, AutoModel, AutoTokenizer
-import json
+from transformers import AutoModel, AutoTokenizer, AutoConfig
 from huggingface_hub import hf_hub_download
 
-# tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-# model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
+# Usage: python modernbert_eval.py <repo_id> <test_file_name>
+if len(sys.argv) < 3:
+    print("Usage: python modernbert_eval.py <hf_repo_id> <test_file_name>")
+    sys.exit(1)
 
+REPO_ID = sys.argv[1]
+test_file_name = sys.argv[2]
+model_name = "answerdotai/ModernBERT-large"
 
-class MultitaskModel(nn.Module):
+class MultitaskModel(transformers.PreTrainedModel):
     def __init__(self, encoder, taskmodels_dict):
-        super().__init__()
+        super().__init__(transformers.PretrainedConfig())
         self.encoder = encoder
         self.taskmodels_dict = nn.ModuleDict(taskmodels_dict)
 
-    def forward(self, input_ids=None, attention_mask=None, **kwargs):
-        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        cls_repr = out.last_hidden_state[:, 0, :]
-        logits_per_task = []
-        for head in self.taskmodels_dict.values():
-            logits_per_task.append(head(cls_repr))
-        logits = torch.stack(logits_per_task, dim=1)  # [B,T,C] or [B,T,1]
-        return logits
+    @classmethod
+    def create(cls, model_name, head_type_list):
+        taskmodels_dict = {}
+        
+        # 1. Config logic
+        config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+        if hasattr(config, "reference_compile"):
+            config.reference_compile = False
+            
+        shared_encoder = AutoModel.from_pretrained(model_name, config=config, trust_remote_code=True)
+        
+        hidden_size = config.hidden_size
+        for task_name in head_type_list:
+            head = torch.nn.Linear(hidden_size, 2)
+            taskmodels_dict[task_name] = head
+        return cls(encoder=shared_encoder, taskmodels_dict=taskmodels_dict)
 
+    def forward(self, input_ids, attention_mask=None, **kwargs):
+        x = self.encoder(input_ids, attention_mask=attention_mask)
+        cls_token = x.last_hidden_state[:, 0, :]
+        out_list = []
+        for task_name, head in self.taskmodels_dict.items():
+            out_list.append(head(cls_token))
+        return torch.stack(out_list, dim=1)
 
-# --- 2. Helper to reconstruct the model instance ---
-def load_multitask_model(model_id, head_list, loss_type):
-    from transformers.utils import cached_file
-    from safetensors.torch import load_file
+def load_from_hub(repo_id, head_list):
+    print(f"Downloading model from {repo_id}...")
+    model = MultitaskModel.create(model_name, head_list)
     
-    # 1) Load Config
-    config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-    if hasattr(config, "reference_compile"):
-        config.reference_compile = False
-
-    # 2) Load Encoder (Blank)
-    encoder = AutoModel.from_pretrained(
-        model_id, 
-        config=config, 
-        trust_remote_code=True
-    )
-    
-    # Resize vocab if needed (Important for your added tokens)
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    new_vocab_size = len(tokenizer)
-    if new_vocab_size > encoder.config.vocab_size:
-        print(f"Resizing embeddings {encoder.config.vocab_size} -> {new_vocab_size}")
-        encoder.resize_token_embeddings(new_vocab_size)
-
-    hidden_size = encoder.config.hidden_size
-
-    # 3) Build Heads (Blank)
-    out_dim = 2 if loss_type == "ce" else 1
-    taskmodels_dict = {
-        name: nn.Linear(hidden_size, out_dim) for name in head_list
-    }
-
-    model = MultitaskModel(encoder=encoder, taskmodels_dict=taskmodels_dict)
-
-    # 4) Load Weights Manually & Strip Prefix
-    print(f"Loading state dict from {model_id}...")
+    # 2. Download Weights
     try:
-        model_file = cached_file(model_id, "model.safetensors")
-        sd = load_file(model_file)
+        model_path = hf_hub_download(repo_id=repo_id, filename="pytorch_model.bin")
+        sd = torch.load(model_path, map_location="cpu")
     except:
-        model_file = cached_file(model_id, "pytorch_model.bin")
-        sd = torch.load(model_file, map_location="cpu")
+        model_path = hf_hub_download(repo_id=repo_id, filename="model.safetensors")
+        from safetensors.torch import load_file
+        sd = load_file(model_path)
 
+    # 3. Clean Keys
     new_sd = {}
     for k, v in sd.items():
-        # --- CRITICAL FIX START ---
-        # If the key has the prefix, remove it.
-        if k.startswith("_orig_mod."):
-            new_key = k[len("_orig_mod."):]
-        else:
-            new_key = k
-        # --- CRITICAL FIX END ---
-        new_sd[new_key] = v
+        if k.startswith("module."): k = k[7:]
+        if k.startswith("_orig_mod."): k = k[10:]
+        new_sd[k] = v
+        
+    # Resize if needed (if fix_vocab was used)
+    # We check the weight shape of embeddings against the tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(repo_id)
+    vocab_size = len(tokenizer)
+    current_emb_size = model.encoder.embeddings.tok_embeddings.weight.shape[0]
+    if vocab_size != current_emb_size:
+        print(f"Resizing embeddings {current_emb_size} -> {vocab_size}")
+        model.encoder.resize_token_embeddings(vocab_size)
+        
+    model.load_state_dict(new_sd, strict=False)
+    return model, tokenizer
 
-    # 5) Load into Model
-    missing, unexpected = model.load_state_dict(new_sd, strict=False)
-    
-    print(f"Missing keys: {len(missing)}")
-    print(f"Unexpected keys: {len(unexpected)}")
-    
-    # Sanity check: We expect 0 missing keys for the task heads and encoder
-    if len(missing) > 0:
-        # It's okay if only "cls.predictions..." are missing (unused pretraining heads)
-        # But if "taskmodels_dict" or "encoder" are missing, that's bad.
-        relevant_missing = [k for k in missing if "taskmodels_dict" in k or "encoder" in k]
-        if len(relevant_missing) > 0:
-            print("CRITICAL WARNING: The following relevant keys are missing:", relevant_missing[:5])
-            # Uncomment to force crash if you want to be safe:
-            # raise RuntimeError("Model weights failed to load correctly.")
-
-    return model
-
-
-
-# --- 3. Feature Definition (Must match train.py exactly) ---
-
-def load_head_list(lang: str):
-    if lang == "AAE":
-        return [
-            "zero-poss", "zero-copula", "double-tense", "be-construction",
-            "resultant-done", "finna", "come", "double-modal",
-            "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint",
-            "zero-3sg-pres-s", "is-was-gen", "zero-pl-s", "double-object", "wh-qu",
-        ]
-    elif lang == "IndE":
-        return [
-            "foc_self", "foc_only", "left_dis", "non_init_exis", "obj_front",
-            "inv_tag", "cop_omis", "res_obj_pron", "res_sub_pron", "top_non_arg_con",
-        ]
-    else:
-        raise ValueError("lang must be 'AAE' or 'IndE'")
-
-# --- 4. Data Loading ---
-
-class CustomDataset(Dataset):
-    def __init__(self, input_ids, attention_mask, texts):
-        self.input_ids = input_ids
-        self.attention_mask = attention_mask
-        self.texts = texts
-
-    def __len__(self): return len(self.input_ids)
-    def __getitem__(self, idx):
-        return {
-            "input_ids": self.input_ids[idx],
-            "attention_mask": self.attention_mask[idx],
-            "text": self.texts[idx],
-        }
-
-def build_dataset(tokenizer, test_f, max_length=128):
-    input_ids_list, attn_list, texts = [], [], []
-
-    # 1. Robust File Path Resolution
-    if not os.path.exists(test_f):
-        # Check if it's in ./data/
-        if os.path.exists(os.path.join("./data", test_f)):
-            test_f = os.path.join("./data", test_f)
-        # Check if it's missing extension
-        elif os.path.exists(test_f + ".csv"):
-            test_f = test_f + ".csv"
-        elif os.path.exists(test_f + ".txt"):
-            test_f = test_f + ".txt"
-        # Check if it's in ./data/ AND missing extension
-        elif os.path.exists(os.path.join("./data", test_f + ".csv")):
-             test_f = os.path.join("./data", test_f + ".csv")
-        elif os.path.exists(os.path.join("./data", test_f + ".txt")):
-             test_f = os.path.join("./data", test_f + ".txt")
-        else:
-            raise FileNotFoundError(f"Could not find file: {test_f}")
-
+def predict(model, tokenizer, test_f):
+    texts = []
     print(f"Reading {test_f}...")
     
     if test_f.endswith('.csv'):
         import pandas as pd
         df = pd.read_csv(test_f)
-        # Try to find the sentence column
-        possible_cols = ['sentence', 'text', 'utterance']
-        col = next((c for c in possible_cols if c in df.columns), df.columns[0])
-        lines = df[col].astype(str).tolist()
+        texts = df.iloc[:, 0].astype(str).tolist()
     else:
         with open(test_f, 'r', encoding='utf-8') as r:
-            lines = [line.strip() for line in r if line.strip()]
+            texts = [line.strip() for line in r if line.strip()]
 
-    print(f"Tokenizing {len(lines)} examples...")
-
-    for text in lines:
-        if not text: continue
-        enc = tokenizer(text, max_length=max_length, padding="max_length", truncation=True, return_tensors="pt")
-        input_ids_list.append(enc["input_ids"].squeeze(0))
-        attn_list.append(enc["attention_mask"].squeeze(0))
-        texts.append(text)
+    # Use same max_length as training
+    encodings = tokenizer(texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
+    
+    class TestDS(Dataset):
+        def __init__(self, enc): self.enc = enc
+        def __len__(self): return len(texts)
+        def __getitem__(self, i): return {k:v[i] for k,v in self.enc.items()}
+    
+    dataloader = DataLoader(TestDS(encodings), batch_size=32, shuffle=False)
+    
+    out_name = f"data/results/{REPO_ID.split('/')[-1]}_{os.path.basename(test_f)}_preds.tsv"
+    os.makedirs("data/results", exist_ok=True)
+    
+    head_list = list(model.taskmodels_dict.keys())
+    
+    print(f"Writing results to {out_name}...")
+    with open(out_name, 'w', encoding='utf-8') as f:
+        f.write("sentence\t" + "\t".join(head_list) + "\n")
         
-    return CustomDataset(torch.stack(input_ids_list), torch.stack(attn_list), texts)
-
-# --- 5. Main ---
+        for batch_idx, batch in enumerate(dataloader):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            
+            with torch.no_grad():
+                logits = model(input_ids, attention_mask=attention_mask)
+                probs = torch.softmax(logits, dim=-1)
+                
+            probs_pos = probs[:, :, 1].cpu().numpy()
+            
+            start_idx = batch_idx * 32
+            for i, scores in enumerate(probs_pos):
+                text_idx = start_idx + i
+                if text_idx >= len(texts): break
+                
+                line_scores = "\t".join([f"{s:.4f}" for s in scores])
+                clean_text = texts[text_idx].replace("\t", " ").replace("\n", " ")
+                f.write(f"{clean_text}\t{line_scores}\n")
 
 if __name__ == "__main__":
-    # Usage: python eval.py <gen_method> <lang> <test_file> <model_id> [eval_labels_file]
-    if len(sys.argv) < 5:
-        print("Usage: python eval.py <gen_method> <lang> <test_file> <model_id> [eval_labels_file]")
-        sys.exit(1)
-
-    gen_method = sys.argv[1]
-    lang = sys.argv[2]
-    test_file = sys.argv[3]
-    MODEL_ID = sys.argv[4]
-    eval_labels_file = sys.argv[5] if len(sys.argv) > 5 else None
-    # Optional gold labels (CGEdit TSV) for ranking metrics
-    gold_labels = None
-    if eval_labels_file is not None:
-        texts_g = []
-        labels_g = []
-        with open(eval_labels_file, "r", encoding="utf-8") as f:
-            for i, line in enumerate(f):
-                parts = line.rstrip("\n").split("\t")
-                if i == 0 and len(parts) > 1 and not parts[1].isdigit():
-                    continue
-                texts_g.append(parts[0])
-                labels_g.append([int(x) for x in parts[1:]])
-        gold_labels = np.array(labels_g, dtype=np.int64)  # [N,T]
-
-    # After parsing MODEL_ID
-    repo_id = MODEL_ID  # HF repo name, e.g. "SociauxLing/ModernBERT_CGEdit_AAE_39hmoef9"
-
-    # --- loss_type from extra_config.json on HF ---
-    loss_type = "ce"
-    try:
-        extra_path = hf_hub_download(repo_id=repo_id, filename="extra_config.json")
-        with open(extra_path, "r") as f:
-            extra_cfg = json.load(f)
-            loss_type = extra_cfg.get("loss_type", "ce")
-    except Exception:
-        pass  # fall back to "ce" if file missing
-
-    # --- thresholds for BCE from HF (optional) ---
-    thresholds = None
-    if loss_type == "bce":
-        try:
-            thr_path = hf_hub_download(repo_id=repo_id, filename="thresholds.npy")
-            thresholds = np.load(thr_path)  # [T]
-        except Exception:
-            thresholds = None
-
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    
+    head_type_list=[
+        "zero-poss", "zero-copula", "double-tense", "be-construction",
+        "resultant-done", "finna", "come", "double-modal",
+        "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint",
+        "zero-3sg-pres-s", "is-was-gen", "zero-pl-s", "double-object", "wh-qu"
+    ]
 
-    # 1. Get Head List
-    head_list = load_head_list(lang)
-    print(f"Task Heads ({len(head_list)}): {head_list}")
-
-    # 2. Load Tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-
-    # 3. Load Model (Reconstructing Architecture)
-
-    print(f"Loading model directly from {MODEL_ID}...")
-    print("Eval loss_type:", loss_type)
-    model = load_multitask_model(MODEL_ID, head_list, loss_type)
-    # model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
+    model, tokenizer = load_from_hub(REPO_ID, head_type_list)
     model.to(device)
     model.eval()
-
-
-    # 4. Prepare Data
-    dataset = build_dataset(tokenizer, test_file)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
-
-    # 5. Inference
-    os.makedirs("./data/results", exist_ok=True)
-    out_name = f"{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_preds.tsv"
-    out_path = f"./data/results/{out_name}"
-    aug_out_path = f"./data/results/{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_probs_and_preds.tsv"
-    labels_out_path = f"./data/results/{MODEL_ID.split('/')[-1]}_{gen_method}_{lang}_{os.path.basename(test_file)}_labels.tsv"
-
-    print(f"Starting inference, writing to {out_path}...")
     
-    with open(out_path, "w", encoding='utf-8') as f_probs, open(aug_out_path, "w", encoding="utf-8") as f_aug, open(labels_out_path, "w", encoding="utf-8") as f_labels:
-
-        all_texts = []
-        all_probs = []
-
-        # Header for simple probs file (same as before)
-        header_probs = "sentence\t" + "\t".join(head_list) + "\n"
-        f_probs.write(header_probs)
-
-        # Header for augmented file: for each feature, prob0, prob1, pred
-        if loss_type == "ce":
-            aug_cols = []
-            for feat in head_list:
-                aug_cols.extend([f"{feat}_p0", f"{feat}_p1", f"{feat}_pred"])
-        else:
-            aug_cols = []
-            for feat in head_list:
-                aug_cols.extend([f"{feat}_p1", f"{feat}_pred"])
-        header_aug = "sentence\t" + "\t".join(aug_cols) + "\n"
-        f_aug.write(header_aug)
-
-        header_labels = "sentence\t" + "\t".join(head_list) + "\n"
-        f_labels.write(header_labels)
-
-        for batch in dataloader:
-            input_ids = batch["input_ids"].to(device)
-            attention_mask = batch["attention_mask"].to(device)
-            texts = batch["text"]
-
-            with torch.no_grad():
-                logits = model(input_ids=input_ids, attention_mask=attention_mask)
-
-                if loss_type == "ce":
-                    probs = torch.softmax(logits, dim=-1)       # [B,T,2]
-                    probs_np = probs.cpu().numpy()
-                    prob1 = probs_np[..., 1]                    # [B,T]
-                    preds_np = probs_np.argmax(axis=-1)         # [B,T]
-                else:
-                    if logits.ndim == 3 and logits.shape[-1] == 1:
-                        logits = logits.squeeze(-1)
-                    z = logits.cpu().numpy()                    # [B,T]
-                    prob1 = 1.0 / (1.0 + np.exp(-z))            # [B,T]
-                    if thresholds is not None:
-                        preds_np = (z > thresholds).astype(int) # [B,T]
-                    else:
-                        preds_np = (z > 0).astype(int)          # [B,T]
-
-            for i, text in enumerate(texts):
-                clean_text = text.replace("\t", " ").replace("\n", " ")
-
-                # labels file
-                label_strs = "\t".join(str(int(preds_np[i, t])) for t in range(len(head_list)))
-                f_labels.write(f"{clean_text}\t{label_strs}\n")
-
-                # probs1 file
-                prob1_strs = "\t".join(f"{p1:.4f}" for p1 in prob1[i])
-                f_probs.write(f"{clean_text}\t{prob1_strs}\n")
-
-                # augmented file
-                if loss_type == "ce":
-                    feat_cells = []
-                    for t in range(len(head_list)):
-                        p0 = probs_np[i, t, 0]
-                        p1 = probs_np[i, t, 1]
-                        pred = preds_np[i, t]
-                        feat_cells.extend([f"{p0:.4f}", f"{p1:.4f}", str(pred)])
-                    f_aug.write(f"{clean_text}\t" + "\t".join(feat_cells) + "\n")
-                else:
-                    feat_cells = []
-                    for t in range(len(head_list)):
-                        p1 = prob1[i, t]
-                        pred = preds_np[i, t]
-                        feat_cells.extend([f"{p1:.4f}", str(pred)])
-                    f_aug.write(f"{clean_text}\t" + "\t".join(feat_cells) + "\n")
-
-                all_texts.append(clean_text)
-                all_probs.append(prob1[i])
-
-    all_probs = np.stack(all_probs)  # [N,T]
-
-    if gold_labels is not None:
-        assert all_probs.shape == gold_labels.shape
-        from sklearn.metrics import average_precision_score
-
-        N, T = all_probs.shape
-        aps = []
-        prec100s = []
-        for t in range(T):
-            y_true = gold_labels[:, t]
-            y_score = all_probs[:, t]
-            if y_true.sum() == 0:
-                continue
-            ap_t = average_precision_score(y_true, y_score)
-            aps.append(ap_t)
-
-            order = np.argsort(y_score)[::-1]
-            K = min(100, N)
-            topk = order[:K]
-            prec_t = y_true[topk].mean()
-            prec100s.append(prec_t)
-
-        print("Macro AP:", float(np.mean(aps)) if aps else 0.0)
-        print("Macro Prec@100:", float(np.mean(prec100s)) if prec100s else 0.0)
-
+    test_path = f"./data/{test_file_name}.txt"
+    predict(model, tokenizer, test_path)
     print("Done.")
