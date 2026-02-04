@@ -184,7 +184,7 @@ def trainM(tokenizer, train_f):
         weight_decay=0.01,  # Standard regularization for BERT-family
         
         # 5. ENABLE EVALUATION & EARLY STOPPING
-        evaluation_strategy="epoch",  # Eval every epoch
+        eval_strategy="epoch",  # Eval every epoch
         save_strategy="epoch",
         load_best_model_at_end=True,  # Load best checkpoint at end
         metric_for_best_model="eval_loss",  # Or "eval_f1" if you add metrics
@@ -200,7 +200,7 @@ def trainM(tokenizer, train_f):
         
         logging_steps=5,
         push_to_hub=True,
-        hub_model_id=f"modernbert-{gen_method}-{lang}",
+        hub_model_id=f"modernbert",
         hub_strategy="end",  # Only push final model, not every epoch
         remove_unused_columns=False,
     )
