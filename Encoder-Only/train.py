@@ -9,6 +9,7 @@ import os
 import argparse
 import shutil
 
+
 """
 nlprun -q jag -p standard -r 40G -c 2 \
   -n modernbert_train \
@@ -17,8 +18,8 @@ nlprun -q jag -p standard -r 40G -c 2 \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python train.py CGEdit AAE"
-
 """
+
 # --- ARGS ---
 parser = argparse.ArgumentParser()
 parser.add_argument("gen_method", type=str, help="CGEdit or CGEdit-ManualGen")
@@ -88,6 +89,7 @@ class MultitaskModel(transformers.PreTrainedModel):
             out_list.append(head(cls_token))
         return torch.stack(out_list, dim=1) # [B, T, 2]
 
+
 # --- TRAINER ---
 class MultitaskTrainer(transformers.Trainer):
     # Added **kwargs to handle 'num_items_in_batch' passed by newer Transformers
@@ -98,9 +100,44 @@ class MultitaskTrainer(transformers.Trainer):
         
         outputs = model(input_ids, attention_mask=attention_mask) # [B, T, 2]
         
+        # Flatten logits and labels for CrossEntropy
+        # logits shape: [B, T, 2] -> [B*T, 2]
+        # labels shape: [B, T]    -> [B*T]
         loss_fct = nn.CrossEntropyLoss()
         loss = loss_fct(outputs.view(-1, 2), labels.view(-1))
+        
         return (loss, outputs) if return_outputs else loss
+
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
+        """
+        Custom eval step that always returns (loss, logits, labels) with no grad,
+        so Trainer can compute eval_loss and call compute_metrics.
+        """
+        # Shallow copy so we don't mutate original
+        inputs = inputs.copy()
+
+        # Extract labels
+        labels = inputs.get("labels", None)
+
+        # Eval mode, no grad
+        model.eval()
+        with torch.no_grad():
+            # Force calculation of loss using our custom logic
+            loss, logits = self.compute_loss(model, inputs, return_outputs=True)
+
+        # Detach for numpy conversion
+        if loss is not None:
+            loss = loss.detach()
+        if logits is not None:
+            logits = logits.detach()
+        if labels is not None and isinstance(labels, torch.Tensor):
+            labels = labels.detach()
+
+        if prediction_loss_only:
+            return loss, None, None
+
+        return loss, logits, labels
+
 
 # --- DATASET ---
 class CustomDataset(Dataset):
@@ -113,29 +150,6 @@ class CustomDataset(Dataset):
         item['labels'] = self.labels[idx]
         return item
 
-# def trainM(tokenizer, train_f):
-#     input_ids = []
-#     labels = []
-#     print(f"Loading data from {train_f}...")
-#     with open(train_f, 'r', encoding='utf-8') as r:
-#         for i, line in enumerate(r):
-#             line = line.strip()
-#             if not line: continue
-#             parts = line.split("\t")
-            
-#             # --- ROBUST SKIP ---
-#             # If the second item is not a digit, it's a header (even in the middle of file)
-#             if not parts[1].isdigit(): 
-#                 continue 
-            
-#             input_ids.append(parts[0])
-#             labels.append([int(x) for x in parts[1:]])
-
-
-    # print(f"Tokenizing {len(input_ids)} examples...")
-    # # ModernBERT handles 8192, but for CGEdit 128 is plenty/faster
-    # encodings = tokenizer(input_ids, truncation=True, padding=True, max_length=128, return_tensors='pt')
-    # dataset = CustomDataset(encodings, torch.tensor(labels))
 
 def trainM(tokenizer, train_f):
     input_ids = []
@@ -149,6 +163,7 @@ def trainM(tokenizer, train_f):
             parts = line.split("\t")
             input_ids.append(parts[0])
             labels.append([int(x) for x in parts[1:]])
+
 
     # SPLIT INTO TRAIN/DEV (80/20)
     from sklearn.model_selection import train_test_split
@@ -165,58 +180,49 @@ def trainM(tokenizer, train_f):
     train_dataset = CustomDataset(train_enc, torch.tensor(train_labels))
     dev_dataset = CustomDataset(dev_enc, torch.tensor(dev_labels))
 
-
     training_args = transformers.TrainingArguments(
         output_dir=out_dir,
         report_to="wandb",
         
         # 1. LOWER LR for small dataset
-        learning_rate=2e-5,  # Up from 1e-5 – ModernBERT-large needs slightly higher for small data
+        learning_rate=2e-5,
         
-        # 2. STEP-BASED WARMUP (not epoch-based)
-        warmup_ratio=0.06,  # 6% of total steps, not fixed 500
-        # Remove: warmup_steps=500  
+        # 2. STEP-BASED WARMUP
+        warmup_ratio=0.06,
         
         # 3. AGGRESSIVE EARLY STOPPING
-        num_train_epochs=50,  # Down from 200 – CGEdit used 500 but on much more data
+        num_train_epochs=50,
         
         # 4. ADD WEIGHT DECAY
-        weight_decay=0.01,  # Standard regularization for BERT-family
+        weight_decay=0.01,
         
         # 5. ENABLE EVALUATION & EARLY STOPPING
-        eval_strategy="epoch",  # Eval every epoch
+        evaluation_strategy="epoch",  # Correct argument name (older versions use evaluation_strategy)
         save_strategy="epoch",
-        load_best_model_at_end=True,  # Load best checkpoint at end
-        metric_for_best_model="eval_loss",  # Or "eval_f1" if you add metrics
-        greater_is_better=False,  # For loss
-        save_total_limit=3,  # Keep top 3 checkpoints
+        load_best_model_at_end=True,  # Now safe because prediction_step provides eval_loss
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+        save_total_limit=1,
         
-        # 6. SMALLER BATCH for better generalization on tiny data
-        per_device_train_batch_size=16,  # Down from 32
-        gradient_accumulation_steps=2,  # Effective batch = 32
+        # 6. SMALLER BATCH
+        per_device_train_batch_size=16,
+        gradient_accumulation_steps=2,
         
         # 7. GRADIENT CLIPPING
-        max_grad_norm=1.0,  # Prevent exploding gradients
+        max_grad_norm=1.0,
         
         logging_steps=5,
         push_to_hub=True,
-        hub_model_id=f"modernbert",
-        hub_strategy="end",  # Only push final model, not every epoch
+        hub_model_id=f"modernbert-{gen_method}-{lang}", # Fixed hub ID
+        hub_strategy="end",
         remove_unused_columns=False,
     )
-
-
-    # trainer = MultitaskTrainer(
-    #     model=multitask_model,
-    #     args=training_args,
-    #     train_dataset=dataset,
-    # )
 
     trainer = MultitaskTrainer(
         model=multitask_model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=dev_dataset,  # ADD THIS
+        eval_dataset=dev_dataset,  # Pass the dev set!
     )
     
     print("Starting training...")
@@ -229,6 +235,7 @@ def trainM(tokenizer, train_f):
     
     trainer.push_to_hub()
     print(f"Pushed to HF Hub: {training_args.hub_model_id}")
+
 
 if __name__ == "__main__":
     train_file = f"Combined_{lang}.tsv"
