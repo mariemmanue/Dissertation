@@ -143,7 +143,7 @@ def trainM(tokenizer, train_f):
         save_total_limit=1,
         logging_steps=10,
         push_to_hub=True,       
-        hub_model_id=f"modernbert-{gen_method}-{lang}-{run_name}", 
+        hub_model_id=f"modernbert-{gen_method}-{lang}", 
         hub_strategy="every_save",
         remove_unused_columns=False
     )
