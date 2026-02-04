@@ -44,7 +44,7 @@ I have, um, a older brother, a younger brother, and a younger sister, but my old
 But, um, it was pretty much my mom.	0.0000	0.0001	0.0001	0.0001	0.0001	0.0003	0.0001	0.0001	0.0000	0.0001	0.0001	0.0001	0.0003	0.0003	0.0003	0.0001	0.0001
 She was mom and dad at the same time.	0.0001	0.0003	0.0001	0.0001	0.0001	0.0002	0.0001	0.0001	0.0000	0.0001	0.0001	0.0001	0.0002	0.0001	0.0002	0.0001	0.0001
 And growing up in- in that neighborhood, I mean, that was around the time, of course, no electronics at all.	0.0001	0.0018	0.0000	0.0002	0.0000	0.0001	0.0002	0.0001	0.0002	0.0002	0.0001	0.0001	0.0001	0.0001	0.0008	0.0000	0.0004
-We was outside, all day.	0.0001	0.0002	0.0002	0.0004	0.0003	0.0002	0.0003	0.0001	0.0001	0.0001	0.0002	0.0002	0.0002	0.7264	0.0009	0.0001	0.0005
+We was outside, all day.	0.0001	0.0002	0.0002	0.0004	0.0003	0.0002	0.0003	0.0001	0.0001	0.0001	0.0002	0.0002	0.0002	0.7263	0.0009	0.0001	0.0005
 I mean, it was violence in the- the neighborhood, so to speak.	0.0001	0.0002	0.0001	0.0002	0.0001	0.0003	0.0001	0.0001	0.0000	0.0001	0.0001	0.0001	0.0002	0.0002	0.0007	0.0001	0.0001
 Whereas that's what everybody was- I guess the gang thing was more so more fighting than shooting.	0.0000	0.0002	0.0000	0.0000	0.0001	0.0001	0.0001	0.0002	0.0001	0.0002	0.0001	0.0001	0.0001	0.0015	0.0009	0.0000	0.0004
 But, I mean, I never dabbled in- in, I- I never felt the need to.	0.0000	0.0000	0.0001	0.0001	0.0001	0.0002	0.0001	0.0001	0.0015	0.0002	0.0001	0.0001	0.0002	0.0001	0.0004	0.0001	0.0001
@@ -167,7 +167,7 @@ Because it was nobody to follow behind because you don't- you don't know nobody,
 I- um, my first year I didn't play any sports, cause I was kind of hesitant.	0.0000	0.0002	0.0000	0.0002	0.0002	0.0002	0.0000	0.0001	0.0003	0.0001	0.0001	0.0001	0.0001	0.0000	0.0090	0.0001	0.0001
 Because, I mean, I've- Plus you know, now I'm kind of tall.	0.0000	0.0005	0.0001	0.0002	0.0002	0.0002	0.0001	0.0001	0.0001	0.0001	0.0001	0.0001	0.0001	0.0001	0.0003	0.0001	0.0002
 So going there, I'm tall, guys in the twelfth grade, some of 'em, my- my height.	0.0001	0.0140	0.0000	0.0001	0.0000	0.0003	0.0001	0.0000	0.0000	0.0002	0.0001	0.0001	0.0001	0.0001	0.0004	0.0001	0.0003
-They looking at me like, when you- when- when you get here?	0.0000	0.6634	0.0000	0.0002	0.0000	0.0001	0.0004	0.0001	0.0001	0.0001	0.0001	0.0000	0.0003	0.0005	0.0002	0.0001	0.0093
+They looking at me like, when you- when- when you get here?	0.0000	0.6633	0.0000	0.0002	0.0000	0.0001	0.0004	0.0001	0.0001	0.0001	0.0001	0.0000	0.0003	0.0005	0.0002	0.0001	0.0093
 But I was like, man I'm in the, um, tenth grade.	0.0000	0.0008	0.0001	0.0001	0.0001	0.0004	0.0001	0.0000	0.0000	0.0001	0.0001	0.0000	0.0002	0.0002	0.0005	0.0001	0.0001
 Why you not playing sports?	0.0002	0.9949	0.0002	0.0004	0.0004	0.0003	0.0002	0.0002	0.0009	0.0004	0.0005	0.0002	0.0002	0.0005	0.0003	0.0006	0.8068
 Oh, I didn't want to.	0.0000	0.0001	0.0001	0.0001	0.0002	0.0003	0.0001	0.0002	0.0001	0.0002	0.0001	0.0001	0.0002	0.0001	0.0002	0.0001	0.0000
@@ -599,7 +599,7 @@ Um, and a lot of schools are getting overcrowded now, because if it- It's a scho
 I can't think of the name of the school.	0.0002	0.0003	0.0001	0.0002	0.0001	0.0002	0.0001	0.0002	0.0000	0.0001	0.0001	0.0001	0.0004	0.0001	0.0003	0.0000	0.0001
 That just closed but around the corner, it's another school that's still open.	0.0001	0.0005	0.0001	0.0002	0.0001	0.0000	0.0001	0.0001	0.0000	0.0002	0.0002	0.0001	0.0001	0.0001	0.0022	0.0001	0.0003
 Um, majority of kids that go to that school, have to go to that school because of the, um, the distance.	0.0005	0.0003	0.0000	0.0003	0.0000	0.0001	0.0001	0.0003	0.0001	0.0001	0.0001	0.0001	0.0002	0.0001	0.0005	0.0000	0.0002
-and the average person in the city, some of 'em don't have a car to take their kid to like a- uh, a private school or something like that.	0.0002	0.0001	0.0001	0.0002	0.0001	0.0002	0.0000	0.0001	0.0003	0.0001	0.0002	0.0002	0.0002	0.0000	0.0004	0.0001	0.0001
+and the average person in the city, some of 'em don't have a car to take their kid to like a- uh, a private school or something like that.	0.0002	0.0001	0.0001	0.0002	0.0001	0.0002	0.0000	0.0001	0.0003	0.0001	0.0002	0.0003	0.0002	0.0000	0.0004	0.0001	0.0001
 Schools are getting overcrowded, the teachers are getting stressed out because they can't deal with the volume of kids that they getting.	0.0001	0.0011	0.0000	0.0003	0.0000	0.0002	0.0001	0.0000	0.0001	0.0001	0.0001	0.0001	0.0011	0.0005	0.0002	0.0001	0.0004
 Um, they building more private schools and they building more, um, charter schools.	0.0001	0.3642	0.0000	0.0004	0.0001	0.0003	0.0001	0.0001	0.0001	0.0004	0.0001	0.0001	0.0004	0.0001	0.0012	0.0003	0.0015
 I mean, which- I mean, I think it's good, but to build a- like a- um, I can't think of the neighborhood, but.	0.0001	0.0013	0.0000	0.0002	0.0001	0.0002	0.0001	0.0001	0.0000	0.0001	0.0001	0.0001	0.0005	0.0001	0.0004	0.0001	0.0003
