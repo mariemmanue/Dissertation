@@ -54,6 +54,13 @@ class MultitaskModel(transformers.PreTrainedModel):
 
     @classmethod
     def create(cls, model_name, head_type_list, fix_vocab=False):
+        # INCREASE DROPOUT to survive 50 epochs
+        config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+        config.hidden_dropout_prob = 0.2
+        config.attention_probs_dropout_prob = 0.2
+
+    # @classmethod
+    # def create(cls, model_name, head_type_list, fix_vocab=False):
         taskmodels_dict = {}
         
         # 1. Configure to disable compilation (CRITICAL FIX)
@@ -190,7 +197,7 @@ def trainM(tokenizer, train_f):
         warmup_ratio=0.1,  # Slightly higher warmup for stability
         
         # 3. PREVENT OVERFITTING (Reduced epochs + Early Stopping)
-        num_train_epochs=20,  # Rely on early stopping, not raw count
+        num_train_epochs=50,  # Rely on early stopping, not raw count
         
         # 4. MODERNBERT PREFERENCE (Higher weight decay)
         weight_decay=0.1,
@@ -225,7 +232,8 @@ def trainM(tokenizer, train_f):
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
         # ADD EARLY STOPPING CALLBACK
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=4)]
+        # callbacks=[EarlyStoppingCallback(early_stopping_patience=4)]
+        callbacks=[] 
     )
     
     print("Starting training...")
