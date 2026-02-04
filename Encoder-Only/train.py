@@ -11,8 +11,8 @@ import shutil
 
 """
 nlprun -q jag -p standard -r 40G -c 2 \
-  -n modernbert_clean_train \
-  -o slurm_logs/%x-%j.out \
+  -n modernbert_train \
+  -o ModernBERT/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
@@ -33,11 +33,11 @@ model_name = "answerdotai/ModernBERT-large"
 
 # Setup WandB
 import wandb
-wandb.init(project=args.wandb_project, name=f"modernbert-{gen_method}")
+wandb.init(project=args.wandb_project, name=f"modernbert")
 run_name = wandb.run.name
 
 # Local output dir
-out_dir = f"models/ModernBERT_{gen_method}_{lang}_{run_name}"
+out_dir = f"models/ModernBERT_{gen_method}_{lang}"
 
 # --- MANUAL CLEANUP (Fixes v5.0.0 error) ---
 if os.path.exists(out_dir):
@@ -166,7 +166,7 @@ def trainM(tokenizer, train_f):
     print(f"Pushed to HF Hub: {training_args.hub_model_id}")
 
 if __name__ == "__main__":
-    train_file = f"./data/{gen_method}/{lang}.tsv"
+    train_file = f"Combined_{lang}.tsv"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     head_type_list=[
