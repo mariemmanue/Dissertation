@@ -113,51 +113,110 @@ class CustomDataset(Dataset):
         item['labels'] = self.labels[idx]
         return item
 
+# def trainM(tokenizer, train_f):
+#     input_ids = []
+#     labels = []
+#     print(f"Loading data from {train_f}...")
+#     with open(train_f, 'r', encoding='utf-8') as r:
+#         for i, line in enumerate(r):
+#             line = line.strip()
+#             if not line: continue
+#             parts = line.split("\t")
+            
+#             # --- ROBUST SKIP ---
+#             # If the second item is not a digit, it's a header (even in the middle of file)
+#             if not parts[1].isdigit(): 
+#                 continue 
+            
+#             input_ids.append(parts[0])
+#             labels.append([int(x) for x in parts[1:]])
+
+
+    # print(f"Tokenizing {len(input_ids)} examples...")
+    # # ModernBERT handles 8192, but for CGEdit 128 is plenty/faster
+    # encodings = tokenizer(input_ids, truncation=True, padding=True, max_length=128, return_tensors='pt')
+    # dataset = CustomDataset(encodings, torch.tensor(labels))
+
 def trainM(tokenizer, train_f):
     input_ids = []
     labels = []
     print(f"Loading data from {train_f}...")
     with open(train_f, 'r', encoding='utf-8') as r:
-        for i, line in enumerate(r):
+        for line in r:
             line = line.strip()
-            if not line: continue
+            if not line or not line.split("\t")[1].isdigit(): 
+                continue
             parts = line.split("\t")
-            
-            # --- ROBUST SKIP ---
-            # If the second item is not a digit, it's a header (even in the middle of file)
-            if not parts[1].isdigit(): 
-                continue 
-            
             input_ids.append(parts[0])
             labels.append([int(x) for x in parts[1:]])
 
+    # SPLIT INTO TRAIN/DEV (80/20)
+    from sklearn.model_selection import train_test_split
+    train_texts, dev_texts, train_labels, dev_labels = train_test_split(
+        input_ids, labels, test_size=0.2, random_state=42, stratify=None
+    )
+    
+    print(f"Train: {len(train_texts)}, Dev: {len(dev_texts)}")
+    
+    # Tokenize both splits
+    train_enc = tokenizer(train_texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
+    dev_enc = tokenizer(dev_texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
+    
+    train_dataset = CustomDataset(train_enc, torch.tensor(train_labels))
+    dev_dataset = CustomDataset(dev_enc, torch.tensor(dev_labels))
 
-    print(f"Tokenizing {len(input_ids)} examples...")
-    # ModernBERT handles 8192, but for CGEdit 128 is plenty/faster
-    encodings = tokenizer(input_ids, truncation=True, padding=True, max_length=128, return_tensors='pt')
-    dataset = CustomDataset(encodings, torch.tensor(labels))
 
     training_args = transformers.TrainingArguments(
         output_dir=out_dir,
         report_to="wandb",
-        learning_rate=1e-5,     # Slightly lower LR for Large model
-        do_train=True,
-        warmup_steps=500,
-        num_train_epochs=200,    # ModernBERT converges faster than vanilla BERT
-        per_device_train_batch_size=32, # 32 fits on 40G/80G GPU usually
+        
+        # 1. LOWER LR for small dataset
+        learning_rate=2e-5,  # Up from 1e-5 – ModernBERT-large needs slightly higher for small data
+        
+        # 2. STEP-BASED WARMUP (not epoch-based)
+        warmup_ratio=0.06,  # 6% of total steps, not fixed 500
+        # Remove: warmup_steps=500  
+        
+        # 3. AGGRESSIVE EARLY STOPPING
+        num_train_epochs=50,  # Down from 200 – CGEdit used 500 but on much more data
+        
+        # 4. ADD WEIGHT DECAY
+        weight_decay=0.01,  # Standard regularization for BERT-family
+        
+        # 5. ENABLE EVALUATION & EARLY STOPPING
+        evaluation_strategy="epoch",  # Eval every epoch
         save_strategy="epoch",
-        save_total_limit=1,
-        logging_steps=10,
-        push_to_hub=True,       
-        hub_model_id=f"modernbert-{gen_method}-{lang}", 
-        hub_strategy="every_save",
-        remove_unused_columns=False
+        load_best_model_at_end=True,  # Load best checkpoint at end
+        metric_for_best_model="eval_loss",  # Or "eval_f1" if you add metrics
+        greater_is_better=False,  # For loss
+        save_total_limit=3,  # Keep top 3 checkpoints
+        
+        # 6. SMALLER BATCH for better generalization on tiny data
+        per_device_train_batch_size=16,  # Down from 32
+        gradient_accumulation_steps=2,  # Effective batch = 32
+        
+        # 7. GRADIENT CLIPPING
+        max_grad_norm=1.0,  # Prevent exploding gradients
+        
+        logging_steps=5,
+        push_to_hub=True,
+        hub_model_id=f"modernbert-{gen_method}-{lang}",
+        hub_strategy="end",  # Only push final model, not every epoch
+        remove_unused_columns=False,
     )
+
+
+    # trainer = MultitaskTrainer(
+    #     model=multitask_model,
+    #     args=training_args,
+    #     train_dataset=dataset,
+    # )
 
     trainer = MultitaskTrainer(
         model=multitask_model,
         args=training_args,
-        train_dataset=dataset,
+        train_dataset=train_dataset,
+        eval_dataset=dev_dataset,  # ADD THIS
     )
     
     print("Starting training...")
