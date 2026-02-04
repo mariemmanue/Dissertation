@@ -23,7 +23,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 parser = argparse.ArgumentParser()
 parser.add_argument("gen_method", type=str, help="CGEdit or CGEdit-ManualGen")
 parser.add_argument("lang", type=str, help="AAE or IndE")
-parser.add_argument("--wandb_project", type=str, default="modernbert-clean-run")
+parser.add_argument("--wandb_project", type=str, default="modernbert")
 parser.add_argument("--fix_vocab", action="store_true", help="Add AAE tokens to vocab")
 args = parser.parse_args()
 
@@ -122,9 +122,15 @@ def trainM(tokenizer, train_f):
             line = line.strip()
             if not line: continue
             parts = line.split("\t")
-            if i==0 and not parts[1].isdigit(): continue 
+            
+            # --- ROBUST SKIP ---
+            # If the second item is not a digit, it's a header (even in the middle of file)
+            if not parts[1].isdigit(): 
+                continue 
+            
             input_ids.append(parts[0])
             labels.append([int(x) for x in parts[1:]])
+
 
     print(f"Tokenizing {len(input_ids)} examples...")
     # ModernBERT handles 8192, but for CGEdit 128 is plenty/faster
