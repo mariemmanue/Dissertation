@@ -134,10 +134,10 @@ def trainM(tokenizer, train_f):
     training_args = transformers.TrainingArguments(
         output_dir=out_dir,
         report_to="wandb",
-        learning_rate=5e-5,     # Slightly lower LR for Large model
+        learning_rate=1e-5,     # Slightly lower LR for Large model
         do_train=True,
         warmup_steps=500,
-        num_train_epochs=50,    # ModernBERT converges faster than vanilla BERT
+        num_train_epochs=200,    # ModernBERT converges faster than vanilla BERT
         per_device_train_batch_size=32, # 32 fits on 40G/80G GPU usually
         save_strategy="epoch",
         save_total_limit=1,
