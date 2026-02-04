@@ -17,7 +17,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python train.py CGEdit AAE"
+   python -u train.py CGEdit AAE"
 """
 
 # --- ARGS ---
@@ -235,6 +235,7 @@ def trainM(tokenizer, train_f):
     
     trainer.push_to_hub()
     print(f"Pushed to HF Hub: {training_args.hub_model_id}")
+    wandb.finish() 
 
 
 if __name__ == "__main__":
