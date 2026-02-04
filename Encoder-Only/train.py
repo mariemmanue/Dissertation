@@ -91,7 +91,7 @@ class MultitaskModel(transformers.PreTrainedModel):
 
 # --- TRAINER ---
 
-
+class MultitaskTrainer(transformers.Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         # Added **kwargs to handle 'num_items_in_batch' passed by newer Transformers
         labels = inputs["labels"]
