@@ -1,5 +1,5 @@
-# import transformers
-from transformers import AutoConfig, AutoModel, AutoTokenizer
+import transformers
+from transformers import AutoConfig, AutoModel, AutoTokenizer, EarlyStoppingCallback
 import torch
 import transformers
 import torch.nn as nn
@@ -8,7 +8,6 @@ import sys
 import os
 import argparse
 import shutil
-
 
 """
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -24,7 +23,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 parser = argparse.ArgumentParser()
 parser.add_argument("gen_method", type=str, help="CGEdit or CGEdit-ManualGen")
 parser.add_argument("lang", type=str, help="AAE or IndE")
-parser.add_argument("--wandb_project", type=str, default="modernbert")
+parser.add_argument("--wandb_project", type=str, default="modernbert_more")
 parser.add_argument("--fix_vocab", action="store_true", help="Add AAE tokens to vocab")
 args = parser.parse_args()
 
@@ -103,7 +102,9 @@ class MultitaskTrainer(transformers.Trainer):
         # Flatten logits and labels for CrossEntropy
         # logits shape: [B, T, 2] -> [B*T, 2]
         # labels shape: [B, T]    -> [B*T]
-        loss_fct = nn.CrossEntropyLoss()
+        
+        # Using CrossEntropyLoss without class weights (since we're using label smoothing now)
+        loss_fct = nn.CrossEntropyLoss(label_smoothing=0.1) 
         loss = loss_fct(outputs.view(-1, 2), labels.view(-1))
         
         return (loss, outputs) if return_outputs else loss
@@ -113,23 +114,15 @@ class MultitaskTrainer(transformers.Trainer):
         Custom eval step that always returns (loss, logits, labels) with no grad,
         so Trainer can compute eval_loss and call compute_metrics.
         """
-        # Shallow copy so we don't mutate original
         inputs = inputs.copy()
-
-        # Extract labels
         labels = inputs.get("labels", None)
 
-        # Eval mode, no grad
         model.eval()
         with torch.no_grad():
-            # Force calculation of loss using our custom logic
             loss, logits = self.compute_loss(model, inputs, return_outputs=True)
 
-        # Detach for numpy conversion
-        if loss is not None:
-            loss = loss.detach()
-        if logits is not None:
-            logits = logits.detach()
+        if loss is not None: loss = loss.detach()
+        if logits is not None: logits = logits.detach()
         if labels is not None and isinstance(labels, torch.Tensor):
             labels = labels.detach()
 
@@ -137,7 +130,6 @@ class MultitaskTrainer(transformers.Trainer):
             return loss, None, None
 
         return loss, logits, labels
-
 
 # --- DATASET ---
 class CustomDataset(Dataset):
@@ -164,7 +156,6 @@ def trainM(tokenizer, train_f):
             input_ids.append(parts[0])
             labels.append([int(x) for x in parts[1:]])
 
-
     # SPLIT INTO TRAIN/DEV (80/20)
     from sklearn.model_selection import train_test_split
     train_texts, dev_texts, train_labels, dev_labels = train_test_split(
@@ -180,40 +171,44 @@ def trainM(tokenizer, train_f):
     train_dataset = CustomDataset(train_enc, torch.tensor(train_labels))
     dev_dataset = CustomDataset(dev_enc, torch.tensor(dev_labels))
 
+    # --- KEY HYPERPARAMETER UPDATES ---
     training_args = transformers.TrainingArguments(
         output_dir=out_dir,
         report_to="wandb",
         
-        # 1. LOWER LR for small dataset
-        learning_rate=2e-5,
+        # 1. OPTIMIZED LEARNING RATE (Matches your best run)
+        learning_rate=5e-5,
         
-        # 2. STEP-BASED WARMUP
-        warmup_ratio=0.06,
+        # 2. COSINE SCHEDULER (Better than linear for ModernBERT)
+        lr_scheduler_type="cosine",
+        warmup_ratio=0.1,  # Slightly higher warmup for stability
         
-        # 3. AGGRESSIVE EARLY STOPPING
-        num_train_epochs=50,
+        # 3. PREVENT OVERFITTING (Reduced epochs + Early Stopping)
+        num_train_epochs=20,  # Rely on early stopping, not raw count
         
-        # 4. ADD WEIGHT DECAY
-        weight_decay=0.01,
+        # 4. MODERNBERT PREFERENCE (Higher weight decay)
+        weight_decay=0.1,
         
-        # 5. ENABLE EVALUATION & EARLY STOPPING
-        eval_strategy="epoch",  # Correct argument name (older versions use evaluation_strategy)
+        # 5. GENERALIZATION (Label smoothing handled in Loss, factor passed here for logging/compat)
+        label_smoothing_factor=0.1,
+        
+        # 6. EVALUATION STRATEGY
+        eval_strategy="epoch",
         save_strategy="epoch",
-        load_best_model_at_end=True,  # Now safe because prediction_step provides eval_loss
-        metric_for_best_model="eval_loss",
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss", # Safest metric without custom compute_metrics
         greater_is_better=False,
         save_total_limit=1,
         
-        # 6. SMALLER BATCH
-        per_device_train_batch_size=16,
-        gradient_accumulation_steps=2,
+        # 7. BATCH SIZE (Matches your best run)
+        per_device_train_batch_size=32, 
+        gradient_accumulation_steps=1, # No accum needed if batch fits
         
-        # 7. GRADIENT CLIPPING
+        # 8. UTILS
         max_grad_norm=1.0,
-        
-        logging_steps=5,
+        logging_steps=10,
         push_to_hub=True,
-        hub_model_id=f"modernbert-{gen_method}-{lang}", # Fixed hub ID
+        hub_model_id=f"modernbert-{gen_method}-{lang}_optimized",
         hub_strategy="end",
         remove_unused_columns=False,
     )
@@ -222,7 +217,9 @@ def trainM(tokenizer, train_f):
         model=multitask_model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=dev_dataset,  # Pass the dev set!
+        eval_dataset=dev_dataset,
+        # ADD EARLY STOPPING CALLBACK
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=4)]
     )
     
     print("Starting training...")
