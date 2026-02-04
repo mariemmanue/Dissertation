@@ -90,24 +90,30 @@ class MultitaskModel(transformers.PreTrainedModel):
 
 
 # --- TRAINER ---
-class MultitaskTrainer(transformers.Trainer):
-    # Added **kwargs to handle 'num_items_in_batch' passed by newer Transformers
+
+
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        # Added **kwargs to handle 'num_items_in_batch' passed by newer Transformers
         labels = inputs["labels"]
         input_ids = inputs["input_ids"]
         attention_mask = inputs.get("attention_mask", None)
         
-        outputs = model(input_ids, attention_mask=attention_mask) # [B, T, 2]
+        outputs = model(input_ids, attention_mask=attention_mask)# [B, T, 2]
         
-        # Flatten logits and labels for CrossEntropy
+        # KEY CHANGE:
+        # Give '1' (Feature Present) a weight of 5.0
+        # This tells the model: "Missing a feature is 5x worse than hallucinating one."
+        pos_weight = torch.tensor([1.0, 5.0]).to(input_ids.device)
+                # Flatten logits and labels for CrossEntropy
         # logits shape: [B, T, 2] -> [B*T, 2]
         # labels shape: [B, T]    -> [B*T]
         
         # Using CrossEntropyLoss without class weights (since we're using label smoothing now)
-        loss_fct = nn.CrossEntropyLoss(label_smoothing=0.1) 
+        loss_fct = nn.CrossEntropyLoss(weight=pos_weight, label_smoothing=0.1)
         loss = loss_fct(outputs.view(-1, 2), labels.view(-1))
         
         return (loss, outputs) if return_outputs else loss
+
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         """
