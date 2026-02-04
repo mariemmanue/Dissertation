@@ -197,7 +197,7 @@ def trainM(tokenizer, train_f):
         weight_decay=0.01,
         
         # 5. ENABLE EVALUATION & EARLY STOPPING
-        evaluation_strategy="epoch",  # Correct argument name (older versions use evaluation_strategy)
+        eval_strategy="epoch",  # Correct argument name (older versions use evaluation_strategy)
         save_strategy="epoch",
         load_best_model_at_end=True,  # Now safe because prediction_step provides eval_loss
         metric_for_best_model="eval_loss",
