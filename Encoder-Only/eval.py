@@ -111,7 +111,7 @@ def predict(model, tokenizer, test_f):
     
     dataloader = DataLoader(TestDS(encodings), batch_size=32, shuffle=False)
     
-    out_name = f"data/results/{REPO_ID.split('/')[-1]}_{os.path.basename(test_f)}_preds.tsv"
+    out_name = f"data/results/{REPO_ID.split('/')[-1]}_{test_file_name}_preds.tsv"
     os.makedirs("data/results", exist_ok=True)
     
     head_list = list(model.taskmodels_dict.keys())
