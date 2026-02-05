@@ -23,7 +23,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 parser = argparse.ArgumentParser()
 parser.add_argument("gen_method", type=str, help="CGEdit or CGEdit-ManualGen")
 parser.add_argument("lang", type=str, help="AAE or IndE")
-parser.add_argument("--wandb_project", type=str, default="modernbert")
+parser.add_argument("--wandb_project", type=str, default="modernbert_final")
 parser.add_argument("--fix_vocab", action="store_true", help="Add AAE tokens to vocab")
 args = parser.parse_args()
 
@@ -33,7 +33,7 @@ model_name = "answerdotai/ModernBERT-large"
 
 # Setup WandB
 import wandb
-wandb.init(project=args.wandb_project, name=f"modernbert_last")
+wandb.init(project=args.wandb_project, name=f"modernbert_final")
 run_name = wandb.run.name
 
 # Local output dir
@@ -221,7 +221,7 @@ def trainM(tokenizer, train_f):
         max_grad_norm=1.0,
         logging_steps=10,
         push_to_hub=True,
-        hub_model_id=f"modernbert-{gen_method}-{lang}_last",
+        hub_model_id=f"modernbert-{gen_method}-{lang}_final",
         hub_strategy="end",
         remove_unused_columns=False,
     )
