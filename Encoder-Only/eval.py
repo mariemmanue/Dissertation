@@ -14,7 +14,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
   "cd /nlp/scr/mtano/Dissertation/Encoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py SociauxLing/modernbert-CGEdit-AAE_risk FullTest_Final"
+   python eval.py SociauxLing/modernbert-CGEdit-AAE_last FullTest_Final"
 
 """
 # Usage: python modernbert_eval.py <repo_id> <test_file_name>

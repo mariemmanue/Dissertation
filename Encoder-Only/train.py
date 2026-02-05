@@ -110,7 +110,7 @@ class MultitaskTrainer(transformers.Trainer):
         # KEY CHANGE:
         # Give '1' (Feature Present) a weight of 5.0
         # This tells the model: "Missing a feature is 5x worse than hallucinating one."
-        pos_weight = torch.tensor([1.0, 5.0]).to(input_ids.device)
+        pos_weight = torch.tensor([1.0, 4.0]).to(input_ids.device)
                 # Flatten logits and labels for CrossEntropy
         # logits shape: [B, T, 2] -> [B*T, 2]
         # labels shape: [B, T]    -> [B*T]
@@ -190,14 +190,14 @@ def trainM(tokenizer, train_f):
         report_to="wandb",
         
         # 1. OPTIMIZED LEARNING RATE (Matches your best run)
-        learning_rate=5e-5,
+        learning_rate=3e-5,
         
         # 2. COSINE SCHEDULER (Better than linear for ModernBERT)
         lr_scheduler_type="cosine",
         warmup_ratio=0.1,  # Slightly higher warmup for stability
         
         # 3. PREVENT OVERFITTING (Reduced epochs + Early Stopping)
-        num_train_epochs=50,  # Rely on early stopping, not raw count
+        num_train_epochs=40,  # Rely on early stopping, not raw count
         
         # 4. MODERNBERT PREFERENCE (Higher weight decay)
         weight_decay=0.1,
