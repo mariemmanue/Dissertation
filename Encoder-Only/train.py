@@ -23,7 +23,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 parser = argparse.ArgumentParser()
 parser.add_argument("gen_method", type=str, help="CGEdit or CGEdit-ManualGen")
 parser.add_argument("lang", type=str, help="AAE or IndE")
-parser.add_argument("--wandb_project", type=str, default="modernbert_final")
+parser.add_argument("--wandb_project", type=str, default="modernbert")
 parser.add_argument("--fix_vocab", action="store_true", help="Add AAE tokens to vocab")
 args = parser.parse_args()
 
