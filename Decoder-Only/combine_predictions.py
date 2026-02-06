@@ -12,7 +12,6 @@ nlprun -q jag -p standard -r 40G -c 2 \
    conda activate cgedit && \
    python combine_predictions.py Phi-4/data/FullTest_Final PHI4_Combined.csv --prefix PHI4_"
 
-
 """
 
 def combine_predictions(input_dir, output_file, prefix_to_strip=None):
