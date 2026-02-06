@@ -588,6 +588,151 @@ def plot_model_metrics(
     else:
         raise ValueError("style must be 'bar' or 'heatmap'")
 
+# ==========================================
+# 1. Parsing Helper (Updates your Metadata)
+# ==========================================
+# ==========================================
+# [START] NEW VISUALIZATION FUNCTIONS
+# ==========================================
+def parse_model_config(name: str):
+    """
+    Parses sheet names (or filenames) like 'GEMINI_25_FSCOT_CTX_...' 
+    to extract a clean Model name and Configuration string.
+    """
+    base = str(name).upper()
+    
+    # 1. Identify Model
+    if "MODERN-BERT" in base or "MODERNBERT" in base:
+        model = "Modern-BERT"
+    elif "PHI-4" in base or "PHI4" in base:
+        model = "Phi-4"
+    elif "BERT" in base:
+        model = "BERT"
+    elif "GPT" in base:
+        model = "GPT"
+    elif "GEMINI" in base:
+        model = "Gemini"
+    else:
+        model = base.split("_")[0] # Fallback
+
+    # 2. Identify Configuration components
+    # Instruction Strategy
+    if "FSCOT" in base: instr = "Few-Shot CoT"
+    elif "ZSCOT" in base: instr = "Zero-Shot CoT"
+    elif "ICL" in base: instr = "Few-Shot (ICL)"
+    elif "ZS" in base: instr = "Zero-Shot"
+    else: instr = "Standard"
+
+    # Context
+    if "NOCTX" in base or "NO_CTX" in base:
+        ctx = "No Context"
+    elif "CTX" in base:
+        ctx = "Context"
+    else:
+        ctx = ""
+
+    # Combine into one config label
+    config = f"{instr} + {ctx}" if ctx else instr
+    
+    return model, config
+
+def plot_faceted_model_comparison(
+    eval_dfs: list[pd.DataFrame], 
+    save_path: str = "faceted_model_comparison.png"
+):
+    """
+    Plots a grid of heatmaps: 
+    - Columns: Configurations (e.g., Zero-Shot + Context)
+    - X-axis: Models, Y-axis: Features, Color: F1 Score
+    """
+    if not eval_dfs: return
+    master_df = pd.concat(eval_dfs, ignore_index=True)
+
+    # Ensure we only plot if we have the columns
+    if 'config' not in master_df.columns or 'clean_model' not in master_df.columns:
+        print("[WARN] Missing 'config' or 'clean_model' columns. Skipping faceted plot.")
+        return
+
+    # Pivot: Index=Feature, Cols=[Config, Model], Values=F1
+    try:
+        pivot = master_df.pivot_table(
+            index='feature', 
+            columns=['config', 'clean_model'], 
+            values='f1', 
+            aggfunc='mean'
+        )
+    except KeyError:
+        return
+
+    configs = sorted(master_df['config'].unique())
+    n_configs = len(configs)
+    
+    # Dynamic Figure Size
+    fig_width = max(6, 5 * n_configs)
+    fig_height = max(10, len(pivot) * 0.4) 
+    fig, axes = plt.subplots(1, n_configs, figsize=(fig_width, fig_height), sharey=True)
+    
+    if n_configs == 1: axes = [axes]
+
+    for i, cfg in enumerate(configs):
+        ax = axes[i]
+        if cfg in pivot.columns.get_level_values(0):
+            data = pivot[cfg]
+            # Sort models alphabetically
+            data = data.reindex(sorted(data.columns), axis=1)
+            
+            sns.heatmap(
+                data, 
+                ax=ax, 
+                cmap="RdYlGn", 
+                vmin=0.0, vmax=1.0, 
+                annot=True, fmt=".2f", 
+                cbar=(i == n_configs - 1)
+            )
+            ax.set_title(cfg, fontsize=12, fontweight='bold', pad=15)
+            ax.set_xlabel("")
+            if i > 0: ax.set_ylabel("")
+        else:
+            ax.axis('off')
+
+    plt.suptitle("Model Performance by Configuration", fontsize=16, y=1.02)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"[INFO] Saved faceted heatmap to {save_path}")
+    plt.close()
+
+def plot_aggregated_model_performance(
+    eval_dfs: list[pd.DataFrame], 
+    save_path: str = "aggregated_model_performance.png"
+):
+    if not eval_dfs: return
+    master_df = pd.concat(eval_dfs, ignore_index=True)
+    
+    if 'config' not in master_df.columns or 'clean_model' not in master_df.columns:
+        return
+
+    summary = master_df.groupby(['clean_model', 'config'])['f1'].mean().reset_index()
+    
+    plt.figure(figsize=(12, 8))
+    sns.barplot(
+        data=summary,
+        x='clean_model',
+        y='f1',
+        hue='config',
+        palette="viridis",
+        edgecolor="black"
+    )
+    plt.title("Average F1 Score: Model vs. Configuration", fontsize=15)
+    plt.ylim(0, 1.05)
+    plt.xlabel("Model")
+    plt.ylabel("Mean F1 Score")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"[INFO] Saved aggregated bar chart to {save_path}")
+    plt.close()
 
 def detect_feature_set(sheet_name: str, df: pd.DataFrame) -> Optional[str]:
     """
@@ -903,14 +1048,7 @@ def evaluate_sheets(file_path: str):
     if not model_sheets:
         print(f"[WARN] No model sheets (GPT_*/BERT/PHI/MODERNBERT) found in {file_path}.")
         return
-
-    # [EXISTING CODE] ... 
-    # modelsheets[sheetname] = df 
-    # if not modelsheets:
-    #     print(f"WARN: No model sheets found...")
-    #     return
     
-    # --- INSERT START: STRICT INTERSECTION FILTERING ---
     # 1. Start with Gold sentences
     common_ids = set(gold_df['sentence'].dropna())
     initial_gold_count = len(common_ids)
@@ -1004,6 +1142,7 @@ def evaluate_sheets(file_path: str):
     if not eval_results:
         print("[WARN] No non-empty evaluation results.")
         return
+
 
     all_eval = pd.concat(eval_results, ignore_index=True)
 
@@ -1187,6 +1326,36 @@ def evaluate_sheets(file_path: str):
             )
         else:
             print(f"[WARN] Expected {colname} not found in delta_ctx columns: {list(delta_ctx.columns)}")
+
+    # ==========================================
+    # [START] Generate Multi-Model Comparison Plots
+    # ==========================================
+    print("\n[INFO] generating faceted model comparison plots...")
+    
+    # 1. Apply the parser to create clean columns for plotting
+    # We apply this to the 'model' column (which contains sheet names like 'GEMINI_25_...')
+    parsed_data = all_eval["model"].apply(lambda x: pd.Series(parse_model_config(str(x)), index=["clean_model", "config"]))
+    
+    # 2. Join these new columns to the main dataframe
+    # We drop existing cols if they exist to avoid duplicates
+    all_eval_for_plot = pd.concat([
+        all_eval.drop(columns=["clean_model", "config"], errors="ignore"), 
+        parsed_data
+    ], axis=1)
+
+    # 3. Call the plotting functions
+    plot_faceted_model_comparison(
+        [all_eval_for_plot], 
+        save_path=os.path.join(output_base, "ALL_MODELS_Faceted_Comparison.png")
+    )
+    
+    plot_aggregated_model_performance(
+        [all_eval_for_plot], 
+        save_path=os.path.join(output_base, "ALL_MODELS_Aggregated_Performance.png")
+    )
+    # ==========================================
+    # [END] Multi-Model Comparison Plots
+    # ==========================================
 
     # Cross-model comparisons
     all_models_label = "ALL_MODELS"
