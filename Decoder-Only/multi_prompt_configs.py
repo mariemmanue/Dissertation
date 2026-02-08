@@ -5,6 +5,7 @@ import json
 import re
 import time
 from tqdm import tqdm
+import datetime
 
 from openai import OpenAI
 import tiktoken
@@ -77,19 +78,73 @@ class OpenAIBackend(LLMBackend):
         )
         return resp.output_text
 
+
 class GeminiBackend(LLMBackend):
     def __init__(self, model: str):
         super().__init__(name="gemini", model=model)
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("Set GEMINI_API_KEY.")
-        genai.configure(api_key=api_key)  # <- This will now work
+        genai.configure(api_key=api_key)
         self.client = genai.GenerativeModel(model)
+        self.cache = None
+        self.cached_model_client = None
+
+    def create_cache(self, system_instruction: str, model_name: str, ttl_minutes=60):
+        """Creates a cached content object on Gemini servers."""
+        print("Creating Gemini Context Cache...")
+        try:
+            from google.generativeai import caching
+            
+            # Create the cache
+            self.cache = caching.CachedContent.create(
+                model=model_name,
+                display_name="aae_annotation_cache",
+                system_instruction=system_instruction,
+                ttl=datetime.timedelta(minutes=ttl_minutes),
+            )
+            
+            # Create a model client specifically bound to this cache
+            self.cached_model_client = genai.GenerativeModel.from_cached_content(self.cache)
+            print(f"Cache created! Name: {self.cache.name}")
+            return True
+        except ImportError:
+            print("WARNING: 'google.generativeai.caching' not found. Update library: pip install -U google-generativeai")
+            return False
+        except Exception as e:
+            print(f"WARNING: Failed to create cache: {e}")
+            return False
 
     def call(self, messages: List[Dict[str, str]]) -> str:
-        text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
-        resp = self.client.generate_content(text)
-        return resp.text
+        # 1. Extract just the user message (the sentence)
+        # If caching is active, 'messages' should ideally JUST be the user prompt.
+        # But your 'build_messages' creates a full list. We need to be careful.
+        
+        user_content = ""
+        # Find the last message which is the user input
+        for m in reversed(messages):
+            if m['role'] == 'user':
+                user_content = m['content']
+                break
+        
+        if not user_content:
+            # Fallback: just join everything if we can't find a clean user block
+            user_content = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
+
+        try:
+            if self.cached_model_client:
+                # Use the CACHED client (System prompt is already on server)
+                # We only send the user_content
+                resp = self.cached_model_client.generate_content(user_content)
+            else:
+                # Standard legacy mode (Full text every time)
+                full_text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
+                resp = self.client.generate_content(full_text)
+                
+            return resp.text
+        except Exception as e:
+            # Pass the exception up to query_model for retry logic
+            raise e
 
 
 class PhiBackend(LLMBackend):
@@ -1162,7 +1217,9 @@ def query_model(
         self_verification=self_verification,
         require_rationales=require_rationales,
     )
-
+    if isinstance(backend, GeminiBackend) and backend.cached_model_client is not None:
+        messages = [m for m in messages if m['role'] != 'system']
+        
     if dump_prompt and dump_once_key and os.environ.get(dump_once_key, "0") != "1":
         os.environ[dump_once_key] = "1"
         payload = {"backend": backend.name, "model": backend.model, "messages": messages}
@@ -1448,6 +1505,34 @@ def main():
     print("###############################")
     print("start time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
     print("###############################")
+
+    
+    # -------------------- GEMINI CACHING SETUP --------------------
+    if args.backend == "gemini":
+        print("Initializing Gemini Cache...")
+        
+        # 1. Generate the static system prompt using a dummy sentence
+        # We use a dummy because build_messages requires an utterance, 
+        # but we only want the system/feature block part.
+        dummy_msgs, _ = build_messages(
+            utterance="DUMMY",
+            features=CURRENT_FEATURES,
+            base_feature_block=BASE_FEATURE_BLOCK,
+            instruction_type=args.instruction_type,
+            include_examples_in_block=include_examples_in_block,
+            dialect_legitimacy=args.dialect_legitimacy,
+            self_verification=args.self_verification,
+            require_rationales=require_rationales,
+        )
+        
+        # Extract the "System" part (The massive rule block)
+        system_content = next((m['content'] for m in dummy_msgs if m['role'] == 'system'), None)
+        
+        if system_content:
+            # Create the cache on the server
+            backend.create_cache(system_content, args.model)
+        else:
+            print("Warning: Could not isolate system prompt for caching.")
     # ==================== MAIN LOOP (idx is just loop counter) ====================
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
         usable = False
