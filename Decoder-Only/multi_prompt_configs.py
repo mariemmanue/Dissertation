@@ -1495,6 +1495,8 @@ def main():
             dump_once_key=dumponcekey,
         )
         
+        time.sleep(5) 
+   
         if arm_used == "twoturn":
             used_two_turn_count += 1
         elif arm_used == "singleturn":
