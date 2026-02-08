@@ -1611,9 +1611,22 @@ def main():
             writer.writerow([idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
         
         # Write rationales (sentence first, NO idx)
+        clean_rats = []
+        for feat in CURRENT_FEATURES:
+            r = rats.get(feat, "")
+            # Safety: ensure it's a string
+            if not isinstance(r, str):
+                r = str(r) if r is not None else ""
+            # Optional: Collapse newlines to keep row compact (Excel friendly)
+            r = r.replace("\n", " ").replace("\r", "")
+            clean_rats.append(r)
+
+        # Write with explicit quoting
         with open(rats_path, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow([idx, sentence] + [rats.get(feat) for feat in CURRENT_FEATURES])
+            # quote_all=True is the safest option for messy text data
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerow([idx, sentence] + clean_rats)
+
 
     print("\n=== CONTEXT USAGE SUMMARY ===")
     print(f"Sentences with usable context: {usable_ctx_count}")
