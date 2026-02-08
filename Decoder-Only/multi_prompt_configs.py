@@ -198,17 +198,36 @@ class PhiBackend(LLMBackend):
             add_generation_prompt=True
         )
 
-        # 2. Generate
         outputs = self.pipe(
             prompt,
-            max_new_tokens=2000, # <--- ENSURE THIS IS 2000
+            max_new_tokens=2000,
             do_sample=True,
             temperature=0.1,
             top_p=0.9,
             return_full_text=False 
         )
 
-        generated_text = outputs["generated_text"]
+        # === DEBUG FIX START ===
+        # Handle different return types from HF pipeline safely
+        if isinstance(outputs, list) and len(outputs) > 0:
+            first_item = outputs[0]
+            
+            # Case 1: Standard dictionary (Most common)
+            if isinstance(first_item, dict):
+                generated_text = first_item.get("generated_text", "")
+                
+            # Case 2: List of dictionaries (Sometimes happens with chat templates)
+            elif isinstance(first_item, list) and len(first_item) > 0:
+                 generated_text = first_item[0].get("generated_text", "")
+                 
+            # Case 3: It's just a string (Rare but possible)
+            elif isinstance(first_item, str):
+                generated_text = first_item
+            else:
+                generated_text = str(first_item)
+        else:
+            generated_text = str(outputs)
+        # === DEBUG FIX END ===
 
         # 3. CLEANUP: Phi-4 often wraps output in ```json ... ```
         if "```" in generated_text:
