@@ -40,6 +40,20 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Phi-4/data"
 
 
+nlprun -q jag -p standard -r 40G -c 2   -n gem_ZS_noCTX_nolegit_labels   -o Gemini/slurm_logs/%x-%j.out   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python multi_prompt_configs.py \
+    --file FullTest_Final.xlsx \
+   --model gemini-1.5-pro  \
+   --backend gemini \
+    --sheet GEMINI_ZS_noCTX_nolegit_labels \
+    --instruction_type zero_shot \
+    --extended \
+    --dump_prompt \
+    --output_dir Gemini/data \
+    --labels_only"
+
 """
 
 # Initialize global variables
@@ -159,7 +173,7 @@ class PhiBackend(LLMBackend):
         self.pipe = hf_pipeline(
             "text-generation",
             model=model,
-            tokenizer=self.tokenizer, # Explicitly pass tokenizer
+            tokenizer=self.tokenizer,
             trust_remote_code=True,
             model_kwargs={
                 "attn_implementation": "sdpa", 
@@ -187,21 +201,18 @@ class PhiBackend(LLMBackend):
         # 2. Generate
         outputs = self.pipe(
             prompt,
-            max_new_tokens=2000, # Increased for safety with rationales
+            max_new_tokens=2000, # <--- ENSURE THIS IS 2000
             do_sample=True,
             temperature=0.1,
             top_p=0.9,
             return_full_text=False 
         )
 
-        generated_text = outputs[0]["generated_text"]
+        generated_text = outputs["generated_text"]
 
-        # Phi-4 often wraps output in ```json ... ```
-        
-        # 1. Remove markdown code blocks
+        # 3. CLEANUP: Phi-4 often wraps output in ```json ... ```
         if "```" in generated_text:
             # Regex to capture content inside ```json ... ``` or just ``` ... ```
-            # We take the LAST block if multiple exist, or the first one found
             pattern = r"```(?:json)?\s*(.*?)```"
             matches = re.findall(pattern, generated_text, re.DOTALL)
             if matches:
@@ -212,40 +223,6 @@ class PhiBackend(LLMBackend):
                 generated_text = generated_text.replace("```json", "").replace("```", "").strip()
 
         return generated_text
-
-
-
-
-    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
-        # Phi-4 uses a chat template, counting raw text is inaccurate
-        try:
-            formatted_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
-            return len(self.tokenizer.encode(formatted_prompt))
-        except:
-            # Fallback if template fails
-            text = "\n".join(m["content"] for m in messages)
-            return len(self.tokenizer.encode(text))
-
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        # 1. Apply Chat Template (CRITICAL for Phi-4)
-        # Phi-4 expects <|user|> ... <|assistant|> formatting
-        prompt = self.tokenizer.apply_chat_template(
-            messages, 
-            tokenize=False, 
-            add_generation_prompt=True
-        )
-
-        # 2. Generate
-        outputs = self.pipe(
-            prompt,
-            max_new_tokens=300,
-            do_sample=True,
-            temperature=0.1,  # Lower temp = more stable for annotation
-            top_p=0.9,
-            return_full_text=False # Only return the new tokens
-        )
-
-        return outputs[0]["generated_text"].strip()
 
 def extract_json_robust(text):
     # 1. Try standard cleaning & parsing first
@@ -1219,7 +1196,7 @@ def query_model(
     )
     if isinstance(backend, GeminiBackend) and backend.cached_model_client is not None:
         messages = [m for m in messages if m['role'] != 'system']
-        
+
     if dump_prompt and dump_once_key and os.environ.get(dump_once_key, "0") != "1":
         os.environ[dump_once_key] = "1"
         payload = {"backend": backend.name, "model": backend.model, "messages": messages}
