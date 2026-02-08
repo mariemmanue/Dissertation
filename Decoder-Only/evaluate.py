@@ -594,28 +594,23 @@ def plot_model_metrics(
 # ==========================================
 # [START] NEW VISUALIZATION FUNCTIONS
 # ==========================================
+
 def parse_model_config(name: str):
     """
-    Parses sheet names (or filenames) like 'GEMINI_25_FSCOT_CTX_...' 
-    to extract a clean Model name and Configuration string.
+    Parses sheet names to extract Model, Config, Dialect Legitimacy, and Task Type.
+    Example: 'GEMINI_25_FSCOT_CTX_two_legit_labels_...'
     """
     base = str(name).upper()
     
-    # 1. Identify Model
-    if "MODERN-BERT" in base or "MODERNBERT" in base:
-        model = "Modern-BERT"
-    elif "PHI-4" in base or "PHI4" in base:
-        model = "Phi-4"
-    elif "BERT" in base:
-        model = "BERT"
-    elif "GPT" in base:
-        model = "GPT"
-    elif "GEMINI" in base:
-        model = "Gemini"
-    else:
-        model = base.split("_")[0] # Fallback
+    # --- 1. Identify Model ---
+    if "MODERN-BERT" in base or "MODERNBERT" in base: model = "Modern-BERT"
+    elif "PHI-4" in base or "PHI4" in base: model = "Phi-4"
+    elif "BERT" in base: model = "BERT"
+    elif "GPT" in base: model = "GPT"
+    elif "GEMINI" in base: model = "Gemini"
+    else: model = base.split("_")[0]
 
-    # 2. Identify Configuration components
+    # --- 2. Identify Configuration components ---
     # Instruction Strategy
     if "FSCOT" in base: instr = "Few-Shot CoT"
     elif "ZSCOT" in base: instr = "Zero-Shot CoT"
@@ -624,36 +619,49 @@ def parse_model_config(name: str):
     else: instr = "Standard"
 
     # Context
-    if "NOCTX" in base or "NO_CTX" in base:
-        ctx = "No Context"
-    elif "CTX" in base:
-        ctx = "Context"
-    else:
-        ctx = ""
+    ctx = "No Context" if ("NOCTX" in base or "NO_CTX" in base) else ("Context" if "CTX" in base else "")
 
-    # Combine into one config label
-    config = f"{instr} + {ctx}" if ctx else instr
+    # --- 3. NEW FACTORS: Legitimacy & Task Type ---
+    # Dialect Legitimacy (legit vs nolegit)
+    if "NOLEGIT" in base or "NO_LEGIT" in base:
+        legit = "No Legitimacy"
+    elif "LEGIT" in base:
+        legit = "Legitimacy Info"
+    else:
+        legit = "" # Default or unknown
+
+    # Task Type (Labels vs Rationales)
+    # Looking for 'rats' or 'rationales' vs 'labels'
+    if "RATS" in base or "RATIONALES" in base:
+        task = "Rationales"
+    elif "LABELS" in base:
+        task = "Labels"
+    else:
+        task = ""
+
+    # Combine into one descriptive config label
+    # E.g., "Few-Shot CoT + Context | Legitimacy Info | Labels"
+    parts = [p for p in [instr, ctx, legit, task] if p]
+    config = " + ".join(parts)
     
     return model, config
+
 
 def plot_faceted_model_comparison(
     eval_dfs: list[pd.DataFrame], 
     save_path: str = "faceted_model_comparison.png"
 ):
     """
-    Plots a grid of heatmaps: 
-    - Columns: Configurations (e.g., Zero-Shot + Context)
-    - X-axis: Models, Y-axis: Features, Color: F1 Score
+    Plots a grid of heatmaps for all configurations.
     """
     if not eval_dfs: return
     master_df = pd.concat(eval_dfs, ignore_index=True)
 
-    # Ensure we only plot if we have the columns
     if 'config' not in master_df.columns or 'clean_model' not in master_df.columns:
-        print("[WARN] Missing 'config' or 'clean_model' columns. Skipping faceted plot.")
+        print("[WARN] Missing columns for plotting. Skipping.")
         return
 
-    # Pivot: Index=Feature, Cols=[Config, Model], Values=F1
+    # Pivot Data
     try:
         pivot = master_df.pivot_table(
             index='feature', 
@@ -661,24 +669,27 @@ def plot_faceted_model_comparison(
             values='f1', 
             aggfunc='mean'
         )
-    except KeyError:
-        return
+    except KeyError: return
 
     configs = sorted(master_df['config'].unique())
     n_configs = len(configs)
     
-    # Dynamic Figure Size
-    fig_width = max(6, 5 * n_configs)
-    fig_height = max(10, len(pivot) * 0.4) 
-    fig, axes = plt.subplots(1, n_configs, figsize=(fig_width, fig_height), sharey=True)
+    # --- Better Layout Logic for Many Facets ---
+    # If > 5 configs, wrap into multiple rows
+    import math
+    ncols = min(n_configs, 4) 
+    nrows = math.ceil(n_configs / ncols)
     
-    if n_configs == 1: axes = [axes]
+    fig_width = 6 * ncols
+    fig_height = max(8, len(pivot) * 0.5) * nrows # Scale height by rows
+    
+    fig, axes = plt.subplots(nrows, ncols, figsize=(fig_width, fig_height), sharey=True, squeeze=False)
+    axes = axes.flatten() # Flatten 2D array to 1D for easy iteration
 
     for i, cfg in enumerate(configs):
         ax = axes[i]
         if cfg in pivot.columns.get_level_values(0):
             data = pivot[cfg]
-            # Sort models alphabetically
             data = data.reindex(sorted(data.columns), axis=1)
             
             sns.heatmap(
@@ -687,20 +698,29 @@ def plot_faceted_model_comparison(
                 cmap="RdYlGn", 
                 vmin=0.0, vmax=1.0, 
                 annot=True, fmt=".2f", 
-                cbar=(i == n_configs - 1)
+                cbar=(i == ncols - 1) # Only on rightmost plot of first row (approx)
             )
-            ax.set_title(cfg, fontsize=12, fontweight='bold', pad=15)
+            ax.set_title(cfg, fontsize=10, fontweight='bold', pad=10)
             ax.set_xlabel("")
-            if i > 0: ax.set_ylabel("")
+            if i % ncols != 0: ax.set_ylabel("") # Only Y-label on left-most cols
         else:
             ax.axis('off')
 
-    plt.suptitle("Model Performance by Configuration", fontsize=16, y=1.02)
+    # Turn off unused axes
+    for j in range(i + 1, len(axes)):
+        axes[j].axis('off')
+
+    plt.suptitle("Model Performance by Configuration (Instr + Ctx + Legit + Task)", fontsize=16, y=1.01)
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"[INFO] Saved faceted heatmap to {save_path}")
     plt.close()
+
+
+
+
+
 
 def plot_aggregated_model_performance(
     eval_dfs: list[pd.DataFrame], 
@@ -1030,7 +1050,7 @@ def evaluate_sheets(file_path: str):
 
 
         name_up = str(sheet_name).upper()
-        if not (name_up.startswith("GPT") or name_up.startswith("BERT") or name_up.startswith("PHI") or name_up.startswith("MODERNBERT") or name_up.startswith("GEM") or name_up.startswith("GEMINI")):
+        if not (name_up.startswith("GPT") or name_up.startswith("BERT") or name_up.startswith("PHI-4") or name_up.startswith("PHI4") or name_up.startswith("PHI") or name_up.startswith("MODERNBERT") or name_up.startswith("GEM") or name_up.startswith("GEMINI")):
             continue
 
         df = drop_features_column(df_raw)

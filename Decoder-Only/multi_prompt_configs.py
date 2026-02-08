@@ -38,69 +38,6 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --labels_only \
     --output_dir Phi-4/data"
 
-    --context \
-    --context_mode two_turn \
-      --labels_only \
-    --dialect_legitimacy \
-
-nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
-  -n phi4_gen \
-  -o Phi-4/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python multi_prompt_configs.py \
-    --file FullTest_Final.xlsx \
-   --model microsoft/phi-4  \
-   --backend phi \
-    --sheet PHI4_25_ICL_noCTX_legit_labels \
-    --instruction_type icl \
-    --extended \
-    --dialect_legitimacy \
-    --dump_prompt \
-    --labels_only \
-    --output_dir Phi-4/data"
-
-
-nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
-  -n phi4_gen \
-  -o Phi-4/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python multi_prompt_configs.py \
-    --file FullTest_Final.xlsx \
-   --model microsoft/phi-4  \
-   --backend phi \
-    --sheet PHI4_25_FSCOT_noCTX_legit_labels \
-    --instruction_type few_shot_cot \
-    --extended \
-    --dialect_legitimacy \
-    --dump_prompt \
-    --labels_only \
-    --output_dir Phi-4/data"
-
-
-
-nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
-  -n phi4_gen \
-  -o Phi-4/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python multi_prompt_configs.py \
-    --file FullTest_Final.xlsx \
-   --model microsoft/phi-4  \
-   --backend phi \
-    --sheet PHI4_25_ZSCOT_noCTX_legit_labels \
-    --instruction_type zero_shot_cot \
-    --extended \
-    --dialect_legitimacy \
-    --dump_prompt \
-    --labels_only \
-    --output_dir Phi-4/data"
-
-
 
 """
 
@@ -164,21 +101,63 @@ class PhiBackend(LLMBackend):
             model, 
             trust_remote_code=True
         )
-        
-        # Use device=0 to FORCE GPU usage. 
-        # This will crash if CUDA is not found (which is good for debugging).
-
         self.pipe = hf_pipeline(
             "text-generation",
             model=model,
+            tokenizer=self.tokenizer, # Explicitly pass tokenizer
             trust_remote_code=True,
             model_kwargs={
-                # Use "sdpa" (PyTorch native) instead of "flash_attention_2" (external lib)
                 "attn_implementation": "sdpa", 
                 "torch_dtype": "auto", 
             },
             device_map="auto",
         )
+
+    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted_prompt))
+        except:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]]) -> str:
+        # 1. Apply Chat Template
+        prompt = self.tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+
+        # 2. Generate
+        outputs = self.pipe(
+            prompt,
+            max_new_tokens=2000, # Increased for safety with rationales
+            do_sample=True,
+            temperature=0.1,
+            top_p=0.9,
+            return_full_text=False 
+        )
+
+        generated_text = outputs[0]["generated_text"]
+
+        # Phi-4 often wraps output in ```json ... ```
+        
+        # 1. Remove markdown code blocks
+        if "```" in generated_text:
+            # Regex to capture content inside ```json ... ``` or just ``` ... ```
+            # We take the LAST block if multiple exist, or the first one found
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                # Use the longest match or the last one (often the actual JSON)
+                generated_text = matches[-1].strip()
+            else:
+                # Fallback: remove the markers manually if regex fails
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
+
 
 
 
@@ -213,6 +192,35 @@ class PhiBackend(LLMBackend):
 
         return outputs[0]["generated_text"].strip()
 
+def extract_json_robust(text):
+    # 1. Try standard cleaning & parsing first
+    clean_text = re.sub(r'```json\s*', '', text, flags=re.IGNORECASE)
+    clean_text = re.sub(r'```', '', clean_text).strip()
+    
+    try:
+        return json.loads(clean_text)
+    except json.JSONDecodeError:
+        pass # Fallthrough to regex extraction
+    
+    # 2. Fallback: Regex extraction of keys and values
+    # This works even if the JSON is truncated at the end!
+    data = {}
+    
+    # Pattern for simple labels: "key": 0 or "key": 1
+    simple_pattern = r'"([\w-]+)":\s*(0|1)'
+    for key, val in re.findall(simple_pattern, clean_text):
+        data[key] = int(val)
+        
+    # Pattern for rationales: "key": { "value": 0, ... }
+    # This is trickier, but we can try to grab the value specifically
+    complex_pattern = r'"([\w-]+)":\s*\{\s*"value":\s*(0|1)'
+    for key, val in re.findall(complex_pattern, clean_text):
+        data[key] = int(val)
+        
+    if not data:
+        return None # Truly failed
+        
+    return data
 
 # -------------------- FEATURE LISTS --------------------
 
@@ -1076,13 +1084,13 @@ def _extract_first_json_object(text: str) -> str | None:
 
 
 def parse_output_json(raw_str: str, features: list[str]):
-    try:
-        data = json.loads(raw_str)
-    except json.JSONDecodeError:
-        candidate = _extract_first_json_object(raw_str)
-        if not candidate:
-            raise
-        data = json.loads(candidate)
+    # Use the robust extractor which handles code blocks, truncation, and bad syntax
+    data = extract_json_robust(raw_str)
+    
+    if data is None:
+        # Fallback: Treat as total failure or raise exception
+        # You can raise exception to trigger the "PARSEFAIL" logic in main()
+        raise ValueError("Failed to extract JSON from model output")
 
     vals = {}
     rats = {}
