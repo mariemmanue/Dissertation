@@ -45,7 +45,7 @@ nlprun -q jag -p standard -r 40G -c 2   -n gem_ZS_noCTX_nolegit_labels   -o Gemi
    conda activate cgedit && \
    python multi_prompt_configs.py \
     --file FullTest_Final.xlsx \
-   --model gemini-1.5-pro  \
+   --model gemini-2.5-flash \
    --backend gemini \
     --sheet GEMINI_ZS_noCTX_nolegit_labels \
     --instruction_type zero_shot \
