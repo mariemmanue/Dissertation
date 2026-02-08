@@ -1084,8 +1084,12 @@ def _extract_first_json_object(text: str) -> str | None:
 
 
 def parse_output_json(raw_str: str, features: list[str]):
-    # Use the robust extractor which handles code blocks, truncation, and bad syntax
+    # Use the robust function we defined earlier
     data = extract_json_robust(raw_str)
+    
+    if data is None:
+        raise ValueError("Failed to extract JSON")
+
     
     if data is None:
         # Fallback: Treat as total failure or raise exception
