@@ -250,7 +250,7 @@ def trainM(tokenizer, train_f):
 
 
 if __name__ == "__main__":
-    train_file = f"Combined_{lang}.tsv"
+    train_file = f"{lang}.tsv"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     head_type_list=[

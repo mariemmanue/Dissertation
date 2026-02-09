@@ -91,6 +91,76 @@ class OpenAIBackend(LLMBackend):
             input=messages,
         )
         return resp.output_text
+    
+class QwenBackend(LLMBackend):
+    def __init__(self, model: str):
+        super().__init__(name="qwen", model=model)
+        
+        print(f"Loading Qwen from {model}...")
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model, 
+            trust_remote_code=True
+        )
+        self.pipe = hf_pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=self.tokenizer,
+            trust_remote_code=True,
+            model_kwargs={
+                "attn_implementation": "sdpa", # Qwen supports SDPA or flash_attention_2
+                "torch_dtype": "auto", 
+            },
+            device_map="auto",
+        )
+
+    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted_prompt))
+        except:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]]) -> str:
+        # 1. Apply Chat Template
+        prompt = self.tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+
+        # 2. Generate
+        outputs = self.pipe(
+            prompt,
+            max_new_tokens=2000, # Ensure this is high enough for rationales
+            do_sample=True,
+            temperature=0.1,
+            top_p=0.9,
+            return_full_text=False 
+        )
+
+        # 3. Handle output parsing safely
+        if isinstance(outputs, list) and len(outputs) > 0:
+            first = outputs[0]
+            if isinstance(first, dict):
+                generated_text = first.get("generated_text", "")
+            elif isinstance(first, list):
+                generated_text = first[0].get("generated_text", "")
+            else:
+                generated_text = str(first)
+        else:
+            generated_text = str(outputs)
+
+        # 4. Cleanup Markdown code blocks (Qwen loves ```json)
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
 
 
 class GeminiBackend(LLMBackend):
@@ -1321,7 +1391,7 @@ def main():
     parser.add_argument(
         "--backend",
         type=str,
-        choices=["openai", "gemini", "phi"],
+        choices=["openai", "gemini", "phi", "qwen"],
         default="openai",
         help="LLM backend to use.",
     )
@@ -1400,6 +1470,9 @@ def main():
         backend = PhiBackend(model=args.model)
         # enc will be ignored by PhiBackend.count_tokens, but set something to satisfy the interface
         enc = tiktoken.get_encoding("cl100k_base")
+    elif args.backend == "qwen": # <--- ADD THIS BLOCK
+        backend = QwenBackend(model=args.model)
+        enc = tiktoken.get_encoding("cl100k_base") # Dummy encoding for counting
     else:
         raise ValueError(f"Unknown backend {args.backend}")
 
