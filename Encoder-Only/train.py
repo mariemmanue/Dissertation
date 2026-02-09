@@ -251,6 +251,10 @@ def trainM(tokenizer, train_f):
 
 if __name__ == "__main__":
     train_file = f"{lang}.tsv"
+    dataset_path = os.path.join('..', 'Datasets', train_file)
+    
+    # Verification print
+    print(f"Looking for file at: {dataset_path}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     head_type_list=[
