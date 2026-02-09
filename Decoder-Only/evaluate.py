@@ -33,11 +33,11 @@ from multi_prompt_configs import (
 nlprun -q jag -p standard -r 40G -c 2 -t 4:00:00 \
   -n eval-gpt-sheets \
   -o slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only/GPT && \
+  "cd /nlp/scr/mtano/Dissertation && \
    mkdir -p slurm_logs && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python evaluate.py"
+   python Decoder-Only/evaluate.py Datasets/FullTestFinal.xlsx"
 """
 
 # Treat wh-qu as part of the MASIS/17 set (it may be derived from wh-qu1/wh-qu2)
@@ -58,7 +58,7 @@ feat_thresholds = {
     "multiple-neg": 0.5,
 }
 
-output_dir = "data/results"
+output_dir = "Results"
 os.makedirs(output_dir, exist_ok=True)
 
 
@@ -1479,8 +1479,8 @@ def main():
     
     parser.add_argument(
         "--output-dir", 
-        default="data/results", 
-        help="Base directory to save evaluation results (default: data/results)"
+        default="Results/", 
+        help="Base directory to save evaluation results"
     )
 
     args = parser.parse_args()

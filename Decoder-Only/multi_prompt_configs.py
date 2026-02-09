@@ -22,11 +22,11 @@ from typing import List, Dict, Any
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_gen_zs_ctx_leg_lab \
   -o Phi-4/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
+  "cd /nlp/scr/mtano/Dissertation&& \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python multi_prompt_configs.py \
-    --file FullTest_Final.xlsx \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
     --sheet PHI4_ZS_CTX_legit_labels \
@@ -37,7 +37,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode two_turn \
     --dump_prompt \
     --labels_only \
-    --output_dir Phi-4/data"
+    --output_dir Decoder-Only/Phi-4/data"
 
 
 nlprun -q jag -p standard -r 40G -c 2   -n gem_ZS_noCTX_nolegit_labels   -o Gemini/slurm_logs/%x-%j.out   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \

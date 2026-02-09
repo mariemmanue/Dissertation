@@ -11,19 +11,19 @@ from huggingface_hub import hf_hub_download
 nlprun -q jag -p standard -r 40G -c 2 \
   -n eval_modernbert \
   -o ModernBERT/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only && \
+  "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python eval.py SociauxLing/modernbert-CGEdit-AAE_final FullTest_Final"
-
+   python eval.py SociauxLing/modernbert-CGEdit-AAE_final FullTest_Final.txt ModernBERT"
 """
-# Usage: python modernbert_eval.py <repo_id> <test_file_name>
+
+# Usage: python modernbert_eval.py <repo_id> <test_file_name_with_ext>
 if len(sys.argv) < 3:
     print("Usage: python modernbert_eval.py <hf_repo_id> <test_file_name>")
     sys.exit(1)
 
 REPO_ID = sys.argv[1]
-test_file_name = sys.argv[2]
+test_file_name = sys.argv[2]  # e.g., "FullTest_Final.txt" or "data.csv"
 model_name = "answerdotai/ModernBERT-large"
 
 class MultitaskModel(transformers.PreTrainedModel):
@@ -77,8 +77,7 @@ def load_from_hub(repo_id, head_list):
         if k.startswith("_orig_mod."): k = k[10:]
         new_sd[k] = v
         
-    # Resize if needed (if fix_vocab was used)
-    # We check the weight shape of embeddings against the tokenizer
+    # Resize if needed
     tokenizer = AutoTokenizer.from_pretrained(repo_id)
     vocab_size = len(tokenizer)
     current_emb_size = model.encoder.embeddings.tok_embeddings.weight.shape[0]
@@ -89,7 +88,8 @@ def load_from_hub(repo_id, head_list):
     model.load_state_dict(new_sd, strict=False)
     return model, tokenizer
 
-def predict(model, tokenizer, test_f):
+
+def predict(model, tokenizer, test_f, clean_filename_no_ext, output_dir):
     texts = []
     print(f"Reading {test_f}...")
     
@@ -101,7 +101,6 @@ def predict(model, tokenizer, test_f):
         with open(test_f, 'r', encoding='utf-8') as r:
             texts = [line.strip() for line in r if line.strip()]
 
-    # Use same max_length as training
     encodings = tokenizer(texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
     
     class TestDS(Dataset):
@@ -111,9 +110,10 @@ def predict(model, tokenizer, test_f):
     
     dataloader = DataLoader(TestDS(encodings), batch_size=32, shuffle=False)
     
-    out_name = f"data/results/{REPO_ID.split('/')[-1]}_{test_file_name}_preds.tsv"
-    os.makedirs("data/results", exist_ok=True)
-    
+    # --- OUTPUT FILENAME LOGIC ---
+    os.makedirs(output_dir, exist_ok=True)
+    out_name = os.path.join(output_dir, f"{REPO_ID.split('/')[-1]}_{clean_filename_no_ext}_preds.tsv")
+
     head_list = list(model.taskmodels_dict.keys())
     
     print(f"Writing results to {out_name}...")
@@ -140,6 +140,20 @@ def predict(model, tokenizer, test_f):
                 f.write(f"{clean_text}\t{line_scores}\n")
 
 if __name__ == "__main__":
+    # UPDATED USAGE: 
+    # python Encoder-Only/eval.py <repo_id> <test_file> <arch_folder>
+    
+    if len(sys.argv) < 3:
+        print("Usage: python Encoder-Only/eval.py <hf_repo_id> <test_file_name> [arch_folder]")
+        print("Example: python Encoder-Only/eval.py SociauxLing/model AAE.txt ModernBERT")
+        sys.exit(1)
+
+    REPO_ID = sys.argv[1]
+    test_file_name = sys.argv[2]
+    
+    # NEW ARGUMENT: arch_folder (default to ModernBERT if not provided)
+    arch_folder = sys.argv[3] if len(sys.argv) > 3 else "ModernBERT"
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     head_type_list=[
@@ -153,6 +167,19 @@ if __name__ == "__main__":
     model.to(device)
     model.eval()
     
-    test_path = f"./{test_file_name}.txt"
-    predict(model, tokenizer, test_path)
+    # --- UPDATED PATH LOGIC ---
+    
+    # 1. INPUT: Look in Datasets folder (relative to Dissertation root)
+    # No more ".." since we are running FROM Dissertation
+    full_data_path = os.path.join("Datasets", test_file_name)
+    
+    # 2. OUTPUT DIR: Encoder-Only/<arch_folder>/results/
+    output_dir = os.path.join("Encoder-Only", arch_folder, "results")
+    
+    # 3. Clean filename for output naming
+    clean_filename_no_ext = os.path.splitext(test_file_name)[0]
+
+    # Pass the calculated output_dir to predict function
+    predict(model, tokenizer, full_data_path, clean_filename_no_ext, output_dir)
     print("Done.")
+

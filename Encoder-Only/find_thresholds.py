@@ -12,7 +12,7 @@ import json
 # --- ARGS ---
 parser = argparse.ArgumentParser()
 parser.add_argument("model_dir", type=str, help="Path to the trained model directory")
-parser.add_argument("data_file", type=str, help="Path to Combined_AAE.tsv")
+parser.add_argument("data_file", type=str, help="Path to .tsv")
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
 args = parser.parse_args()
@@ -83,10 +83,14 @@ def main():
     ]
 
     # 2. LOAD DATA
-    print(f"Loading data from {args.data_file}...")
+    full_data_path = os.path.join("..", "Datasets", args.data_file)
+
+    print(f"Loading data from {full_data_path}...")
     input_ids = []
     labels = []
-    with open(args.data_file, 'r', encoding='utf-8') as r:
+    
+    # Use full_data_path here instead of args.data_file directly
+    with open(full_data_path, 'r', encoding='utf-8') as r:
         for line in r:
             line = line.strip()
             if not line or not line.split("\t")[1].isdigit(): 

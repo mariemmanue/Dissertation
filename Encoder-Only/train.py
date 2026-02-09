@@ -13,10 +13,10 @@ import shutil
 nlprun -q jag -p standard -r 40G -c 2 \
   -n modernbert_train \
   -o ModernBERT/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Encoder-Only && \
+  "cd /nlp/scr/mtano/Dissertation/ && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python -u train.py CGEdit AAE"
+   python -u Encoder-Only/train.py CGEdit AAE --arch_folder ModernBERT"
 """
 
 # --- ARGS ---
@@ -25,6 +25,8 @@ parser.add_argument("gen_method", type=str, help="CGEdit or CGEdit-ManualGen")
 parser.add_argument("lang", type=str, help="AAE or IndE")
 parser.add_argument("--wandb_project", type=str, default="modernbert")
 parser.add_argument("--fix_vocab", action="store_true", help="Add AAE tokens to vocab")
+parser.add_argument("--arch_folder", type=str, default="ModernBERT", help="Folder inside Encoder-Only to save outputs (e.g., BERT, ModernBERT)")
+
 args = parser.parse_args()
 
 gen_method = args.gen_method
@@ -37,7 +39,7 @@ wandb.init(project=args.wandb_project, name=f"modernbert_final")
 run_name = wandb.run.name
 
 # Local output dir
-out_dir = f"models/ModernBERT_{gen_method}_{lang}"
+out_dir = os.path.join("Encoder-Only", args.arch_folder, f"{gen_method}_{lang}")
 
 # --- MANUAL CLEANUP (Fixes v5.0.0 error) ---
 if os.path.exists(out_dir):
@@ -248,13 +250,16 @@ def trainM(tokenizer, train_f):
     print(f"Pushed to HF Hub: {training_args.hub_model_id}")
     wandb.finish() 
 
-
 if __name__ == "__main__":
     train_file = f"{lang}.tsv"
-    dataset_path = os.path.join('..', 'Datasets', train_file)
+    
+    # UPDATED: Point to the Datasets folder relative to Dissertation root
+    dataset_path = os.path.join("Datasets", train_file) 
     
     # Verification print
     print(f"Looking for file at: {dataset_path}")
+
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     head_type_list=[
@@ -278,4 +283,7 @@ if __name__ == "__main__":
             multitask_model.encoder.resize_token_embeddings(len(tokenizer))
 
     multitask_model.to(device)
-    trainM(tokenizer, train_file)
+    
+    # UPDATED: Pass the full 'dataset_path', not 'train_file'
+    trainM(tokenizer, dataset_path)
+
