@@ -7,11 +7,13 @@ import argparse
 nlprun -q jag -p standard -r 40G -c 2 \
   -n combine_phi4 \
   -o Phi-4/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
+  "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
-   python combine_predictions.py Phi-4/data/FullTest_Final PHI4_Combined.csv --prefix PHI4_"
-
+    python Decoder-Only/combine_predictions.py \
+    Decoder-Only/Phi-4/data/FullTest_Final/ \
+    Decoder-Only/Phi-4/data/PHI4_Combined.xlsx \
+    --prefix PHI4_
 """
 
 def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
