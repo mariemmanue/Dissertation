@@ -6,14 +6,25 @@ import argparse
 """
 nlprun -q jag -p standard -r 40G -c 2 \
   -n combine_phi4 \
-  -o Phi-4/slurm_logs/%x-%j.out \
+  -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
     python Decoder-Only/combine_predictions.py \
     Decoder-Only/Phi-4/data/FullTest_Final/ \
-    Decoder-Only/Phi-4/data/PHI4_Combined.xlsx \
-    --prefix PHI4_
+    Decoder-Only/Phi-4_Combined.xlsx \
+    --prefix PHI4_"
+
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n combine_gem \
+  -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+    python Decoder-Only/combine_predictions.py \
+    Decoder-Only/Gemini/data/FullTest_Final/ \
+    Decoder-Only/Gemini_Combined.xlsx \
+    --prefix GEMINI_"
 """
 
 def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
@@ -54,6 +65,12 @@ def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
                     # Read the CSV
                     df = pd.read_csv(file_path)
                     
+                    # --- NEW CODE: Add Model Name Column ---
+                    # Uses the full filename (e.g., 'PHI4_aint_predictions.csv')
+                    # You can change 'model_name' to whatever header you prefer
+                    df.insert(0, 'model_name', filename.replace('_predictions.csv', ''))
+                    # ---------------------------------------
+
                     # Clean up the name for the Sheet Tab
                     # 1. Remove '_predictions.csv'
                     sheet_name = filename.replace('_predictions.csv', '')
