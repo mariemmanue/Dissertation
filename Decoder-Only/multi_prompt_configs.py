@@ -19,23 +19,22 @@ from typing import List, Dict, Any
 
 """
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
-  -n phi4_gen_zs_ctx_leg_lab \
-  -o Phi-4/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation&& \
+  -n phi4_gen_zs_ctx_leg_rats \
+  -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
-    --sheet PHI4_ZS_CTX_legit_labels \
+    --sheet PHI4_ZS_CTX_legit_rats \
     --instruction_type zero_shot \
     --extended \
     --dialect_legitimacy \
     --context \
     --context_mode two_turn \
     --dump_prompt \
-    --labels_only \
     --output_dir Decoder-Only/Phi-4/data"
 
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -208,6 +207,7 @@ class QwenBackend(LLMBackend):
         super().__init__(name="qwen", model=model)
         print(f"Loading Qwen from {model}...")
 
+        self.model_id = model  # ← Store string ID before overwriting
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
             model,
@@ -417,6 +417,7 @@ class PhiBackend(LLMBackend):
         super().__init__(name="phi", model=model)
         print(f"Loading Phi-4 from {model}...")
 
+        self.model_id = model  # ← Store string ID before overwriting
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
             model,
@@ -1760,9 +1761,15 @@ def query_model(
 
         # Full JSON dump
         print(f"\n📄 FULL PROMPT JSON:")
+
+        # Get model name string (HF backends store it in model_id)
+        model_name = getattr(backend, 'model_id', backend.model)
+        if not isinstance(model_name, str):
+            model_name = backend.name  # Fallback to backend name
+
         payload = {
             "backend": backend.name,
-            "model": backend.model,
+            "model": model_name,
             "sentence_idx": sentence_idx,
             "context_info": {
                 "use_context": use_context,
