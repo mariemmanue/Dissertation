@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import csv
 import json
+import torch
 import re
 import time
 from tqdm import tqdm
@@ -11,8 +12,7 @@ import tiktoken
 import argparse
 import math
 from transformers import pipeline as hf_pipeline
-from transformers import AutoTokenizer
-# from google import genai
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import google.generativeai as genai
 from dataclasses import dataclass
 from typing import List, Dict, Any
@@ -38,8 +38,10 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --labels_only \
     --output_dir Decoder-Only/Phi-4/data"
 
-
-nlprun -q jag -p standard -r 40G -c 2   -n gem_ZS_noCTX_nolegit_labels   -o Gemini/slurm_logs/%x-%j.out   "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gem_ZS_noCTX_nolegit_labels \
+  -o Gemini/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python multi_prompt_configs.py \
@@ -52,105 +54,226 @@ nlprun -q jag -p standard -r 40G -c 2   -n gem_ZS_noCTX_nolegit_labels   -o Gemi
     --dump_prompt \
     --output_dir Gemini/data \
     --labels_only"
-
 """
 
-# Initialize global variables
-total_input_tokens = 0
-total_output_tokens = 0
-api_call_count = 0
+"""
+RESTRUCTURED PROMPT CONDITIONS
 
+Old naming:
+- zero_shot, icl, zero_shot_cot, few_shot_cot
+
+New naming:
+- zero_shot, few_shot, zero_shot_cot, few_shot_cot
+
+Key changes:
+1. 'icl' renamed to 'few_shot' (clearer)
+2. Two separate ICL blocks: labels-only vs CoT
+3. --labels_only flag removed (Markdown is always CoT; use --output_format json for compact)
+4. CoT vs non-CoT differs in DEPTH of reasoning requested, not presence/absence
+
+Example commands:
+
+# Zero-shot with brief reasoning
+nlprun ... python script.py --instruction_type zero_shot --output_format markdown
+
+# Zero-shot with detailed step-by-step reasoning
+nlprun ... python script.py --instruction_type zero_shot_cot --output_format markdown
+
+# Few-shot with brief reasoning (includes 3 labels-only examples)
+nlprun ... python script.py --instruction_type few_shot --output_format markdown
+
+# Few-shot with detailed reasoning (includes 3 CoT examples with rationales)
+nlprun ... python script.py --instruction_type few_shot_cot --output_format markdown
+
+# Compact JSON output (no reasoning, just labels)
+nlprun ... python script.py --instruction_type zero_shot --output_format json
+"""
+
+# ==================== GLOBAL TOKEN COUNTERS ====================
+class TokenTracker:
+    def __init__(self):
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+        self.api_call_count = 0
+    
+    def reset(self):
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+        self.api_call_count = 0
+
+
+
+# ==================== BACKEND CLASSES ====================
+"""
+CONFIDENCE EXTRACTION SUPPORT BY BACKEND:
+
+ OpenAI (GPT-4, GPT-4o):
+   - Feature-specific confidence via token-level logprobs
+   - High accuracy: directly tied to model's uncertainty per label
+   - Recommended for research requiring confidence scores
+
+ Phi-4 / Qwen (HuggingFace local):
+   - Global proxy: average max probability across all tokens
+   - Same confidence assigned to ALL features (not feature-specific)
+   - Use as rough indicator of overall model certainty
+
+ Gemini (Google API):
+   - No confidence support (API doesn't expose logprobs)
+   - Returns empty dict from extract_feature_confidences()
+   - Use OpenAI backend if confidence is required
+"""
 
 @dataclass
 class LLMBackend:
+    """
+    Abstract base. Each backend owns its own tokenizer/encoder.
+    """
     name: str
     model: str
 
-    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
-        # Default: tiktoken-like encoder over concatenated contents
-        text = "\n".join(m["content"] for m in messages)
-        return len(enc_obj.encode(text))
-
-    def call(self, messages: List[Dict[str, str]]) -> str:
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
         raise NotImplementedError
 
-    
+    def count_output_tokens(self, text: str) -> int:
+        raise NotImplementedError
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        raise NotImplementedError  # ← Updated signature
+
 
 class OpenAIBackend(LLMBackend):
+    """
+    OpenAI API backend (GPT-4, GPT-4o, etc.).
+
+    CONFIDENCE SUPPORT: ✅ Feature-specific
+    - Extracts token-level logprobs for each binary label (0/1)
+    - Matches logprobs to features using regex on preceding tokens
+    - High accuracy: confidence directly tied to model's uncertainty
+    """
     def __init__(self, model: str):
         super().__init__(name="openai", model=model)
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("Set OPENAI_API_KEY.")
+            raise ValueError("Set OPENAI_API_KEY environment variable.")
         self.client = OpenAI(api_key=api_key)
-
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        resp = self.client.responses.create(
-            model=self.model,
-            input=messages,
-        )
-        return resp.output_text
+        try:
+            self._enc = tiktoken.encoding_for_model(model)
+        except Exception:
+            self._enc = tiktoken.get_encoding("cl100k_base")
+        self._last_confidence_data = None
     
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        text = "\n".join(m["content"] for m in messages)
+        return len(self._enc.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self._enc.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        # Set max_tokens based on instruction type
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 4000
+        
+        resp = self.client.chat.completions.create(
+            model=self.model, 
+            messages=messages,
+            temperature=0.1,  # Add explicit temperature
+            max_tokens=max_tokens,  # Add explicit max_tokens
+            logprobs=True,  # ← Add this
+            top_logprobs=2,  # ← Add this (returns top 2 token probabilities)
+        )
+
+        # Store logprobs for later analysis (optional)
+        if hasattr(resp.choices[0], 'logprobs') and resp.choices[0].logprobs:
+            self._last_confidence_data = {
+                'type': 'logprobs',
+                'data': resp.choices[0].logprobs
+            }
+
+        return resp.choices[0].message.content
+
+
 class QwenBackend(LLMBackend):
+    """
+    HuggingFace Qwen model backend (local inference).
+
+    CONFIDENCE SUPPORT: ⚠️ Global proxy only
+    - Extracts average max probability across all generated tokens
+    - Same confidence assigned to ALL features (not feature-specific)
+    - Use as rough proxy for overall model uncertainty
+    """
     def __init__(self, model: str):
         super().__init__(name="qwen", model=model)
-        
         print(f"Loading Qwen from {model}...")
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model, 
-            trust_remote_code=True
-        )
-        self.pipe = hf_pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=self.tokenizer,
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
             trust_remote_code=True,
-            model_kwargs={
-                "attn_implementation": "sdpa", # Qwen supports SDPA or flash_attention_2
-                "torch_dtype": "auto", 
-            },
+            attn_implementation="sdpa",
+            torch_dtype="auto",
             device_map="auto",
         )
+        self.device = self.model.device  # ← Store device
 
-    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
         try:
-            formatted_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
-            return len(self.tokenizer.encode(formatted_prompt))
-        except:
+            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
             text = "\n".join(m["content"] for m in messages)
             return len(self.tokenizer.encode(text))
 
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        # 1. Apply Chat Template
-        prompt = self.tokenizer.apply_chat_template(
-            messages, 
-            tokenize=False, 
-            add_generation_prompt=True
-        )
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
 
-        # 2. Generate
-        outputs = self.pipe(
-            prompt,
-            max_new_tokens=2000, # Ensure this is high enough for rationales
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        
+        # Tokenize input
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        
+        # Set max_new_tokens based on instruction type
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 2000
+
+        # Use model.generate() directly to get scores
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
             do_sample=True,
             temperature=0.1,
             top_p=0.9,
-            return_full_text=False 
+            return_dict_in_generate=True,  # ← Now works!
+            output_scores=True,  # ← Now works!
         )
+        
 
-        # 3. Handle output parsing safely
-        if isinstance(outputs, list) and len(outputs) > 0:
-            first = outputs[0]
-            if isinstance(first, dict):
-                generated_text = first.get("generated_text", "")
-            elif isinstance(first, list):
-                generated_text = first[0].get("generated_text", "")
-            else:
-                generated_text = str(first)
-        else:
-            generated_text = str(outputs)
 
-        # 4. Cleanup Markdown code blocks (Qwen loves ```json)
+        
+        # Decode generated text (skip input tokens)
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+        
+        # Extract scores for confidence
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text  # Before markdown stripping
+            }
+
+        # Strip markdown code fences
         if "```" in generated_text:
             pattern = r"```(?:json)?\s*(.*?)```"
             matches = re.findall(pattern, generated_text, re.DOTALL)
@@ -161,203 +284,461 @@ class QwenBackend(LLMBackend):
 
         return generated_text
 
-
 class GeminiBackend(LLMBackend):
+    """
+    Google Gemini API backend (Gemini 2.0/2.5 Flash/Pro).
+
+    CONFIDENCE SUPPORT: ❌ Not supported
+    - Gemini API does not expose logprobs or token probabilities
+    - Confidence extraction will return empty dict
+    - Use OpenAI backend if confidence scores are required
+    """
     def __init__(self, model: str):
         super().__init__(name="gemini", model=model)
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("Set GEMINI_API_KEY.")
+            raise ValueError("Set GEMINI_API_KEY environment variable.")
         genai.configure(api_key=api_key)
         self.client = genai.GenerativeModel(model)
         self.cache = None
         self.cached_model_client = None
+        self._enc = tiktoken.get_encoding("cl100k_base")
+        self._last_confidence_data = None
 
-    def create_cache(self, system_instruction: str, model_name: str, ttl_minutes=60):
+    def count_tokens(self, messages):
+        # Use Gemini's native token counting
+        text = "\n".join(m["content"] for m in messages)
+        try:
+            # Gemini has a built-in token counter
+            model = genai.GenerativeModel(self.model)
+            return model.count_tokens(text).total_tokens
+        except:
+            # Fallback to tiktoken approximation
+            return len(self._enc.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self._enc.encode(text))
+
+    def create_cache(self, system_instruction: str, model_name: str, ttl_minutes: int = 60):
         """Creates a cached content object on Gemini servers."""
         print("Creating Gemini Context Cache...")
         try:
             from google.generativeai import caching
-            
-            # Create the cache
             self.cache = caching.CachedContent.create(
                 model=model_name,
                 display_name="aae_annotation_cache",
                 system_instruction=system_instruction,
                 ttl=datetime.timedelta(minutes=ttl_minutes),
             )
-            
-            # Create a model client specifically bound to this cache
             self.cached_model_client = genai.GenerativeModel.from_cached_content(self.cache)
             print(f"Cache created! Name: {self.cache.name}")
             return True
         except ImportError:
-            print("WARNING: 'google.generativeai.caching' not found. Update library: pip install -U google-generativeai")
+            print("WARNING: google.generativeai.caching not found. pip install -U google-generativeai")
             return False
         except Exception as e:
             print(f"WARNING: Failed to create cache: {e}")
             return False
+    
 
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        # 1. Extract just the user message (the sentence)
-        # If caching is active, 'messages' should ideally JUST be the user prompt.
-        # But your 'build_messages' creates a full list. We need to be careful.
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        # Set max_output_tokens based on instruction type
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 4000
         
-        user_content = ""
-        # Find the last message which is the user input
-        for m in reversed(messages):
-            if m['role'] == 'user':
-                user_content = m['content']
-                break
+        generation_config = {
+            "temperature": 0.1,
+            "max_output_tokens": max_tokens,
+            # REMOVED: "candidate_count": 3,  ← This parameter is NOT supported by Gemini API
+        }
         
-        if not user_content:
-            # Fallback: just join everything if we can't find a clean user block
-            user_content = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
-
         try:
-            if self.cached_model_client:
-                # Use the CACHED client (System prompt is already on server)
-                # We only send the user_content
-                resp = self.cached_model_client.generate_content(user_content)
+            client = self.cached_model_client or self.client
+            user_turns = [m for m in messages if m["role"] == "user"]
+
+            if len(user_turns) <= 1:
+                # Single-turn: simple generation
+                content = user_turns[0]["content"] if user_turns else ""
+                resp = client.generate_content(
+                    content,
+                    generation_config=generation_config
+                )
+                # REMOVED: Candidate extraction code (candidates not supported)
             else:
-                # Standard legacy mode (Full text every time)
-                full_text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in messages)
-                resp = self.client.generate_content(full_text)
+                # Multi-turn: use chat with history
+                # Extract system message (if not cached)
+                system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
                 
+                # Build history from user messages
+                history = []
+                for m in messages:
+                    if m["role"] == "user":
+                        history.append({"role": "user", "parts": [m["content"]]})
+                
+                # Last message is the query
+                last_content = history.pop()["parts"][0]
+                
+                # If we have a system message and NOT using cache, create model with system instruction
+                if system_msg and not self.cached_model_client:
+                    model_with_system = genai.GenerativeModel(
+                        model_name=self.model,
+                        system_instruction=system_msg
+                    )
+                    chat = model_with_system.start_chat(
+                        history=history,
+                        generation_config=generation_config
+                    )
+                else:
+                    # Using cached model (system already on server) or no system message
+                    chat = client.start_chat(
+                        history=history,
+                        generation_config=generation_config
+                    )
+                
+                resp = chat.send_message(last_content)
+
             return resp.text
         except Exception as e:
-            # Pass the exception up to query_model for retry logic
             raise e
-
+        
 
 class PhiBackend(LLMBackend):
+    """
+    HuggingFace Phi-4 model backend (local inference).
+
+    CONFIDENCE SUPPORT: ⚠️ Global proxy only
+    - Extracts average max probability across all generated tokens
+    - Same confidence assigned to ALL features (not feature-specific)
+    - Use as rough proxy for overall model uncertainty
+    """
     def __init__(self, model: str):
         super().__init__(name="phi", model=model)
-        
         print(f"Loading Phi-4 from {model}...")
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model, 
-            trust_remote_code=True
-        )
-        self.pipe = hf_pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=self.tokenizer,
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
             trust_remote_code=True,
-            model_kwargs={
-                "attn_implementation": "sdpa", 
-                "torch_dtype": "auto", 
-            },
+            attn_implementation="sdpa",
+            torch_dtype="auto",
             device_map="auto",
         )
+        self.device = self.model.device  # ← Add this
+        self._last_confidence_data = None
 
-    def count_tokens(self, enc_obj, messages: List[Dict[str, str]]) -> int:
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
         try:
-            formatted_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
-            return len(self.tokenizer.encode(formatted_prompt))
-        except:
+            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
             text = "\n".join(m["content"] for m in messages)
             return len(self.tokenizer.encode(text))
 
-    def call(self, messages: List[Dict[str, str]]) -> str:
-        # 1. Apply Chat Template
-        prompt = self.tokenizer.apply_chat_template(
-            messages, 
-            tokenize=False, 
-            add_generation_prompt=True
-        )
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
 
-        outputs = self.pipe(
-            prompt,
-            max_new_tokens=2000,
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        
+        # Tokenize input
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        
+        # Set max_new_tokens based on instruction type
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 2000
+
+        # Use model.generate() directly to get scores
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
             do_sample=True,
             temperature=0.1,
             top_p=0.9,
-            return_full_text=False 
+            return_dict_in_generate=True,  # ← Now works!
+            output_scores=True,  # ← Now works!
         )
+        
 
-        # === DEBUG FIX START ===
-        # Handle different return types from HF pipeline safely
-        if isinstance(outputs, list) and len(outputs) > 0:
-            first_item = outputs[0]
-            
-            # Case 1: Standard dictionary (Most common)
-            if isinstance(first_item, dict):
-                generated_text = first_item.get("generated_text", "")
-                
-            # Case 2: List of dictionaries (Sometimes happens with chat templates)
-            elif isinstance(first_item, list) and len(first_item) > 0:
-                 generated_text = first_item[0].get("generated_text", "")
-                 
-            # Case 3: It's just a string (Rare but possible)
-            elif isinstance(first_item, str):
-                generated_text = first_item
-            else:
-                generated_text = str(first_item)
-        else:
-            generated_text = str(outputs)
-        # === DEBUG FIX END ===
+        
+        # Decode generated text (skip input tokens)
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+        
+        # Extract scores for confidence
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text  # Before markdown stripping
+            }
 
-        # 3. CLEANUP: Phi-4 often wraps output in ```json ... ```
+        # Strip markdown code fences
         if "```" in generated_text:
-            # Regex to capture content inside ```json ... ``` or just ``` ... ```
             pattern = r"```(?:json)?\s*(.*?)```"
             matches = re.findall(pattern, generated_text, re.DOTALL)
             if matches:
-                # Use the longest match or the last one (often the actual JSON)
                 generated_text = matches[-1].strip()
             else:
-                # Fallback: remove the markers manually if regex fails
                 generated_text = generated_text.replace("```json", "").replace("```", "").strip()
 
         return generated_text
 
-def extract_json_robust(text):
-    # 1. Try standard cleaning & parsing first
-    clean_text = re.sub(r'```json\s*', '', text, flags=re.IGNORECASE)
-    clean_text = re.sub(r'```', '', clean_text).strip()
-    
+
+
+# ==================== OUTPUT PARSING ====================
+
+def extract_results(text: str, expected_features: list) -> tuple:
+    """
+    Parses Markdown-format model output.
+    Expects:
+        ### Analysis
+        <free text reasoning>
+        ### Results
+        - feature-name: 1
+        - feature-name: 0
+    Returns (vals dict, rats dict, missing list).
+    """
+    vals = {}
+    rats = {}
+
+    # Pull the Analysis block as a single global rationale
+    analysis_match = re.search(r"### Analysis\s*(.*?)\s*### Results", text, re.DOTALL)
+    global_rationale = analysis_match.group(1).strip() if analysis_match else "No analysis found."
+
+    # Extract binary labels from the Results block
+    pattern = r"[-\*]\s*([\w-]+):\s*(0|1)"
+    for key, val in re.findall(pattern, text):
+        if key in expected_features:
+            vals[key] = int(val)
+            rats[key] = f"See analysis: {global_rationale[:200]}..."
+
+    missing = [f for f in expected_features if f not in vals]
+    return vals, rats, missing
+
+
+def extract_json_robust(text: str) -> dict | None:
+    """
+    Tries to parse a JSON object from model output.
+    Falls back to regex extraction if json.loads fails
+    (handles truncated JSON gracefully).
+    """
+    clean_text = re.sub(r"```json\s*", "", text, flags=re.IGNORECASE)
+    clean_text = re.sub(r"```", "", clean_text).strip()
+
     try:
         return json.loads(clean_text)
     except json.JSONDecodeError:
-        pass # Fallthrough to regex extraction
-    
-    # 2. Fallback: Regex extraction of keys and values
-    # This works even if the JSON is truncated at the end!
-    data = {}
-    
-    # Pattern for simple labels: "key": 0 or "key": 1
-    simple_pattern = r'"([\w-]+)":\s*(0|1)'
-    for key, val in re.findall(simple_pattern, clean_text):
-        data[key] = int(val)
-        
-    # Pattern for rationales: "key": { "value": 0, ... }
-    # This is trickier, but we can try to grab the value specifically
-    complex_pattern = r'"([\w-]+)":\s*\{\s*"value":\s*(0|1)'
-    for key, val in re.findall(complex_pattern, clean_text):
-        data[key] = int(val)
-        
-    if not data:
-        return None # Truly failed
-        
-    return data
+        pass
 
-# -------------------- FEATURE LISTS --------------------
+    data = {}
+    # Simple flat labels: "key": 0 or "key": 1
+    for key, val in re.findall(r'"([\w-]+)":\s*(0|1)', clean_text):
+        data[key] = int(val)
+    # Nested labels: "key": { "value": 0, ... }
+    for key, val in re.findall(r'"([\w-]+)":\s*\{\s*"value":\s*(0|1)', clean_text):
+        data[key] = int(val)
+
+    return data if data else None
+
+
+def parse_output(raw_str: str, features: list, output_format: str = "markdown") -> tuple:
+    """
+    Unified output parser.
+    Tries the format that was requested first, then falls back to the other.
+    Always returns (vals, rats, missing).
+    """
+    vals, rats, missing = {}, {}, list(features)
+
+    if output_format == "markdown":
+        vals, rats, missing = extract_results(raw_str, features)
+        # Fallback: model may have returned JSON despite being asked for Markdown
+        if missing:
+            data = extract_json_robust(raw_str)
+            if data:
+                for f in list(missing):
+                    if f in data:
+                        v = data[f]
+                        vals[f] = v if isinstance(v, int) else int(v.get("value", 0))
+                        rats[f] = str(v.get("rationale", "")) if isinstance(v, dict) else ""
+                        missing.remove(f)
+    else:
+        data = extract_json_robust(raw_str)
+        if data:
+            for f in features:
+                if f in data:
+                    v = data[f]
+                    vals[f] = v if isinstance(v, int) else int(v.get("value", 0))
+                    rats[f] = str(v.get("rationale", "")) if isinstance(v, dict) else ""
+            missing = [f for f in features if f not in vals]
+        # Fallback: model may have returned Markdown despite being asked for JSON
+        if missing:
+            md_vals, md_rats, md_missing = extract_results(raw_str, features)
+            for f in list(missing):
+                if f in md_vals:
+                    vals[f] = md_vals[f]
+                    rats[f] = md_rats.get(f, "")
+                    missing.remove(f)
+
+    return vals, rats, missing
+
+
+def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed_labels: dict) -> dict:
+    """
+    Extract confidence scores from any backend's last call.
+
+    Backend support:
+    - OpenAI: Token-level logprobs (feature-specific)
+    - Phi/Qwen (HuggingFace): Average max probability (global proxy)
+    - Gemini: Not supported (returns empty dict)
+
+    Returns dict: {feature_name: confidence_score}
+    where confidence_score is in [0, 1], higher = more confident.
+    """
+    if not hasattr(backend, '_last_confidence_data') or not backend._last_confidence_data:
+        return {}
+
+    conf_data = backend._last_confidence_data
+    conf_type = conf_data.get('type')
+    data = conf_data.get('data')
+
+    if not conf_type or data is None:
+        return {}
+
+    confidences = {}
+
+    if conf_type == 'logprobs':
+        # OpenAI logprobs - feature-specific confidence extraction
+        try:
+            if not hasattr(data, 'content') or not data.content:
+                print("Warning: OpenAI logprobs data missing 'content' attribute")
+                return {}
+
+            tokens = data.content
+
+            for i, token_data in enumerate(tokens):
+                if not hasattr(token_data, 'token') or not hasattr(token_data, 'logprob'):
+                    continue
+
+                token = token_data.token.strip()
+                if token not in ["0", "1"]:
+                    continue
+
+                # Build lookback context (previous 15 tokens)
+                lookback_text = ""
+                for j in range(max(0, i-15), i):
+                    if hasattr(tokens[j], 'token'):
+                        lookback_text += tokens[j].token
+
+                # Find matching feature
+                matched = False
+                for feat in feature_names:
+                    pattern = rf'-\s*{re.escape(feat)}\s*:\s*$'
+                    if re.search(pattern, lookback_text):
+                        prob = max(math.exp(token_data.logprob), 1e-10)  # Floor at 1e-10
+                        if feat not in confidences:  # Only set if not already set
+                            confidences[feat] = prob
+                        matched = True
+                        break  # Assume only one feature per token
+
+                if not matched:
+                    # Uncomment for debugging:
+                    # print(f"DEBUG: No feature match for token '{token}' at position {i}")
+                    pass
+
+        except AttributeError as e:
+            print(f"Warning: OpenAI logprobs structure error: {e}")
+        except Exception as e:
+            print(f"Warning: Unexpected error extracting OpenAI logprobs: {e}")
+
+    elif conf_type == 'hf_scores':
+        # HuggingFace scores (Phi/Qwen) - global proxy confidence
+        try:
+            if not isinstance(data, (list, tuple)):
+                print(f"Warning: HF scores data is not a list/tuple (got {type(data)})")
+                return {}
+
+            # Get average max probability across all generated tokens
+            max_probs = []
+            for score_tensor in data:
+                if not hasattr(score_tensor, 'shape'):
+                    continue
+                probs = torch.nn.functional.softmax(score_tensor[0], dim=-1)
+                max_prob = torch.max(probs).item()
+                max_probs.append(max_prob)
+
+            # Calculate average confidence
+            avg_confidence = sum(max_probs) / len(max_probs) if max_probs else 0.5
+
+            # Assign same confidence to all features (proxy measure)
+            # This is a global confidence, not feature-specific
+            for feat in feature_names:
+                confidences[feat] = avg_confidence
+
+        except Exception as e:
+            print(f"Warning: Could not extract HF scores: {e}")
+
+    else:
+        # Unknown confidence type
+        print(f"Warning: Unknown confidence type '{conf_type}'")
+    
+    # elif conf_type == 'candidates':
+    #     # Gemini multiple candidates (variance-based confidence)
+    #     # NOTE: This branch is currently unused because Gemini doesn't support candidate_count
+    #     # Keeping for potential future use if Gemini adds this feature
+    #     candidate_texts = data
+        
+    #     # Parse each candidate
+    #     all_parses = []
+    #     for candidate_text in candidate_texts:
+    #         try:
+    #             vals, _, _ = parse_output(candidate_text, feature_names, output_format="markdown")
+    #             all_parses.append(vals)
+    #         except:
+    #             continue
+        
+    #     if len(all_parses) >= 2:
+    #         # For each feature, compute agreement rate
+    #         for feat in feature_names:
+    #             # Guard against missing or None labels
+    #             if feat in parsed_labels and parsed_labels.get(feat) is not None:
+    #                 # Count how many candidates agree with the final label
+    #                 final_label = parsed_labels[feat]
+    #                 agreements = sum(1 for p in all_parses if p.get(feat) == final_label)
+    #                 confidence = agreements / len(all_parses)
+    #                 confidences[feat] = confidence
+    
+    return confidences
+
+
+
+
+# ==================== FEATURE LISTS ====================
 
 MASIS_FEATURES = [
-    "zero-poss", "zero-copula", "double-tense", "be-construction", "resultant-done", "finna", "come", "double-modal",
-    "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint", "zero-3sg-pres-s", "is-was-gen", "zero-pl-s",
-    "double-object", "wh-qu1", "wh-qu2"
+    "zero-poss", "zero-copula", "double-tense", "be-construction", "resultant-done",
+    "finna", "come", "double-modal", "multiple-neg", "neg-inversion", "n-inv-neg-concord",
+    "aint", "zero-3sg-pres-s", "is-was-gen", "zero-pl-s", "double-object", "wh-qu1", "wh-qu2",
 ]
 
-EXTENDED_FEATURES = [
-    "zero-poss", "zero-copula", "double-tense", "be-construction", "resultant-done", "finna", "come", "double-modal",
-    "multiple-neg", "neg-inversion", "n-inv-neg-concord", "aint", "zero-3sg-pres-s", "is-was-gen", "zero-pl-s",
-    "double-object", "wh-qu1", "wh-qu2", "existential-it", "demonstrative-them", "appositive-pleonastic-pronoun",
-    "bin", "verb-stem", "past-tense-swap", "zero-rel-pronoun", "preterite-had", "bare-got"
+EXTENDED_FEATURES = MASIS_FEATURES + [
+    "existential-it", "demonstrative-them", "appositive-pleonastic-pronoun",
+    "bin", "verb-stem", "past-tense-swap", "zero-rel-pronoun", "preterite-had", "bare-got",
 ]
 
-# -------------------- FEATURE BLOCKS (WITH EXAMPLES) --------------------
+
+
+# ==================== FEATURE BLOCKS ====================
+# These are kept here as module-level constants.
+# They are passed into build_system_msg (system role) rather than the user message,
+# so they are static, cacheable, and don't re-inflate every user turn.
 
 MASIS_FEATURE_BLOCK = """
 ### LIST OF AAE MORPHOSYNTACTIC FEATURES ###
@@ -671,7 +1052,6 @@ Note: If 'it' can be read as a true referential pronoun with a clear antecedent,
 
 Note: 'Them' counts as demonstrative when it precedes a noun (even if a quantifier like 'all' intervenes) or when the noun is clearly recoverable from context (ellipted noun).
 
-
 ### Rule 20: appositive-pleonastic-pronoun
 **IF** a subject or object NP is followed, **within the same clause**, by a clearly co-referential pronoun **in the same grammatical role** (subject + subject OR object + object), forming an appositive or pleonastic structure, **THEN** label is 1.
 
@@ -692,7 +1072,6 @@ Fillers or pauses (e.g., 'uh', 'you know') may appear between NP and pronoun.
   * Explanation: 'You' is subject of different clause; 'they' is also in different clause
 
 Note: The key diagnostic is whether removing the pronoun leaves a grammatical SAE clause. **Do not mark complex NPs with nested modifiers as appositive-pleonastic unless there is a separate, co-referential pronoun in the same grammatical role within the same clause.** If the pronoun is required as subject or object, it is not pleonastic.
-
 
 ### Rule 21: bin
 **IF** BIN/been appears without an overt auxiliary 'have' AND expresses a long-standing or remote past state, **THEN** label is 1.
@@ -787,266 +1166,205 @@ The subject has something right now (current possession), not a past 'got' event
 Note: Only mark bare-got when the clause clearly describes current possession and does not contain an overt 'have/has'. If 'got' can be read as simple past or as part of 'have got', prefer 0.
 """
 
-# -------------------- ICL FEW-SHOT EXAMPLES BLOCK --------------------
 
-ICL_EXAMPLES_BLOCK = """
+
+# ==================== ICL BLOCKS ====================
+
+# For 'few_shot' condition: labels only, no rationales
+ICL_LABELS_ONLY_BLOCK = """
 ### FEW-SHOT TRAINING EXAMPLES ###
 (for demonstration only; NOT the target utterance)
 
 **Example 1:**
 SENTENCE: "And my cousin family place turn into a whole cookout soon as it get warm, and when you step outside it's people dancing out on the sidewalk."
 
-ANNOTATED LABELS (subset):
-- zero-3sg-pres-s: {
-    "value": 1,
-    "rationale": "In 'my cousin family place turn into a whole cookout', the subject is 3sg ('my cousin family place') and the present-tense verb 'turn' lacks -s; SAE requires 'turns', so label is 1."
-}
-- existential-it: {
-    "value": 1,
-    "rationale": "In 'it's people dancing out on the sidewalk', 'it' is a dummy subject that introduces new people, like 'There are people dancing', so label is 1."
-}
-- multiple-neg: {
-    "value": 0,
-    "rationale": "No clause in the sentence contains more than one negative element, so label is 0."
-}
-- zero-poss: {
-    "value": 1,
-    "rationale": "In 'my cousin family place', the nouns 'cousin' and 'family' express possession of 'place' without an overt 's (SAE: 'my cousin's family place'), so label is 1."
-}
+LABELS:
+- zero-poss: 1
+- zero-copula: 0
+- double-tense: 0
+- be-construction: 0
+- resultant-done: 0
+- finna: 0
+- come: 0
+- double-modal: 0
+- multiple-neg: 0
+- neg-inversion: 0
+- n-inv-neg-concord: 0
+- aint: 0
+- zero-3sg-pres-s: 1
+- is-was-gen: 0
+- zero-pl-s: 0
+- double-object: 0
+- wh-qu1: 0
+- wh-qu2: 0
+- existential-it: 1
+- demonstrative-them: 0
+- appositive-pleonastic-pronoun: 0
+- bin: 0
+- verb-stem: 0
+- past-tense-swap: 0
+- zero-rel-pronoun: 0
+- preterite-had: 0
+- bare-got: 0
 
 **Example 2:**
 SENTENCE: "He throwed him a quick punch, then spin around and walk straight out the room like it was nothing."
 
-ANNOTATED LABELS (subset):
-- double-object: {
-    "value": 0,
-    "rationale": "In 'throwed him a quick punch', the verb is followed by two NP objects but this frame is standard for SAE ditransitive, so label is 0."
-}
-- verb-stem: {
-    "value": 1,
-    "rationale": "Past time is set by 'He throwed him a quick punch'. The later verbs 'spin' and 'walk' are bare stems in the same past-time sequence where SAE expects 'spun' and 'walked', so label is 1."
-}
-- past-tense-swap: {
-    "value": 1,
-    "rationale": "'Throwed' is a regularized past form used as simple past where SAE uses irregular 'threw', so label is 1."
-}
+LABELS:
+- zero-poss: 0
+- zero-copula: 0
+- double-tense: 0
+- be-construction: 0
+- resultant-done: 0
+- finna: 0
+- come: 0
+- double-modal: 0
+- multiple-neg: 0
+- neg-inversion: 0
+- n-inv-neg-concord: 0
+- aint: 0
+- zero-3sg-pres-s: 0
+- is-was-gen: 0
+- zero-pl-s: 0
+- double-object: 0
+- wh-qu1: 0
+- wh-qu2: 0
+- existential-it: 0
+- demonstrative-them: 0
+- appositive-pleonastic-pronoun: 0
+- bin: 0
+- verb-stem: 1
+- past-tense-swap: 1
+- zero-rel-pronoun: 0
+- preterite-had: 0
+- bare-got: 0
 
 **Example 3:**
 SENTENCE: "He ain't never seen nothing move that fast before, then a week later he just seen it happen again right in front of him."
 
-ANNOTATED LABELS (subset):
-- multiple-neg: {
-    "value": 1,
-    "rationale": "In 'ain't never seen nothing', the negative elements 'ain't', 'never', and 'nothing' are all in the same clause and together mean 'has never seen anything', so label is 1."
-}
-- aint: {
-    "value": 1,
-    "rationale": "'Ain't' is used as a negative auxiliary for HAVE ('hasn't seen'), not as a main verb, so label is 1."
-}
-- past-tense-swap: {
-    "value": 1,
-    "rationale": "In 'he just seen it happen again', 'seen' (a participle form) is used as the only past-tense form where SAE requires 'saw', so label is 1."
-}
-- verb-stem: {
-    "value": 0,
-    "rationale": "No bare stem verb serves as the finite past predicate: 'seen' is a participle used as simple past (captured by past-tense-swap), and 'happen' is non-finite in 'seen it happen', so label is 0."
-}
+LABELS:
+- zero-poss: 0
+- zero-copula: 0
+- double-tense: 0
+- be-construction: 0
+- resultant-done: 0
+- finna: 0
+- come: 0
+- double-modal: 0
+- multiple-neg: 1
+- neg-inversion: 0
+- n-inv-neg-concord: 0
+- aint: 1
+- zero-3sg-pres-s: 0
+- is-was-gen: 0
+- zero-pl-s: 0
+- double-object: 0
+- wh-qu1: 0
+- wh-qu2: 0
+- existential-it: 0
+- demonstrative-them: 0
+- appositive-pleonastic-pronoun: 0
+- bin: 0
+- verb-stem: 0
+- past-tense-swap: 1
+- zero-rel-pronoun: 0
+- preterite-had: 0
+- bare-got: 0
 
-Use these as patterns: for each feature, look for the exact words that match the decision rule and base your 0/1 decision on that local evidence only.
+Use these as patterns for complete sentence annotation.
 Do NOT reuse these sentences when analyzing the new target utterance.
 """
 
-# -------------------- UTILITIES --------------------
+
+# For 'few_shot_cot' condition: labels + detailed rationales
+ICL_COT_BLOCK = """
+### FEW-SHOT TRAINING EXAMPLES ###
+(for demonstration only; NOT the target utterance)
+
+**Example 1:**
+SENTENCE: "And my cousin family place turn into a whole cookout soon as it get warm, and when you step outside it's people dancing out on the sidewalk."
+
+ANNOTATED LABELS (with rationales):
+- zero-poss: 1
+  RATIONALE: In 'my cousin family place', the nouns 'cousin' and 'family' express possession of 'place' without an overt 's morpheme. SAE would require 'my cousin's family place' or 'my cousin's family's place'. The possessive relationship is clear within the NP, so label is 1.
+
+- zero-3sg-pres-s: 1
+  RATIONALE: The subject 'my cousin family place' is a 3sg NP (singular compound). The present-tense verb 'turn' lacks the required -s. SAE: 'turns into'. Label is 1.
+
+- existential-it: 1
+  RATIONALE: In 'it's people dancing out on the sidewalk', 'it' functions as a dummy existential subject introducing new entities ('people'), where SAE would use 'there are people dancing'. Label is 1.
+
+- multiple-neg: 0
+  RATIONALE: No clause contains more than one negative element, so label is 0.
+
+(all other features): 0
+
+**Example 2:**
+SENTENCE: "He throwed him a quick punch, then spin around and walk straight out the room like it was nothing."
+
+ANNOTATED LABELS (with rationales):
+- verb-stem: 1
+  RATIONALE: The first verb 'throwed' anchors the time reference as past. The later bare verbs 'spin' and 'walk' occur in the same past-time sequence where SAE requires 'spun' and 'walked'. These are bare stems in past context, so label is 1.
+
+- past-tense-swap: 1
+  RATIONALE: 'Throwed' is a regularized past form used as simple past where SAE requires the irregular 'threw'. This is an overtly non-SAE tense form in a past-tense clause, so label is 1.
+
+- double-object: 0
+  RATIONALE: In 'throwed him a quick punch', the verb is followed by an indirect object 'him' and direct object 'a quick punch'. This is a standard SAE ditransitive frame. The pronoun 'him' is not coreferential with the subject 'he', so this is not the self-benefactive double-object construction. Label is 0.
+
+(all other features): 0
+
+**Example 3:**
+SENTENCE: "He ain't never seen nothing move that fast before, then a week later he just seen it happen again right in front of him."
+
+ANNOTATED LABELS (with rationales):
+- multiple-neg: 1
+  RATIONALE: In 'ain't never seen nothing', there are three negative elements in the same clause: 'ain't' (negative auxiliary), 'never' (negative adverb), and 'nothing' (negative pronoun). Together they express a single semantic negation (negative concord). Label is 1.
+
+- aint: 1
+  RATIONALE: 'Ain't' is used as a negative auxiliary for HAVE ('hasn't seen'), not as a main verb. This is the general negative auxiliary use, so label is 1.
+
+- past-tense-swap: 1
+  RATIONALE: In 'he just seen it happen again', 'seen' (a past participle form) is used as the only past-tense carrier where SAE requires the simple past 'saw'. This is an overtly non-SAE tense form in simple-past position, so label is 1.
+
+- verb-stem: 0
+  RATIONALE: No bare stem verb serves as the finite past predicate. 'Seen' is a past participle used as simple past (captured by past-tense-swap), and 'happen' is non-finite in 'seen it happen'. Label is 0.
+
+(all other features): 0
+
+Use these as patterns: for each feature, identify the exact grammatical evidence and apply the decision rule.
+Do NOT reuse these sentences when analyzing the new target utterance.
+"""
+
+# ==================== UTILITIES ====================
 
 def drop_features_column(df: pd.DataFrame) -> pd.DataFrame:
-    return df.drop(columns=['FEATURES', 'Source'], errors='ignore')
+    return df.drop(columns=["FEATURES", "Source"], errors="ignore")
+
 
 def strip_examples_from_block(block: str) -> str:
     """
-    Remove example lines from a feature block to create a rules-only version.
-    Used for zero-shot / zero-shot CoT conditions.
+    Remove annotated example lines from a feature block (zero-shot conditions).
+    Handles ASCII hyphen, en-dash (U+2013), and em-dash (U+2014).
     """
+    example_line_re = re.compile(
+        r'^[+\-\u2013\u2014]\s+(?:Example|Miss)', re.UNICODE
+    )
+    sub_bullet_re = re.compile(
+        r'^\*\s+(?:Label is|Explanation:)', re.UNICODE
+    )
     stripped_lines = []
     for line in block.splitlines():
         s = line.lstrip()
-        # Skip lines that start with + or – followed by Example/Miss
-        if s.startswith("+ Example") or s.startswith("– Example"):
-            continue
-        # Skip bullet explanations under examples (lines starting with * after examples)
-        if s.startswith("* Label is") or s.startswith("* Explanation:"):
+        if example_line_re.match(s) or sub_bullet_re.match(s):
             continue
         stripped_lines.append(line)
     return "\n".join(stripped_lines)
 
-def build_system_msg(
-    instruction_type: str,
-    dialect_legitimacy: bool,
-    self_verification: bool,
-    use_context: bool,  
-) -> dict:
-    """
-    Build the system message with improved structure.
-    """
-    
-    if dialect_legitimacy:
-        intro = (
-            "You are a highly experienced sociolinguist and expert annotator of African American English (AAE).\n"
-            "AAE is a rule-governed, systematic language variety. You must analyze the input according to AAE's "
-            "internal grammatical rules, not Standard American English (SAE) norms.\n"
-            "Treat African American English and Standard American English as equally valid.\n"
-            "Do not 'correct' or rate sentences. Your only task is to decide, for each feature, whether its definition matches this utterance (1) or not (0).\n"
-            "Informal or slangy English that could be spoken by many speakers (regardless of race) does NOT automatically "
-            "count as AAE. Only mark a feature as 1 if the utterance clearly matches the specific AAE morphosyntactic "
-            "pattern described in the decision rule.\n\n"
-        )
-    else:
-        intro = (
-            "You are a linguist analyzing morphosyntactic features in a variety of English often referred to as "
-            "African American English (AAE).\n"
-            "Your goal is to identify specific grammatical constructions in the input utterance, comparing them to "
-            "Standard American English (SAE) where relevant.\n\n"
-        )
 
-    base_content = (
-        intro +
-        "Your task is to make strictly binary decisions (1 = present, 0 = absent) about a fixed list of AAE "
-        "morphosyntactic features for a single target utterance.\n\n"
-        "### PROCEDURE ###\n"
-        "Follow these steps, keeping explanations concise:\n\n"
-        "**1. CLAUSE & TENSE ANALYSIS (global):**\n"
-        "* Identify the main clause of the TARGET UTTERANCE\n"
-        "* Identify its grammatical subject(s), finite verb(s), and any auxiliaries\n"
-        "* Identify tense/aspect markers (e.g., done, BIN, had) and overt temporal expressions (yesterday, last week)\n"
-        "* Identify the scope and pattern of negation and any embedded clauses\n\n"
-        "**2. FEATURE-BY-FEATURE EVALUATION:**\n"
-        "* For each feature, check whether the TARGET UTTERANCE satisfies ALL parts of that rule\n"
-        "* For tense-related features, ask:\n"
-        "  - What tense/aspect form does the verb show? (bare, simple past, past participle, etc.)\n"
-        "  - What form does SAE require in this syntactic position? (after auxiliary 'did', after 'have/had', as main finite verb, etc.)\n"
-        "  - Does the mismatch fit the AAE pattern described in the rule?\n"
-        "* Focus each decision on that single element\n\n"
-
-        "**3. MULTIPLE INTERPRETATIONS:**\n"
-        "* If more than one grammatical analysis is genuinely possible, briefly acknowledge the strongest alternative\n"
-        "* Then choose the label (1 or 0) that best satisfies the feature's explicit decision rule\n"
-        "* **Prefer precision over recall**: if the utterance does not provide enough grammatical evidence to confidently apply the rule, output 0 and explain that the structure is underspecified\n"
-        "* Do NOT treat disfluencies, missing subjects, or casual phrasing as ambiguity unless they obscure the syntactic environment relevant to the feature\n\n"
-    )
-
-    if self_verification:
-        base_content += (
-            "**4. SELF-VERIFICATION (FINAL CHECK BEFORE OUTPUT):**\n"
-            "For each feature, confirm that:\n"
-            "* Your reasoning uses ONLY grammatical facts in the utterance—word order, morphology, clause structure, tense/aspect\n"
-            "* You are NOT filling in missing material with world knowledge or assumptions about intent\n"
-            "* You are NOT labeling a structure as AAE merely because it differs from SAE or sounds informal\n"
-            "* Your rationale explains why the rule either applies or does not apply, even if the label is 0\n\n"
-        )
-
-    base_content += (
-        "### EXPLICIT EVALUATION CONSTRAINTS ###\n"
-        "* Analyze ONLY syntax, morphology, and clause structure\n"
-        "* Base each decision only on the feature definitions and the words in the target utterance (and context, when explicitly allowed)\n"
-        "* Do not infer extra events or repair the sentence\n"
-        "* Informal, conversational, or slang does NOT by itself imply an AAE feature\n"
-        "* Only mark a feature when the specific AAE decision rule is satisfied\n\n"
-        "**SUBJECT DROPS IN SPONTANEOUS SPEECH:**\n"
-        "* In conversational speech, speakers often omit subjects when pragmatically given\n"
-        "* If a clause has a clearly recoverable subject from the SAME utterance or immediately preceding clause, you may treat that subject as syntactically present when relevant\n"
-        "* Compare the verb form to what SAE would require with that understood subject\n"
-        "* If no specific subject is clearly recoverable, prefer 0 and note that the structure is too fragmentary\n\n"
-        "**FOR TENSE-RELATED FEATURES:**\n"
-        "* First determine the intended reference time (past vs present vs habitual) using explicit time adverbs, aspect markers, and local discourse context\n"
-        "* Then compare the verb form to what SAE would require in that same context\n"
-        "* Only mark the feature as 1 when the mismatch fits the defined AAE pattern\n\n"
-    )
-
-    if use_context:
-        base_content += (
-            "**CONTEXT USE (if provided):**\n"
-            "* You may use PREV/NEXT sentence context ONLY to resolve:\n"
-            "  - Recoverable subject in the SAME utterance chain\n"
-            "  - Explicit temporal reference (past vs present) when stated in context\n"
-            "* Do NOT use context to invent missing words or infer events not stated\n\n"
-        )
-
-    if "cot" in instruction_type:
-        base_content += (
-            "### ADDITIONAL REASONING REQUIREMENT (CHAIN-OF-THOUGHT) ###\n"
-            "* Before filling the JSON, internally reason step by step about clause structure, tense/aspect, negation, and the single semantic element for each feature\n"
-            "* Do NOT output those intermediate steps separately; only include final binary values (and rationales, if requested) in the JSON\n\n"
-        )
-
-    return {"role": "system", "content": base_content}
-
-def build_system_response_instructions(
-    utterance: str,
-    features: list[str],
-    instruction_type: str,
-    require_rationales: bool,
-    context_block: str | None = None,
-) -> str:
-    feature_list_str = ", ".join(f'"{f}"' for f in features)
-
-    if require_rationales:
-        output_format = (
-            "### OUTPUT FORMAT (STRICT) ###\n"
-            "* Return ONLY a single JSON object\n"
-            "* It MUST contain EXACTLY these keys, in this order\n"
-            "* For each key, provide an object with:\n"
-            "  - 'value': 1 or 0 (integer, not string)\n"
-            "  - 'rationale': 1–2 sentences of grammatical reasoning\n\n"
-            "The rationale SHOULD:\n"
-            "* Point to the exact substring that justifies 1 (e.g., bare verb with past adverb, duplicated tense, WH + missing copula)\n"
-            "* Or explicitly state that no such substring exists for 0\n\n"
-            "Example output structure:\n"
-            "{\n"
-            '  "zero-poss": {"value": 0, "rationale": "No bare possessive noun–noun sequence; possessive is fully marked in SAE form."},\n'
-            '  "zero-copula": {"value": 1, "rationale": "Subject is followed by predicate adjective with no overt form of BE in a single clause."},\n'
-            "  ...\n"
-            f'  "{features[-1]}": {{"value": 0, "rationale": "Word order in the WH-clause matches SAE, so this WH feature does not apply."}}\n'
-            "}\n\n"
-            "Do NOT add extra fields. Do NOT change key names. Do NOT include explanation outside this JSON.\n"
-        )
-    else:
-        output_format = (
-            "### OUTPUT FORMAT (STRICT, LABEL-ONLY) ###\n"
-            "* Return ONLY a single JSON object\n"
-            "* It MUST contain EXACTLY these keys, in this order\n"
-            "* For each key, the value MUST be exactly 1 or 0 (integer, not string)\n"
-            "* Do NOT include nested objects, rationales, or extra fields\n\n"
-            "Example output structure:\n"
-            "{\n"
-            '  "zero-poss": 0,\n'
-            '  "zero-copula": 1,\n'
-            "  ...\n"
-            f'  "{features[-1]}": 0\n'
-            "}\n\n"
-            "Do NOT add extra fields. Do NOT change key names. Do NOT include explanation outside this JSON.\n"
-        )
-
-    context_section = ""
-    if context_block:
-        context_section = (
-            "### CONTEXT ###\n"
-            "(use only as permitted by system instructions)\n\n"
-            f"{context_block}\n\n"
-        )
-
-    return (
-        "Now analyze the target utterance strictly according to the rules above.\n\n"
-        f"{context_section}"
-        f"**UTTERANCE (target):** {utterance}\n\n"
-        "### TASK ###\n"
-        "* For EACH feature in the list below, decide whether it is present (1) or absent (0) IN THIS UTTERANCE\n"
-        "* Treat each feature as a separate task-grounded question about ONE semantic/grammatical element\n"
-        "* Apply the procedure before making each binary decision\n\n"
-        f"**FEATURE KEYS (in required order):**\n[{feature_list_str}]\n\n"
-        f"{output_format}"
-    )
-
-def has_usable_context(left_context: str | None, right_context: str | None) -> bool:
+def has_usable_context(left_context, right_context) -> bool:
     return bool(_clean_ctx(left_context) or _clean_ctx(right_context))
+
 
 def _clean_ctx(x):
     if x is None:
@@ -1056,10 +1374,10 @@ def _clean_ctx(x):
     s = str(x).strip()
     return s if s else None
 
-def format_context_block(left_context: str | None, right_context: str | None) -> str:
+
+def format_context_block(left_context, right_context) -> str:
     left_context = _clean_ctx(left_context)
     right_context = _clean_ctx(right_context)
-
     lines = []
     if left_context:
         lines.append(f"PREV SENTENCE (context): {left_context}")
@@ -1067,205 +1385,328 @@ def format_context_block(left_context: str | None, right_context: str | None) ->
         lines.append(f"NEXT SENTENCE (context): {right_context}")
     return "\n".join(lines)
 
+# ==================== PROMPT BUILDERS ====================
+#
+# SYSTEM / USER SPLIT RATIONALE
+# ─────────────────────────────
+# SYSTEM message (static, cacheable):
+#   - Persona and legitimacy framing
+#   - Annotation procedure (clause analysis, feature eval, etc.)
+#   - Evaluation constraints
+#   - The full feature rule block (3 000+ tokens — expensive to re-send)
+#   - ICL examples (when used — also static across sentences)
+#
+# USER message (per-sentence, cheap):
+#   - Optional context block (PREV/NEXT sentences)
+#   - Target utterance
+#   - Feature key list
+#   - Output format instructions (markdown or JSON)
+#
+# This split means the expensive rule block is sent once (or cached on Gemini/OpenAI),
+# and each per-sentence call only adds the small user turn.
 
 
-def build_messages(
-    utterance: str,
-    features: list[str],
-    base_feature_block: str,
+def build_system_msg(
     instruction_type: str,
+    dialect_legitimacy: bool,
+    self_verification: bool,
+    use_context: bool,
+    base_feature_block: str,
     include_examples_in_block: bool,
-    use_context: bool = False,
-    left_context: str | None = None,
-    right_context: str | None = None,
-    context_mode: str = "single_turn",   # <-- NEW
-    use_icl_examples: bool = False,
-    dialect_legitimacy: bool = False,
-    self_verification: bool = False,
-    require_rationales: bool = True,
-) -> tuple[list[dict], str]:
+) -> dict:
+    """
+    Build the full system message.
+    Includes: framing, procedure, constraints, feature rules, and (optionally) ICL examples.
+    All static content lives here so it can be cached.
+    """
 
-    system_msg = build_system_msg(
-        instruction_type=instruction_type,
-        dialect_legitimacy=dialect_legitimacy,
-        self_verification=self_verification,
-        use_context=use_context,
+    # --- Framing ---
+    if dialect_legitimacy:
+        intro = (
+            "You are a highly experienced sociolinguist and expert annotator of African American English (AAE).\n"
+            "AAE is a rule-governed, systematic language variety. You must analyze the input according to AAE's "
+            "internal grammatical rules, not Standard American English (SAE) norms.\n"
+            "Treat African American English and Standard American English as equally valid.\n"
+            "Do not 'correct' or rate sentences. Your only task is to decide, for each feature, whether its "
+            "definition matches this utterance (1) or not (0).\n"
+            "Informal or slangy English that could be spoken by many speakers (regardless of race) does NOT "
+            "automatically count as AAE. Only mark a feature as 1 if the utterance clearly matches the specific "
+            "AAE morphosyntactic pattern described in the decision rule.\n\n"
+        )
+    else:
+        intro = (
+            "You are a linguist analyzing morphosyntactic features in a variety of English often referred to as "
+            "African American English (AAE).\n"
+            "Your goal is to identify specific grammatical constructions in the input utterance, comparing them "
+            "to Standard American English (SAE) where relevant.\n\n"
+        )
+
+    # --- Core procedure ---
+    procedure = (
+        "Your task is to make strictly binary decisions (1 = present, 0 = absent) about a fixed list of AAE "
+        "morphosyntactic features for a single target utterance.\n\n"
+        "### PROCEDURE ###\n"
+        "Follow these steps:\n\n"
+        "**1. CLAUSE & TENSE ANALYSIS (global):**\n"
+        "* Identify the main clause of the TARGET UTTERANCE\n"
+        "* Identify its grammatical subject(s), finite verb(s), and any auxiliaries\n"
+        "* Identify tense/aspect markers (e.g., done, BIN, had) and overt temporal expressions\n"
+        "* Identify the scope and pattern of negation and any embedded clauses\n\n"
+        "**2. FEATURE-BY-FEATURE EVALUATION:**\n"
+        "* For each feature, check whether the TARGET UTTERANCE satisfies ALL parts of that rule\n"
+        "* For tense-related features, ask:\n"
+        "  - What tense/aspect form does the verb show? (bare, simple past, past participle, etc.)\n"
+        "  - What form does SAE require in this syntactic position?\n"
+        "  - Does the mismatch fit the AAE pattern described in the rule?\n\n"
+        "**3. MULTIPLE INTERPRETATIONS:**\n"
+        "* If more than one grammatical analysis is genuinely possible, briefly acknowledge the strongest alternative\n"
+        "* **Prefer precision over recall**: if the utterance does not provide enough grammatical evidence to "
+        "confidently apply the rule, output 0\n"
+        "* Do NOT treat disfluencies or casual phrasing as ambiguity unless they obscure the relevant syntactic environment\n\n"
     )
 
+    self_verif = ""
+    if self_verification:
+        self_verif = (
+            "**4. SELF-VERIFICATION (FINAL CHECK BEFORE OUTPUT):**\n"
+            "For each feature, confirm that:\n"
+            "* Your reasoning uses ONLY grammatical facts in the utterance\n"
+            "* You are NOT filling in missing material with world knowledge or assumptions about intent\n"
+            "* You are NOT labeling a structure as AAE merely because it differs from SAE or sounds informal\n"
+            "* Your rationale explains why the rule either applies or does not apply, even for 0\n\n"
+        )
+
+    constraints = (
+        "### EXPLICIT EVALUATION CONSTRAINTS ###\n"
+        "* Analyze ONLY syntax, morphology, and clause structure\n"
+        "* Base each decision only on the feature definitions and the words in the target utterance\n"
+        "* Do not infer extra events or repair the sentence\n"
+        "* Informal, conversational, or slang does NOT by itself imply an AAE feature\n\n"
+        "**SUBJECT DROPS IN SPONTANEOUS SPEECH:**\n"
+        "* If a clause has a clearly recoverable subject from the SAME utterance or immediately preceding clause, "
+        "you may treat that subject as syntactically present\n"
+        "* If no specific subject is clearly recoverable, prefer 0\n\n"
+        "**FOR TENSE-RELATED FEATURES:**\n"
+        "* First determine intended reference time using explicit time adverbs, aspect markers, and local context\n"
+        "* Then compare the verb form to what SAE would require in that context\n"
+        "* Only mark 1 when the mismatch fits the defined AAE pattern\n\n"
+    )
+
+    ctx_instructions = ""
+    if use_context:
+        ctx_instructions = (
+            "**CONTEXT USE (if provided in the user message):**\n"
+            "* You may use PREV/NEXT sentence context ONLY to resolve:\n"
+            "  - Recoverable subject in the SAME utterance chain\n"
+            "  - Explicit temporal reference (past vs present) when stated in context\n"
+            "* Do NOT use context to invent missing words or infer events not stated\n\n"
+        )
+
+    # --- Reasoning depth (CoT vs brief) ---
+    if "cot" in instruction_type:
+        cot_instruction = (
+            "### CHAIN-OF-THOUGHT REQUIREMENT ###\n"
+            "Provide DETAILED step-by-step reasoning for each feature:\n"
+            "1. Quote the exact substring from the sentence that is relevant\n"
+            "2. Explain the grammatical pattern you observe\n"
+            "3. State what SAE would require in this position\n"
+            "4. Explain why the AAE rule applies or doesn't apply\n\n"
+            "Your analysis should be thorough (5-10 sentences per feature that is present).\n\n"
+        )
+    else:
+        cot_instruction = (
+            "### REASONING REQUIREMENT ###\n"
+            "Provide BRIEF reasoning for each decision (1-2 sentences per feature).\n"
+            "Focus on the key grammatical evidence.\n\n"
+        )
+
+    # --- Feature rules ---
     effective_include_examples = include_examples_in_block
     if instruction_type in ["zero_shot", "zero_shot_cot"]:
         effective_include_examples = False
+    feature_rules = base_feature_block if effective_include_examples else strip_examples_from_block(base_feature_block)
 
-    feature_block = base_feature_block if effective_include_examples else strip_examples_from_block(base_feature_block)
+    # --- ICL examples (conditional on instruction type) ---
+    icl_block = ""
+    if instruction_type == "few_shot":
+        icl_block = ICL_LABELS_ONLY_BLOCK
+    elif instruction_type == "few_shot_cot":
+        icl_block = ICL_COT_BLOCK
+    # zero_shot and zero_shot_cot get no ICL block
 
-    # Build context block text once
-    context_block = None
-    if use_context:
-        cb = format_context_block(left_context, right_context)
-        if cb.strip():
-            context_block = cb
+    content = "".join([
+        intro,
+        procedure,
+        self_verif,
+        constraints,
+        ctx_instructions,
+        cot_instruction,
+        feature_rules,
+        icl_block,
+    ])
 
-    # === Condition B: context in its own earlier user message ===
-    if use_context and context_block and context_mode == "two_turn":
-        context_msg = {
-            "role": "user",
-            "content": (
-                "CONTEXT (do NOT analyze yet; this is NOT the target utterance).\n"
-                "Use only as permitted by the system instructions.\n\n"
-                f"{context_block}"
-            ),
-        }
+    return {"role": "system", "content": content}
 
-        # Main task message contains NO embedded context
-        parts = [feature_block]
-        if use_icl_examples:
-            parts.append(ICL_EXAMPLES_BLOCK)
 
-        response_instructions = build_system_response_instructions(
-            utterance=utterance,
-            features=features,
-            instruction_type=instruction_type,
-            require_rationales=require_rationales,
-            context_block=None,  # important: keep empty here for the two-turn condition
+
+def build_user_msg(
+    utterance: str,
+    features: list,
+    output_format: str,
+    context_block: str | None = None,
+) -> str:
+    """
+    Build the per-sentence user message content.
+    Kept deliberately small: context (optional) + utterance + feature list + output instructions.
+    """
+    feature_list_str = ", ".join(f'"{f}"' for f in features)
+
+    context_section = ""
+    if context_block:
+        context_section = (
+            "### CONTEXT ###\n"
+            "(Use ONLY to resolve subject reference and tense, NOT to infer events)\n\n"
+            f"{context_block}\n\n"
         )
-        parts.append(response_instructions)
 
-        task_msg = {"role": "user", "content": "\n\n".join(parts)}
-        return [system_msg, context_msg, task_msg], "two_turn"
+    if output_format == "markdown":
+        output_instructions = (
+            "### OUTPUT INSTRUCTIONS ###\n"
+            "Structure your response in two parts:\n\n"
+            "**PART 1 — `### Analysis`**\n"
+            "Walk through the sentence systematically. For features that are present (1), quote the exact "
+            "substring and explain the grammatical pattern. For features that are absent (0), briefly state "
+            "why the rule is not met.\n\n"
+            "**PART 2 — `### Results`**\n"
+            "After your analysis, output ALL features as a bulleted list:\n"
+            "- feature-name: 1\n"
+            "- feature-name: 0\n\n"
+            "Every feature in the list below must appear exactly once.\n"
+        )
+    else:
+        # JSON mode: compact output, no reasoning
+        output_instructions = (
+            "### OUTPUT FORMAT (STRICT JSON) ###\n"
+            "Return ONLY a single flat JSON object with integer values:\n"
+            '  {"feature-name": 0, "feature-name": 1, ...}\n\n'
+            "Do NOT include rationales, nested objects, or any text outside the JSON.\n"
+        )
 
-    # === Condition A (default): single user message (your current approach) ===
-    parts = [feature_block]
-    if use_icl_examples:
-        parts.append(ICL_EXAMPLES_BLOCK)
-
-    response_instructions = build_system_response_instructions(
-        utterance=utterance,
-        features=features,
-        instruction_type=instruction_type,
-        require_rationales=require_rationales,
-        context_block=context_block if (use_context and context_block) else None,
+    return (
+        f"{context_section}"
+        f"### TARGET UTTERANCE ###\n"
+        f'"{utterance}"\n\n'
+        f"### FEATURES TO LABEL ###\n"
+        f"[{feature_list_str}]\n\n"
+        f"{output_instructions}"
     )
-    parts.append(response_instructions)
 
-    user_msg = {"role": "user", "content": "\n\n".join(parts)}
-    
-    return [system_msg, user_msg], "single_turn"
-# -------------------- USAGE SUMMARY --------------------
-
-def print_final_usage_summary():
-    total_tokens = total_input_tokens + total_output_tokens
-
-    print("\n===== FINAL USAGE SUMMARY =====")
-    print(f"Total API Calls: {api_call_count}")
-    print(f"Total Input Tokens: {total_input_tokens}")
-    print(f"Total Output Tokens: {total_output_tokens}")
-    print(f"Total Tokens: {total_tokens}")
-    print("===================================\n")
-
-
-def _extract_first_json_object(text: str) -> str | None:
-    """
-    Best-effort: find the first top-level {...} JSON object in a messy string.
-    Handles leading text, code fences, etc. Does NOT fix invalid JSON (e.g., single quotes).
-    """
-    if not text:
-        return None
-
-    # Strip common code fences quickly
-    text = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.IGNORECASE)
-    text = re.sub(r"\s*```$", "", text.strip())
-
-    start = text.find("{")
-    if start == -1:
-        return None
-
-    depth = 0
-    in_str = False
-    esc = False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if in_str:
-            if esc:
-                esc = False
-            elif ch == "\\":
-                esc = True
-            elif ch == '"':
-                in_str = False
-        else:
-            if ch == '"':
-                in_str = True
-            elif ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    return text[start:i+1]
-    return None
-
-
-def parse_output_json(raw_str: str, features: list[str]):
-    # Use the robust function we defined earlier
-    data = extract_json_robust(raw_str)
-    
-    if data is None:
-        raise ValueError("Failed to extract JSON")
-
-    
-    if data is None:
-        # Fallback: Treat as total failure or raise exception
-        # You can raise exception to trigger the "PARSEFAIL" logic in main()
-        raise ValueError("Failed to extract JSON from model output")
-
-    vals = {}
-    rats = {}
-    missing = []
-    for feat in features:
-        if feat not in data:
-            missing.append(feat)
-
-        entry = data.get(feat, {})
-        if isinstance(entry, (int, float)):
-            vals[feat] = int(entry)
-            rats[feat] = ""
-        elif isinstance(entry, dict):
-            vals[feat] = int(entry.get("value", 0))
-            rats[feat] = str(entry.get("rationale", "")).strip()
-        else:
-            vals[feat] = 0
-            rats[feat] = ""
-
-
-
-    return vals, rats, missing
-
-
-
-# -------------------- GPT QUERY --------------------
-
-def query_model(
-    backend: LLMBackend,
-    enc_obj,
-    sentence: str,
-    features: list[str],
+def build_messages(
+    utterance: str,
+    features: list,
     base_feature_block: str,
     instruction_type: str,
     include_examples_in_block: bool,
+    output_format: str = "markdown",
     use_context: bool = False,
     left_context: str | None = None,
     right_context: str | None = None,
     context_mode: str = "single_turn",
     dialect_legitimacy: bool = False,
     self_verification: bool = False,
-    require_rationales: bool = True,
+) -> tuple[list[dict], str]:
+    """
+    Assembles the full messages list for a single sentence.
+
+    Returns (messages, arm_used) where arm_used is "single_turn" or "two_turn".
+
+    Message structure:
+        [system_msg]                           — always present
+        [context_msg]                          — only in two_turn mode
+        [user_msg]                             — always present
+    """
+
+    system_msg = build_system_msg(
+        instruction_type=instruction_type,
+        dialect_legitimacy=dialect_legitimacy,
+        self_verification=self_verification,
+        use_context=use_context,
+        base_feature_block=base_feature_block,
+        include_examples_in_block=include_examples_in_block,
+    )
+
+    # Resolve context
+    context_block = None
+    if use_context:
+        cb = format_context_block(left_context, right_context)
+        if cb.strip():
+            context_block = cb
+
+    # Two-turn mode: context in its own prior user message
+    if use_context and context_block and context_mode == "two_turn":
+        context_msg = {
+            "role": "user",
+            "content": (
+                "### CONTEXT ###\n"
+                "(Use ONLY to resolve subject reference and tense, NOT to infer events)\n\n"  # ← Reminder here
+                "CONTEXT (do NOT analyze yet; this is NOT the target utterance).\n\n"
+                f"{context_block}"
+            ),
+        }
+        user_content = build_user_msg(
+            utterance=utterance,
+            features=features,
+            output_format=output_format,
+            context_block=None,  # ← No reminder in TARGET message
+        )
+        user_msg = {"role": "user", "content": user_content}
+        return [system_msg, context_msg, user_msg], "two_turn"
+
+    # Single-turn (default): context embedded in user message (reminder goes here)
+    user_content = build_user_msg(
+        utterance=utterance,
+        features=features,
+        output_format=output_format,
+        context_block=context_block,  # ← Reminder included via build_user_msg
+    )
+    user_msg = {"role": "user", "content": user_content}
+    return [system_msg, user_msg], "single_turn"
+
+# ==================== USAGE SUMMARY ====================
+
+def print_final_usage_summary(tracker: TokenTracker):
+    total_tokens = tracker.total_input_tokens + tracker.total_output_tokens
+    print(f"Total API Calls:     {tracker.api_call_count}")
+    print(f"Input Tokens:        {tracker.total_input_tokens}")
+    print(f"Output Tokens:       {tracker.total_output_tokens}")
+    print(f"Total Tokens:        {total_tokens}")
+
+# ==================== MODEL QUERY ====================
+
+
+def query_model(
+    backend: LLMBackend,
+    tracker: TokenTracker,
+    sentence: str,
+    features: list,
+    base_feature_block: str,
+    instruction_type: str,
+    include_examples_in_block: bool,
+    output_format: str = "markdown",
+    use_context: bool = False,
+    left_context: str | None = None,
+    right_context: str | None = None,
+    context_mode: str = "single_turn",
+    dialect_legitimacy: bool = False,
+    self_verification: bool = False,
     dump_prompt: bool = False,
     dump_prompt_path: str | None = None,
-    dump_once_key: str | None = None,
+    dump_counter: int = 0,
+    dump_first_n: int = 1,
+    sentence_idx: int = 0,
     max_retries: int = 15,
     base_delay: int = 3,
 ) -> tuple[str | None, str]:
-    global api_call_count, total_input_tokens, total_output_tokens
-
-    use_icl_examples = instruction_type in ["icl", "few_shot_cot"]
 
     messages, arm_used = build_messages(
         utterance=sentence,
@@ -1273,444 +1714,515 @@ def query_model(
         base_feature_block=base_feature_block,
         instruction_type=instruction_type,
         include_examples_in_block=include_examples_in_block,
+        output_format=output_format,
         use_context=use_context,
-        context_mode=context_mode,
         left_context=left_context,
         right_context=right_context,
-        use_icl_examples=use_icl_examples,
+        context_mode=context_mode,
         dialect_legitimacy=dialect_legitimacy,
         self_verification=self_verification,
-        require_rationales=require_rationales,
     )
+
+    # Gemini with caching: strip system message (it's already on the server)
     if isinstance(backend, GeminiBackend) and backend.cached_model_client is not None:
-        messages = [m for m in messages if m['role'] != 'system']
+        messages = [m for m in messages if m["role"] != "system"]
 
-    if dump_prompt and dump_once_key and os.environ.get(dump_once_key, "0") != "1":
-        os.environ[dump_once_key] = "1"
-        payload = {"backend": backend.name, "model": backend.model, "messages": messages}
-        print("\n===== PROMPT DUMP =====")
+    # Enhanced prompt dump with context verification
+    should_dump = dump_prompt and (dump_first_n == 0 or dump_counter < dump_first_n)
+
+    if should_dump:
+        print("\n" + "="*80)
+        print(f"PROMPT DUMP #{dump_counter + 1} (Sentence idx: {sentence_idx})")
+        print("="*80)
+
+        # Context verification section
+        print("\n📍 CONTEXT VERIFICATION:")
+        print(f"   use_context flag:     {use_context}")
+        print(f"   context_mode:         {context_mode}")
+        print(f"   arm_used:             {arm_used}")
+        print(f"   left_context:         {'✅ Present' if left_context and str(left_context).strip() else '❌ None/Empty'}")
+        print(f"   right_context:        {'✅ Present' if right_context and str(right_context).strip() else '❌ None/Empty'}")
+
+        if left_context and str(left_context).strip():
+            print(f"\n   LEFT (previous):  \"{str(left_context).strip()[:100]}{'...' if len(str(left_context).strip()) > 100 else ''}\"")
+        if right_context and str(right_context).strip():
+            print(f"   RIGHT (next):     \"{str(right_context).strip()[:100]}{'...' if len(str(right_context).strip()) > 100 else ''}\"")
+
+        print(f"\n   TARGET SENTENCE:  \"{sentence[:100]}{'...' if len(sentence) > 100 else ''}\"")
+
+        # Message structure
+        print(f"\n📨 MESSAGE STRUCTURE:")
+        print(f"   Total messages:       {len(messages)}")
+        for i, msg in enumerate(messages):
+            role = msg['role']
+            content_preview = msg['content'][:150].replace('\n', ' ')
+            print(f"   [{i}] {role:8s}:  {content_preview}...")
+
+        # Full JSON dump
+        print(f"\n📄 FULL PROMPT JSON:")
+        payload = {
+            "backend": backend.name,
+            "model": backend.model,
+            "sentence_idx": sentence_idx,
+            "context_info": {
+                "use_context": use_context,
+                "context_mode": context_mode,
+                "arm_used": arm_used,
+                "left_context": left_context,
+                "right_context": right_context,
+            },
+            "messages": messages
+        }
         print(json.dumps(payload, indent=2, ensure_ascii=False))
-        print("===== END PROMPT DUMP =====\n")
+
+        print("\n" + "="*80)
+        print("END PROMPT DUMP")
+        print("="*80 + "\n")
+
+        # Write to file if path specified
         if dump_prompt_path:
-            with open(dump_prompt_path, "w", encoding="utf-8") as f:
+            # Append dump number to filename if dumping multiple
+            if dump_first_n != 1:
+                base, ext = os.path.splitext(dump_prompt_path)
+                output_path = f"{base}_{dump_counter + 1}{ext}"
+            else:
+                output_path = dump_prompt_path
+
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2, ensure_ascii=False)
+            print(f"💾 Prompt saved to: {output_path}\n")
 
-    input_tokens = backend.count_tokens(enc_obj, messages)
-    total_input_tokens += input_tokens
+    # Count input tokens BEFORE calling API
+    input_tokens = backend.count_tokens(messages)
+    
+    # Context length check
+    if "cot" in instruction_type:
+        estimated_output = 4500
+        context_limit = 32000
+    else:
+        estimated_output = 1000
+        context_limit = 32000
+    
+    total_tokens = input_tokens + estimated_output
+    
+    if total_tokens > context_limit:
+        print(f"WARNING: Estimated {total_tokens} tokens for sentence. "
+              f"May exceed model context limit ({context_limit}).")
 
+    # Retry loop with exponential backoff
     for attempt in range(max_retries):
         try:
-            output_text = backend.call(messages)
-            output_tokens = len(enc_obj.encode(output_text))
-            total_output_tokens += output_tokens
-            api_call_count += 1
-            print(output_text)
-            print(
-                f"API Call #{api_call_count} | "
-                f"Input Tokens: {input_tokens} | "
-                f"Output Tokens: {output_tokens} | "
-                f"Total: {total_input_tokens + total_output_tokens}"
-            )
-            return output_text, arm_used
-        except Exception as e:
-            msg = str(e)
-            if "429" in msg or "rate" in msg.lower():
-                wait_time = base_delay * (2 ** attempt)
-                print(f"Rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1})")
-                time.sleep(wait_time)
-            else:
-                print(f"Error on sentence: {sentence[:40]}... = {e}")
-                return None, arm_used
+            # Make API call
+            output_text = backend.call(messages, instruction_type=instruction_type)
 
-    print(f"Failed after {max_retries} retries.")
+            # Count output tokens AFTER successful call
+            output_tokens = backend.count_output_tokens(output_text)
+
+            tracker.total_input_tokens += input_tokens
+            tracker.total_output_tokens += output_tokens
+            tracker.api_call_count += 1
+
+            # Print summary
+            print(
+                f"API Call #{tracker.api_call_count} | "
+                f"Input: {input_tokens} | Output: {output_tokens} | "
+                f"Running total: {tracker.total_input_tokens + tracker.total_output_tokens}"
+            )
+
+            return output_text, arm_used
+
+        except Exception as e:
+            msg = str(e).lower()
+            is_last_attempt = (attempt == max_retries - 1)
+
+            # Classify error type
+            if "429" in msg or "rate" in msg or "quota" in msg:
+                # Rate limit error - exponential backoff
+                wait_time = base_delay * (2 ** attempt)
+                print(f"Rate limit hit. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+
+            elif "timeout" in msg or "timed out" in msg:
+                # Timeout error - retry with backoff
+                wait_time = base_delay * (2 ** (attempt // 2))  # Slower backoff
+                print(f"Timeout error. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+
+            elif "503" in msg or "500" in msg or "502" in msg:
+                # Server error - retry with moderate backoff
+                wait_time = base_delay * (1.5 ** attempt)
+                print(f"Server error ({msg[:50]}). Retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+
+            else:
+                # Unknown error - don't retry unless it's not the last attempt
+                print(f"Error on sentence: {sentence[:40]}...")
+                print(f"Error type: {type(e).__name__}")
+                print(f"Error message: {str(e)[:200]}")
+
+                if not is_last_attempt:
+                    wait_time = base_delay
+                    print(f"Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                else:
+                    return None, arm_used
+
+    print(f"Failed after {max_retries} retries. Skipping sentence.")
     return None, arm_used
 
 
-# -------------------- MAIN --------------------
+# ==================== MAIN ====================
+
 def main():
-    import torch
     print(f"DEBUG: torch.cuda.is_available() = {torch.cuda.is_available()}")
-    print(f"DEBUG: torch.version.cuda = {torch.version.cuda}")
+    print(f"DEBUG: torch.version.cuda        = {torch.version.cuda}")
 
-    
-    
-    dumponcekey = "DUMPED_PROMPT_ONCE"
-
-    parser = argparse.ArgumentParser(description="Run GPT Experiments for AAE feature annotation.")
-    parser.add_argument("--file", type=str, help="Input Excel file path", required=True)
-    parser.add_argument("--sheet", type=str, help="Sheet name to write GPT predictions into", required=True)
-    parser.add_argument("--extended", action="store_true", help="Use extended feature set (NEW_FEATURE_BLOCK / EXTENDED_FEATURES)")
-    parser.add_argument("--context", action="store_true", help="Use prev/next sentence context from the same sheet (neighbor rows).")
-    parser.add_argument(
-        "--instruction_type",
-        type=str,
-        choices=["zero_shot", "icl", "zero_shot_cot", "few_shot_cot"],
-        default="zero_shot",
-        help="Instruction style: zero_shot, icl (few-shot ICL), zero_shot_cot, few_shot_cot",
-    )
-    parser.add_argument(
-        "--block_examples",
-        action="store_true",
-        help="If set, keep 'Example' / '–' lines inside the feature block (non-zero-shot conditions only).",
-    )
-    parser.add_argument(
-        "--dialect_legitimacy",
-        action="store_true",
-        help="If set, explicitly frame AAE as rule-governed and legitimate, and instruct the model not to treat AAE as errors.",
-    )
-    parser.add_argument(
-        "--self_verification",
-        action="store_true",
-        help="If set, include an explicit self-verification step in the system instructions.",
-    )
-    parser.add_argument(
-        "--labels_only",
-        action="store_true",
-        help="If set, request flat JSON labels (0/1) only with NO rationales.",
-    )
-    parser.add_argument("--output_dir", type=str, help="Output directory for CSV/Excel results", required=True)
-    parser.add_argument(
-        "--dump_prompt",
-        action="store_true",
-        help="Print the exact messages payload sent to the API (first example only).",
-    )
-    parser.add_argument(
-        "--dump_prompt_path",
-        type=str,
-        default=None,
-        help="If set, also write the exact prompt payload to this path as JSON.",
-    )
-    parser.add_argument(
-        "--context_mode",
-        type=str,
-        choices=["single_turn", "two_turn"],
-        default="single_turn",
-        help="Context mode (kept for compatibility with build_messages).",
-    )
-    parser.add_argument(
-        "--backend",
-        type=str,
-        choices=["openai", "gemini", "phi", "qwen"],
-        default="openai",
-        help="LLM backend to use.",
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="gpt-5",
-        help="Model name for the chosen backend (e.g., gpt-5, gemini-2.0-flash, phi-4).",
-    )
+    parser = argparse.ArgumentParser(description="Run LLM experiments for AAE feature annotation.")
+    parser.add_argument("--file",             type=str, required=True,  help="Input Excel file path")
+    parser.add_argument("--sheet",            type=str, required=True,  help="Sheet name for predictions")
+    parser.add_argument("--extended",         action="store_true",      help="Use extended 27-feature set")
+    parser.add_argument("--context",          action="store_true",      help="Include prev/next sentence context")
+    parser.add_argument("--instruction_type", type=str, default="zero_shot",
+                        choices=["zero_shot", "few_shot", "zero_shot_cot", "few_shot_cot"],
+                        help="Instruction style: zero_shot (brief reasoning), few_shot (brief + examples), "
+                             "zero_shot_cot (detailed reasoning), few_shot_cot (detailed + examples)")
+    parser.add_argument("--block_examples",   action="store_true",
+                        help="Keep example lines in feature block (non-zero-shot only)")
+    parser.add_argument("--dialect_legitimacy", action="store_true",
+                        help="Frame AAE as rule-governed and legitimate")
+    parser.add_argument("--self_verification",  action="store_true",
+                        help="Include self-verification step in system instructions")
+    parser.add_argument("--output_dir",       type=str, required=True,  help="Output directory")
+    parser.add_argument("--dump_prompt",      action="store_true",      help="Print prompt (with context details)")
+    parser.add_argument("--dump_prompt_path", type=str, default=None,   help="Write prompt JSON to this path")
+    parser.add_argument("--dump_first_n",     type=int, default=1,      help="Dump first N prompts (default: 1, use 0 for all)")
+    parser.add_argument("--context_mode",     type=str, default="single_turn",
+                        choices=["single_turn", "two_turn"])
+    parser.add_argument("--backend",          type=str, default="openai",
+                        choices=["openai", "gemini", "phi", "qwen"])
+    parser.add_argument("--model",            type=str, default="gpt-4o",
+                        help="Model identifier (e.g. gpt-4o, gemini-2.0-flash-exp, microsoft/Phi-4)")
+    parser.add_argument("--output_format",    type=str, default="markdown",
+                        choices=["json", "markdown"],
+                        help="'markdown' (CoT with Analysis + Results) or 'json' (compact labels only)")
+    parser.add_argument("--rate_limit_delay", type=float, default=5.0,
+                        help="Delay in seconds between API calls (0 for none)")
 
 
     args = parser.parse_args()
+    tracker = TokenTracker()
 
+    # -------------------- BACKEND INIT (single block) --------------------
+    if args.backend == "openai":
+        backend = OpenAIBackend(model=args.model)
+    elif args.backend == "gemini":
+        backend = GeminiBackend(model=args.model)
+    elif args.backend == "phi":
+        backend = PhiBackend(model=args.model)
+    elif args.backend == "qwen":
+        backend = QwenBackend(model=args.model)
+    else:
+        raise ValueError(f"Unknown backend: {args.backend}")
+
+    # -------------------- PATHS --------------------
     file_title = os.path.splitext(os.path.basename(args.file))[0]
     outdir = os.path.join(args.output_dir, file_title)
     os.makedirs(outdir, exist_ok=True)
 
-    # META CSV path
-    metapath = os.path.join(outdir, args.sheet + "_meta.csv")
+    metapath  = os.path.join(outdir, args.sheet + "_meta.csv")
+    preds_path = os.path.join(outdir, args.sheet + "_predictions.csv")
+    rats_path  = os.path.join(outdir, args.sheet + "_rationales.csv")
+    conf_path  = os.path.join(outdir, args.sheet + "_confidences.csv")  # ← New file
+
     if not os.path.exists(metapath):
         with open(metapath, "w", newline="", encoding="utf-8") as f:
-            csv.writer(f).writerow(
-                [
-                    "idx",
-                    "sentence",
-                    "use_context_requested",
-                    "has_usable_context",
-                    "requested_context_mode",
-                    "arm_used",
-                    "context_included",
-                    "parse_status",
-                    "missing_key_count",
-                    "missing_keys",
-                ]
-            )
+            csv.writer(f).writerow([
+                "idx", "sentence", "use_context_requested", "has_usable_context",
+                "requested_context_mode", "arm_used", "context_included",
+                "parse_status", "missing_key_count", "missing_keys",
+            ])
 
-    def writemeta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count, missingkeys):
+    def writemeta(idx, sentence, usable, arm_used, context_included,
+                  parse_status, missing_count, missing_keys):
         with open(metapath, "a", newline="", encoding="utf-8") as f:
-            use_ctx_req = int(args.context)
-            requested = args.context_mode if args.context else ""
-            csv.writer(f).writerow(
-                [
-                    idx,
-                    sentence,
-                    use_ctx_req,
-                    int(usable),
-                    requested,
-                    arm_used,
-                    int(bool(context_included)),
-                    parse_status,
-                    missing_count,
-                    missingkeys,
-                ]
-            )
+            csv.writer(f).writerow([
+                idx, sentence,
+                int(args.context), int(usable),
+                args.context_mode if args.context else "",
+                arm_used, int(bool(context_included)),
+                parse_status, missing_count, missing_keys,
+            ])
+
 
     # -------------------- LOAD DATA --------------------
     sheets = pd.read_excel(args.file, sheet_name=None)
-    # Assuming your Gold sheet is named "Gold" as in the original pipeline
+
+    # Validate sheet exists
+    if "Gold" not in sheets:
+        raise ValueError(f"Excel file must contain a 'Gold' sheet. Found: {list(sheets.keys())}")
+
     golddf = sheets["Gold"]
+
+    # Validate column exists
+    if "sentence" not in golddf.columns:
+        raise ValueError(f"'Gold' sheet must have 'sentence' column. Found: {list(golddf.columns)}")
+
     golddf = golddf.dropna(subset=["sentence"]).reset_index(drop=True)
 
-    eval_sentences = golddf["sentence"].dropna().tolist()
-    print(f"Number of sentences to evaluate: {len(eval_sentences)}")
-
-    if args.backend == "openai":
-        backend = OpenAIBackend(model=args.model)
-        try:
-            enc = tiktoken.encoding_for_model(args.model)
-        except Exception:
-            enc = tiktoken.get_encoding("cl100k_base")
-    elif args.backend == "gemini":
-        backend = GeminiBackend(model=args.model)
-        # No official Gemini tokenizer; use a stable approximate
-        enc = tiktoken.get_encoding("cl100k_base")
-    elif args.backend == "phi":
-        backend = PhiBackend(model=args.model)
-        # enc will be ignored by PhiBackend.count_tokens, but set something to satisfy the interface
-        enc = tiktoken.get_encoding("cl100k_base")
-    elif args.backend == "qwen": # <--- ADD THIS BLOCK
-        backend = QwenBackend(model=args.model)
-        enc = tiktoken.get_encoding("cl100k_base") # Dummy encoding for counting
-    else:
-        raise ValueError(f"Unknown backend {args.backend}")
-
-
-    # -------------------- CLIENT SETUP --------------------
-    # openai_api_key = os.getenv("OPENAI_API_KEY")
-    # if not openai_api_key:
-    #     raise ValueError("Please set the OPENAI_API_KEY environment variable.")
-
-    # tokenizer
-    # enc = tiktoken.encoding_for_model(args.model if args.backend == "openai" else "gpt-4o-mini")  # or a default
-
-    if args.backend == "openai":
-        backend = OpenAIBackend(model=args.model)
-    elif args.backend == "gemini":
-        backend = GeminiBackend(model=args.model)
-    elif args.backend == "phi":
-        backend = PhiBackend(model=args.model)
-    else:
-        raise ValueError(f"Unknown backend {args.backend}")
-
-    use_extended = args.extended
-    CURRENT_FEATURES = EXTENDED_FEATURES if use_extended else MASIS_FEATURES
-    BASE_FEATURE_BLOCK = NEW_FEATURE_BLOCK if use_extended else MASIS_FEATURE_BLOCK
-
-    include_examples_in_block = args.block_examples
-    require_rationales = not args.labels_only
-
-    preds_path = os.path.join(outdir, args.sheet + "_predictions.csv")
-    rats_path = os.path.join(outdir, args.sheet + "_rationales.csv")
-
-    # -------------------- RESUME SUPPORT: LOAD EXISTING OUTPUTS --------------------
-    def get_resume_idxs(preds_path, eval_sentences):
-        """Robust resume: row count proxy + last sentence verification"""
-        if not os.path.exists(preds_path):
-            print(f"Debug: No predictions file at {preds_path}")
-            return set()
+    # Warn if context is requested but no ordering info
+    if args.context and "idx" not in golddf.columns:
+        print("WARNING: Context requested but no 'idx' column found. Assuming row order = discourse order.") 
         
+    eval_sentences = golddf["sentence"].dropna().tolist()
+    print(f"Sentences to evaluate: {len(eval_sentences)}")
+
+    CURRENT_FEATURES  = EXTENDED_FEATURES if args.extended else MASIS_FEATURES
+    BASE_FEATURE_BLOCK = NEW_FEATURE_BLOCK if args.extended else MASIS_FEATURE_BLOCK
+    include_examples_in_block = args.block_examples
+
+    # -------------------- RESUME SUPPORT --------------------
+    def get_resume_idxs(preds_path, eval_sentences):
+        """
+        Strict resume logic with data corruption detection.
+        Returns set of already-completed indices.
+        """
+        if not os.path.exists(preds_path):
+            return set()
+
         try:
             existing_df = pd.read_csv(preds_path)
-            print(f"Debug: Columns found: {list(existing_df.columns)}")
-            print(f"Debug: {len(existing_df)} rows in existing file")
-            
-                # Strategy 1: Explicit 'idx' column (The preferred way now)
-            if 'idx' in existing_df.columns:
-                return set(existing_df['idx'].tolist())
-        
-            # Strategy 2: Row count proxy + LAST SENTENCE VERIFICATION
-            if 'sentence' in existing_df.columns and len(existing_df) > 0:
-                num_rows = len(existing_df)
-                resume_idx_candidate = num_rows
-                
-                # Verify LAST sentence matches expected position
-                if len(eval_sentences) > num_rows - 1:
-                    last_csv_sentence = str(existing_df.iloc[-1]['sentence']).strip().lower()
-                    expected_sentence_idx = num_rows - 1
-                    expected_sentence = str(eval_sentences[expected_sentence_idx]).strip().lower()
-                    
-                    print(f"Debug: Verifying last sentence...")
-                    print(f"  CSV last sentence: '{last_csv_sentence[:60]}...'")
-                    print(f"  Expected at idx {expected_sentence_idx}: '{expected_sentence[:60]}...'")
-                    
-                    if last_csv_sentence == expected_sentence:
-                        print(f"Verified! Resuming from idx {resume_idx_candidate}")
-                        return set(range(resume_idx_candidate))
-                    else:
-                        print("MISMATCH! Starting fresh (order changed?)")
-                        return set()
-                else:
-                    print(f"Debug: File longer than evalsentences, starting fresh")
-                    return set()
-            else:
-                print("Debug: No 'sentence' column found")
+
+            if len(existing_df) == 0:
+                print("INFO: Existing predictions file is empty. Starting fresh.")
                 return set()
-                
-        except Exception as e:
-            print(f"Debug: CSV read failed: {e}, starting fresh")
+
+            # STRATEGY 1: Use 'idx' column if available (preferred)
+            if "idx" in existing_df.columns:
+                # Check last row completeness
+                last_row = existing_df.iloc[-1]
+                missing_in_last = last_row.isna().sum()
+                missing_pct = missing_in_last / len(CURRENT_FEATURES)
+
+                if missing_pct > 0.1:  # >10% missing
+                    print(f"WARNING: Last row (idx {last_row.get('idx', '?')}) has {missing_pct:.1%} missing features.")
+                    print(f"         This suggests the last annotation was interrupted.")
+                    print(f"         Re-processing idx {last_row.get('idx', '?')} only.")
+                    return set(existing_df['idx'].tolist()[:-1])  # Exclude last row
+
+                completed_idxs = set(existing_df['idx'].tolist())
+                print(f"INFO: Resume from predictions file. {len(completed_idxs)} sentences already completed.")
+
+                # Validation: check for gaps or duplicates
+                if len(completed_idxs) != len(existing_df):
+                    duplicates = len(existing_df) - len(completed_idxs)
+                    print(f"WARNING: Found {duplicates} duplicate idx values in predictions file.")
+
+                max_idx = max(completed_idxs) if completed_idxs else -1
+                expected_count = max_idx + 1
+                if len(completed_idxs) != expected_count:
+                    missing_count = expected_count - len(completed_idxs)
+                    print(f"WARNING: {missing_count} missing idx values detected (gaps in sequence 0-{max_idx}).")
+                    print(f"         This may indicate data corruption. Review predictions file manually.")
+
+                return completed_idxs
+
+            # STRATEGY 2: Fallback to sentence matching (less reliable)
+            if "sentence" in existing_df.columns:
+                print("WARNING: No 'idx' column found. Using sentence-based resume (less reliable).")
+                num_rows = len(existing_df)
+
+                # Verify alignment with current data
+                if num_rows > len(eval_sentences):
+                    print(f"ERROR: Predictions file has {num_rows} rows but input only has {len(eval_sentences)} sentences.")
+                    print(f"       Data mismatch detected. Please verify input file hasn't changed.")
+                    return set()  # Safer to restart
+
+                # Check last sentence matches
+                last_csv_sentence = str(existing_df.iloc[-1]["sentence"]).strip().lower()
+                expected_sentence = str(eval_sentences[num_rows - 1]).strip().lower()
+
+                if last_csv_sentence == expected_sentence:
+                    print(f"INFO: Resume verified. Resuming from row {num_rows}.")
+                    return set(range(num_rows))
+                else:
+                    print("ERROR: Sentence mismatch detected between predictions file and input data.")
+                    print(f"       CSV row {num_rows-1}: '{last_csv_sentence[:50]}...'")
+                    print(f"       Input sentence {num_rows-1}: '{expected_sentence[:50]}...'")
+                    print(f"       Input file may have changed. Starting fresh to avoid corruption.")
+                    return set()
+
+            print("WARNING: Predictions file has neither 'idx' nor 'sentence' columns. Starting fresh.")
             return set()
 
-    # ==================== AFTER get_resume_idxs() ====================
+        except pd.errors.EmptyDataError:
+            print("INFO: Predictions file exists but is empty. Starting fresh.")
+            return set()
+        except Exception as e:
+            print(f"ERROR: Resume check failed: {e}")
+            print(f"       Starting fresh to avoid data corruption.")
+            return set()
+
     existing_done_idxs = get_resume_idxs(preds_path, eval_sentences)
 
-    # Headers (already correct - sentence first, no idx)
     preds_header = ["idx", "sentence"] + CURRENT_FEATURES
-    rats_header = ["idx", "sentence"] + CURRENT_FEATURES
-
+    rats_header  = ["idx", "sentence"] + CURRENT_FEATURES
+    conf_header = ["idx", "sentence"] + CURRENT_FEATURES
     if not os.path.exists(preds_path):
-        with open(preds_path, 'w', newline='', encoding='utf-8') as f:
+        with open(preds_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(preds_header)
     if not os.path.exists(rats_path):
-        with open(rats_path, 'w', newline='', encoding='utf-8') as f:
+        with open(rats_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(rats_header)
-
-    usable_ctx_count = 0
-    used_two_turn_count = 0
-    used_single_turn_count = 0
-
-    start_time = time.time()
-    print("###############################")
-    print("start time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)))
-    print("###############################")
-
-    
-    # -------------------- GEMINI CACHING SETUP --------------------
+    # Create confidence CSV header
+    if not os.path.exists(conf_path):
+        with open(conf_path, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerow(conf_header)
+    # -------------------- GEMINI CACHING --------------------
     if args.backend == "gemini":
-        print("Initializing Gemini Cache...")
-        
-        # 1. Generate the static system prompt using a dummy sentence
-        # We use a dummy because build_messages requires an utterance, 
-        # but we only want the system/feature block part.
+        print("Initializing Gemini cache...")
+        cache_start = time.time()
         dummy_msgs, _ = build_messages(
             utterance="DUMMY",
             features=CURRENT_FEATURES,
             base_feature_block=BASE_FEATURE_BLOCK,
             instruction_type=args.instruction_type,
             include_examples_in_block=include_examples_in_block,
+            output_format=args.output_format,
             dialect_legitimacy=args.dialect_legitimacy,
             self_verification=args.self_verification,
-            require_rationales=require_rationales,
         )
-        
-        # Extract the "System" part (The massive rule block)
-        system_content = next((m['content'] for m in dummy_msgs if m['role'] == 'system'), None)
-        
+        system_content = next(
+            (m["content"] for m in dummy_msgs if m["role"] == "system"), None
+        )
         if system_content:
-            # Create the cache on the server
             backend.create_cache(system_content, args.model)
         else:
-            print("Warning: Could not isolate system prompt for caching.")
-    # ==================== MAIN LOOP (idx is just loop counter) ====================
-    for idx, sentence in enumerate(tqdm(eval_sentences, desc="Evaluating sentences")):
-        usable = False
-        arm_used = "no_context"
-        context_included = False
-        left = None
-        right = None
-        # Skip already-processed rows
+            print("Warning: could not extract system content for caching.")
+        
+        cache_end = time.time()
+        print(f"Cache created in {cache_end - cache_start:.1f}s")
+    # -------------------- COUNTERS --------------------
+    usable_ctx_count    = 0
+    used_two_turn_count = 0
+    used_single_turn_count = 0
+    dump_counter = 0  # Track number of prompts dumped
+
+    start_time = time.time()
+    print(f"\nStart: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+
+    # ==================== MAIN LOOP ====================
+    for idx, sentence in enumerate(tqdm(eval_sentences, desc="Annotating")):
         if idx in existing_done_idxs:
             continue
-        
-        left = None
-        right = None
-        
-        # Get context from neighboring rows (uses idx as row position in golddf)
+
+        left = right = None
+        usable = False
+
         if args.context:
             if idx > 0:
-                left = golddf.loc[idx - 1, 'sentence']
+                left = golddf.loc[idx - 1, "sentence"]
             if idx < len(golddf) - 1:
-                right = golddf.loc[idx + 1, 'sentence']
+                right = golddf.loc[idx + 1, "sentence"]
             usable = has_usable_context(left, right)
-            if args.context and usable:
-               usable_ctx_count += 1
-        
+            if usable:
+                usable_ctx_count += 1
+
         context_included = bool(args.context and usable)
-        
-        # Call model
+
         raw, arm_used = query_model(
             backend,
-            enc,
+            tracker,
             sentence,
             features=CURRENT_FEATURES,
             base_feature_block=BASE_FEATURE_BLOCK,
             instruction_type=args.instruction_type,
             include_examples_in_block=include_examples_in_block,
+            output_format=args.output_format,
             use_context=args.context,
             left_context=left,
             right_context=right,
             context_mode=args.context_mode,
             dialect_legitimacy=args.dialect_legitimacy,
             self_verification=args.self_verification,
-            require_rationales=require_rationales,
             dump_prompt=args.dump_prompt,
             dump_prompt_path=args.dump_prompt_path,
-            dump_once_key=dumponcekey,
+            dump_counter=dump_counter,
+            dump_first_n=args.dump_first_n,
+            sentence_idx=idx,
         )
-        
-        time.sleep(5) 
-   
-        if arm_used == "twoturn":
+
+        # Increment dump counter if we dumped this prompt
+        if args.dump_prompt and (args.dump_first_n == 0 or dump_counter < args.dump_first_n):
+            dump_counter += 1
+
+        # API rate-limit courtesy sleep (local models don't need this)
+        if args.backend in ("openai", "gemini") and args.rate_limit_delay > 0:
+            time.sleep(args.rate_limit_delay)
+
+        if arm_used == "two_turn":
             used_two_turn_count += 1
-        elif arm_used == "singleturn":
+        elif arm_used == "single_turn":
             used_single_turn_count += 1
-        
+
         if not raw:
-            parse_status = "EMPTYRESPONSE"
-            missing_count = ""
-            missing_keys_str = ""
-            writemeta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count, missing_keys_str)
+            writemeta(idx, sentence, usable, arm_used, context_included,
+                      "EMPTYRESPONSE", "", "")
             continue
-        
-        # Parse output
         try:
-            vals, rats, missing = parse_output_json(raw, CURRENT_FEATURES)
-            parse_status = "OK"
+            vals, rats, missing = parse_output(raw, CURRENT_FEATURES, output_format=args.output_format)
+            parse_status  = "OK"
             missing_count = len(missing)
-            missing_keys_str = ",".join(missing)
-        except Exception:
-            parse_status = "PARSEFAIL"
+            missing_keys  = ",".join(missing)
+            
+            # Extract confidence scores (OpenAI only)
+            confidences = extract_feature_confidences(backend, CURRENT_FEATURES, vals)
+
+        except Exception as exc:
+            print(f"Parse error at idx {idx}: {exc}")
+            parse_status  = "PARSEFAIL"
             missing_count = ""
-            missing_keys_str = ""
-            vals = {feat: None for feat in CURRENT_FEATURES}
-            rats = {feat: "" for feat in CURRENT_FEATURES}
+            missing_keys  = ""
+            vals = {f: None for f in CURRENT_FEATURES}
+            rats = {f: ""   for f in CURRENT_FEATURES}
+            confidences = {}
+
+        if isinstance(missing_count, int) and missing_count > 5:
+            print(f"WARNING: {missing_count} missing features at idx {idx}")
         
-        writemeta(idx, sentence, usable, arm_used, context_included, parse_status, missing_count, missing_keys_str)
-        
-        # Write predictions (sentence first, NO idx)
-        with open(preds_path, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow([idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES])
-        
-        # Write rationales (sentence first, NO idx)
+        writemeta(idx, sentence, usable, arm_used, context_included,
+                parse_status, missing_count, missing_keys)
+
+        with open(preds_path, "a", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerow(
+                [idx, sentence] + [vals.get(feat) for feat in CURRENT_FEATURES]
+            )
+
         clean_rats = []
         for feat in CURRENT_FEATURES:
-            r = rats.get(feat, "")
-            # Safety: ensure it's a string
+            r = rats.get(feat, "") or ""
             if not isinstance(r, str):
-                r = str(r) if r is not None else ""
-            # Optional: Collapse newlines to keep row compact (Excel friendly)
+                r = str(r)
             r = r.replace("\n", " ").replace("\r", "")
             clean_rats.append(r)
 
-        # Write with explicit quoting
-        with open(rats_path, 'a', newline='', encoding='utf-8') as f:
-            # quote_all=True is the safest option for messy text data
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerow([idx, sentence] + clean_rats)
+        with open(rats_path, "a", newline="", encoding="utf-8") as f:
+            csv.writer(f, quoting=csv.QUOTE_ALL).writerow(
+                [idx, sentence] + clean_rats
+            )
+        
+        # Save confidence scores (OpenAI only)
+        if confidences:
+            with open(conf_path, "a", newline="", encoding="utf-8") as f:
+                csv.writer(f).writerow(
+                    [idx, sentence] + [confidences.get(feat, "") for feat in CURRENT_FEATURES]
+                )
+    # -------------------- FINAL SUMMARY --------------------
+    print_final_usage_summary(tracker) 
 
-
-    print("\n=== CONTEXT USAGE SUMMARY ===")
-    print(f"Sentences with usable context: {usable_ctx_count}")
-    print(f"  - Single-turn context delivery: {used_single_turn_count}")
-    print(f"  - Two-turn context delivery: {used_two_turn_count}")
-    print_final_usage_summary()
-    
     end_time = time.time()
-    print("###############################")
-    print("end time:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end_time)))
-    print("elapsed time:", time.strftime("%H:%M:%S", time.gmtime(end_time - start_time)))
-    print("###############################")
+    print(f"End:     {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+    print(f"Elapsed: {time.strftime('%H:%M:%S', time.gmtime(end_time - start_time))}")
+
 
 if __name__ == "__main__":
     main()
