@@ -1741,8 +1741,8 @@ def query_model(
         print(f"   use_context flag:     {use_context}")
         print(f"   context_mode:         {context_mode}")
         print(f"   arm_used:             {arm_used}")
-        print(f"   left_context:         {'✅ Present' if left_context and str(left_context).strip() else '❌ None/Empty'}")
-        print(f"   right_context:        {'✅ Present' if right_context and str(right_context).strip() else '❌ None/Empty'}")
+        print(f"   left_context:         {'Present' if left_context and str(left_context).strip() else 'None/Empty'}")
+        print(f"   right_context:        {'Present' if right_context and str(right_context).strip() else 'None/Empty'}")
 
         if left_context and str(left_context).strip():
             print(f"\n   LEFT (previous):  \"{str(left_context).strip()[:100]}{'...' if len(str(left_context).strip()) > 100 else ''}\"")
