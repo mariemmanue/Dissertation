@@ -35,6 +35,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn \
     --dump_prompt \
+    --output_format json \
     --output_dir Decoder-Only/Phi-4/data"
 
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -144,7 +145,7 @@ class OpenAIBackend(LLMBackend):
     """
     OpenAI API backend (GPT-4, GPT-4o, etc.).
 
-    CONFIDENCE SUPPORT: ✅ Feature-specific
+    CONFIDENCE SUPPORT: Feature-specific
     - Extracts token-level logprobs for each binary label (0/1)
     - Matches logprobs to features using regex on preceding tokens
     - High accuracy: confidence directly tied to model's uncertainty
@@ -198,7 +199,7 @@ class QwenBackend(LLMBackend):
     """
     HuggingFace Qwen model backend (local inference).
 
-    CONFIDENCE SUPPORT: ⚠️ Global proxy only
+    CONFIDENCE SUPPORT: Global proxy only
     - Extracts average max probability across all generated tokens
     - Same confidence assigned to ALL features (not feature-specific)
     - Use as rough proxy for overall model uncertainty
@@ -288,7 +289,7 @@ class GeminiBackend(LLMBackend):
     """
     Google Gemini API backend (Gemini 2.0/2.5 Flash/Pro).
 
-    CONFIDENCE SUPPORT: ❌ Not supported
+    CONFIDENCE SUPPORT: Not supported
     - Gemini API does not expose logprobs or token probabilities
     - Confidence extraction will return empty dict
     - Use OpenAI backend if confidence scores are required
@@ -408,7 +409,7 @@ class PhiBackend(LLMBackend):
     """
     HuggingFace Phi-4 model backend (local inference).
 
-    CONFIDENCE SUPPORT: ⚠️ Global proxy only
+    CONFIDENCE SUPPORT: Global proxy only
     - Extracts average max probability across all generated tokens
     - Same confidence assigned to ALL features (not feature-specific)
     - Use as rough proxy for overall model uncertainty
