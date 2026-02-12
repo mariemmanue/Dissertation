@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 
 """
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
-  -n phi4_gen_zs_ctx_leg_rats \
+  -n jsonphi4_gen_zs_ctx_leg_rats \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -28,7 +28,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --file Datasets/FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
-    --sheet PHI4_ZS_CTX_legit_rats \
+    --sheet PHI4_ZS_CTX_legit_rats_json \
     --instruction_type zero_shot \
     --extended \
     --dialect_legitimacy \
@@ -573,12 +573,20 @@ def parse_output(raw_str: str, features: list, output_format: str = "markdown") 
                         missing.remove(f)
     else:
         data = extract_json_robust(raw_str)
+        # Extract reasoning text before the JSON block as global rationale
+        json_start = raw_str.find("{")
+        pre_json_text = raw_str[:json_start].strip() if json_start > 0 else ""
         if data:
             for f in features:
                 if f in data:
                     v = data[f]
                     vals[f] = v if isinstance(v, int) else int(v.get("value", 0))
-                    rats[f] = str(v.get("rationale", "")) if isinstance(v, dict) else ""
+                    if isinstance(v, dict) and v.get("rationale"):
+                        rats[f] = str(v.get("rationale", ""))
+                    elif pre_json_text:
+                        rats[f] = f"See analysis: {pre_json_text[:200]}..."
+                    else:
+                        rats[f] = ""
             missing = [f for f in features if f not in vals]
         # Fallback: model may have returned Markdown despite being asked for JSON
         if missing:
@@ -609,17 +617,17 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
 
     conf_data = backend._last_confidence_data
     conf_type = conf_data.get('type')
-    data = conf_data.get('data')
 
-    if not conf_type or data is None:
+    if not conf_type:
         return {}
 
     confidences = {}
 
     if conf_type == 'logprobs':
         # OpenAI logprobs - feature-specific confidence extraction
+        data = conf_data.get('data')
         try:
-            if not hasattr(data, 'content') or not data.content:
+            if not data or not hasattr(data, 'content') or not data.content:
                 print("Warning: OpenAI logprobs data missing 'content' attribute")
                 return {}
 
@@ -662,14 +670,15 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
 
     elif conf_type == 'hf_scores':
         # HuggingFace scores (Phi/Qwen) - global proxy confidence
+        scores = conf_data.get('scores')
         try:
-            if not isinstance(data, (list, tuple)):
-                print(f"Warning: HF scores data is not a list/tuple (got {type(data)})")
+            if not isinstance(scores, (list, tuple)):
+                print(f"Warning: HF scores data is not a list/tuple (got {type(scores)})")
                 return {}
 
             # Get average max probability across all generated tokens
             max_probs = []
-            for score_tensor in data:
+            for score_tensor in scores:
                 if not hasattr(score_tensor, 'shape'):
                     continue
                 probs = torch.nn.functional.softmax(score_tensor[0], dim=-1)
@@ -1411,7 +1420,6 @@ def format_context_block(left_context, right_context) -> str:
 def build_system_msg(
     instruction_type: str,
     dialect_legitimacy: bool,
-    self_verification: bool,
     use_context: bool,
     base_feature_block: str,
     include_examples_in_block: bool,
@@ -1466,17 +1474,6 @@ def build_system_msg(
         "confidently apply the rule, output 0\n"
         "* Do NOT treat disfluencies or casual phrasing as ambiguity unless they obscure the relevant syntactic environment\n\n"
     )
-
-    self_verif = ""
-    if self_verification:
-        self_verif = (
-            "**4. SELF-VERIFICATION (FINAL CHECK BEFORE OUTPUT):**\n"
-            "For each feature, confirm that:\n"
-            "* Your reasoning uses ONLY grammatical facts in the utterance\n"
-            "* You are NOT filling in missing material with world knowledge or assumptions about intent\n"
-            "* You are NOT labeling a structure as AAE merely because it differs from SAE or sounds informal\n"
-            "* Your rationale explains why the rule either applies or does not apply, even for 0\n\n"
-        )
 
     constraints = (
         "### EXPLICIT EVALUATION CONSTRAINTS ###\n"
@@ -1539,7 +1536,6 @@ def build_system_msg(
     content = "".join([
         intro,
         procedure,
-        self_verif,
         constraints,
         ctx_instructions,
         cot_instruction,
@@ -1555,6 +1551,7 @@ def build_user_msg(
     utterance: str,
     features: list,
     output_format: str,
+    instruction_type: str = "zero_shot",
     context_block: str | None = None,
 ) -> str:
     """
@@ -1586,13 +1583,34 @@ def build_user_msg(
             "Every feature in the list below must appear exactly once.\n"
         )
     else:
-        # JSON mode: compact output, no reasoning
-        output_instructions = (
-            "### OUTPUT FORMAT (STRICT JSON) ###\n"
-            "Return ONLY a single flat JSON object with integer values:\n"
-            '  {"feature-name": 0, "feature-name": 1, ...}\n\n'
-            "Do NOT include rationales, nested objects, or any text outside the JSON.\n"
-        )
+        # JSON mode: reason first, then output JSON
+        if "cot" in instruction_type:
+            output_instructions = (
+                "### OUTPUT INSTRUCTIONS ###\n"
+                "Structure your response in two parts:\n\n"
+                "**PART 1 — Analysis**\n"
+                "Provide detailed step-by-step analysis. For each feature, quote the relevant substring, "
+                "explain the grammatical pattern, state what SAE would require, and explain why the AAE rule "
+                "applies or doesn't.\n\n"
+                "**PART 2 — JSON Labels**\n"
+                "After your analysis, output ALL final labels as a single flat JSON object with integer values:\n"
+                '  {"feature-name": 0, "feature-name": 1, ...}\n\n'
+                "Do NOT include rationales or nested objects inside the JSON. "
+                "Every feature in the list below must appear exactly once in the JSON.\n"
+            )
+        else:
+            output_instructions = (
+                "### OUTPUT INSTRUCTIONS ###\n"
+                "Structure your response in two parts:\n\n"
+                "**PART 1 — Analysis**\n"
+                "Briefly walk through the sentence. For features that are present (1), note the key evidence. "
+                "For features that are absent (0), briefly state why.\n\n"
+                "**PART 2 — JSON Labels**\n"
+                "After your analysis, output ALL final labels as a single flat JSON object with integer values:\n"
+                '  {"feature-name": 0, "feature-name": 1, ...}\n\n'
+                "Do NOT include rationales or nested objects inside the JSON. "
+                "Every feature in the list below must appear exactly once in the JSON.\n"
+            )
 
     return (
         f"{context_section}"
@@ -1615,7 +1633,6 @@ def build_messages(
     right_context: str | None = None,
     context_mode: str = "single_turn",
     dialect_legitimacy: bool = False,
-    self_verification: bool = False,
 ) -> tuple[list[dict], str]:
     """
     Assembles the full messages list for a single sentence.
@@ -1631,7 +1648,6 @@ def build_messages(
     system_msg = build_system_msg(
         instruction_type=instruction_type,
         dialect_legitimacy=dialect_legitimacy,
-        self_verification=self_verification,
         use_context=use_context,
         base_feature_block=base_feature_block,
         include_examples_in_block=include_examples_in_block,
@@ -1659,6 +1675,7 @@ def build_messages(
             utterance=utterance,
             features=features,
             output_format=output_format,
+            instruction_type=instruction_type,
             context_block=None,  # ← No reminder in TARGET message
         )
         user_msg = {"role": "user", "content": user_content}
@@ -1669,6 +1686,7 @@ def build_messages(
         utterance=utterance,
         features=features,
         output_format=output_format,
+        instruction_type=instruction_type,
         context_block=context_block,  # ← Reminder included via build_user_msg
     )
     user_msg = {"role": "user", "content": user_content}
@@ -1700,7 +1718,6 @@ def query_model(
     right_context: str | None = None,
     context_mode: str = "single_turn",
     dialect_legitimacy: bool = False,
-    self_verification: bool = False,
     dump_prompt: bool = False,
     dump_prompt_path: str | None = None,
     dump_counter: int = 0,
@@ -1722,7 +1739,6 @@ def query_model(
         right_context=right_context,
         context_mode=context_mode,
         dialect_legitimacy=dialect_legitimacy,
-        self_verification=self_verification,
     )
 
     # Gemini with caching: strip system message (it's already on the server)
@@ -1753,7 +1769,7 @@ def query_model(
         print(f"\n   TARGET SENTENCE:  \"{sentence[:100]}{'...' if len(sentence) > 100 else ''}\"")
 
         # Message structure
-        print(f"\n📨 MESSAGE STRUCTURE:")
+        print(f"\nMESSAGE STRUCTURE:")
         print(f"   Total messages:       {len(messages)}")
         for i, msg in enumerate(messages):
             role = msg['role']
@@ -1761,7 +1777,7 @@ def query_model(
             print(f"   [{i}] {role:8s}:  {content_preview}...")
 
         # Full JSON dump
-        print(f"\n📄 FULL PROMPT JSON:")
+        print(f"\nFULL PROMPT JSON:")
 
         # Get model name string (HF backends store it in model_id)
         model_name = getattr(backend, 'model_id', backend.model)
@@ -1898,8 +1914,6 @@ def main():
                         help="Keep example lines in feature block (non-zero-shot only)")
     parser.add_argument("--dialect_legitimacy", action="store_true",
                         help="Frame AAE as rule-governed and legitimate")
-    parser.add_argument("--self_verification",  action="store_true",
-                        help="Include self-verification step in system instructions")
     parser.add_argument("--output_dir",       type=str, required=True,  help="Output directory")
     parser.add_argument("--dump_prompt",      action="store_true",      help="Print prompt (with context details)")
     parser.add_argument("--dump_prompt_path", type=str, default=None,   help="Write prompt JSON to this path")
@@ -1912,7 +1926,7 @@ def main():
                         help="Model identifier (e.g. gpt-4o, gemini-2.0-flash-exp, microsoft/Phi-4)")
     parser.add_argument("--output_format",    type=str, default="markdown",
                         choices=["json", "markdown"],
-                        help="'markdown' (CoT with Analysis + Results) or 'json' (compact labels only)")
+                        help="'markdown' (Analysis + Results list) or 'json' (Analysis + JSON labels)")
     parser.add_argument("--rate_limit_delay", type=float, default=5.0,
                         help="Delay in seconds between API calls (0 for none)")
 
@@ -2097,7 +2111,7 @@ def main():
             include_examples_in_block=include_examples_in_block,
             output_format=args.output_format,
             dialect_legitimacy=args.dialect_legitimacy,
-            self_verification=args.self_verification,
+
         )
         system_content = next(
             (m["content"] for m in dummy_msgs if m["role"] == "system"), None
@@ -2151,7 +2165,7 @@ def main():
             right_context=right,
             context_mode=args.context_mode,
             dialect_legitimacy=args.dialect_legitimacy,
-            self_verification=args.self_verification,
+
             dump_prompt=args.dump_prompt,
             dump_prompt_path=args.dump_prompt_path,
             dump_counter=dump_counter,
