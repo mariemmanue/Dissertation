@@ -423,18 +423,12 @@ class GeminiBackend(LLMBackend):
                         model_name=self.model,
                         system_instruction=system_msg
                     )
-                    chat = model_with_system.start_chat(
-                        history=history,
-                        generation_config=generation_config
-                    )
+                    chat = model_with_system.start_chat(history=history)
                 else:
                     # Using cached model (system already on server) or no system message
-                    chat = client.start_chat(
-                        history=history,
-                        generation_config=generation_config
-                    )
-                
-                resp = chat.send_message(last_content)
+                    chat = client.start_chat(history=history)
+
+                resp = chat.send_message(last_content, generation_config=generation_config)
 
             return resp.text
         except Exception as e:
