@@ -18,8 +18,45 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 
 """
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n json_gemini_zs_ctx_leg \
+  -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+   --model gemini-2.5-flash \
+   --backend gemini \
+    --sheet GEMINI_ZS_CTX_legit_json \
+    --instruction_type zero_shot \
+    --extended \
+    --dialect_legitimacy \
+    --context \
+    --dump_prompt \
+    --output_format json \
+    --output_dir Decoder-Only/Gemini/data"
+
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini_zs_ctx_leg \
+  -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+   --model gemini-2.5-flash \
+   --backend gemini \
+    --sheet GEMINI_ZS_CTX_legit \
+    --instruction_type zero_shot \
+    --extended \
+    --dialect_legitimacy \
+    --context \
+    --dump_prompt \
+    --output_dir Decoder-Only/Gemini/data"
+
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
-  -n jsonphi4_gen_zs_ctx_leg_rats \
+  -n phi4_gen_zs_ctx_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -28,12 +65,11 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --file Datasets/FullTest_Final.xlsx \
    --model microsoft/phi-4  \
    --backend phi \
-    --sheet PHI4_ZS_CTX_legit_rats_json \
+    --sheet PHI4_ZS_CTX_legit_json \
     --instruction_type zero_shot \
     --extended \
     --dialect_legitimacy \
     --context \
-    --context_mode two_turn \
     --dump_prompt \
     --output_format json \
     --output_dir Decoder-Only/Phi-4/data"
