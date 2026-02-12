@@ -1782,7 +1782,8 @@ def query_model(
         dialect_legitimacy=dialect_legitimacy,
     )
 
-    # Gemini with caching: strip system message (it's already on the server)
+    # For Gemini with caching: keep full messages for the dump, strip system only for the API call
+    full_messages_for_dump = messages  # Always dump the complete messages
     if isinstance(backend, GeminiBackend) and backend.cached_model_client is not None:
         messages = [m for m in messages if m["role"] != "system"]
 
@@ -1809,10 +1810,10 @@ def query_model(
 
         print(f"\n   TARGET SENTENCE:  \"{sentence[:100]}{'...' if len(sentence) > 100 else ''}\"")
 
-        # Message structure
+        # Message structure (always show full messages including system)
         print(f"\nMESSAGE STRUCTURE:")
-        print(f"   Total messages:       {len(messages)}")
-        for i, msg in enumerate(messages):
+        print(f"   Total messages:       {len(full_messages_for_dump)}")
+        for i, msg in enumerate(full_messages_for_dump):
             role = msg['role']
             content_preview = msg['content'][:150].replace('\n', ' ')
             print(f"   [{i}] {role:8s}:  {content_preview}...")
@@ -1836,8 +1837,10 @@ def query_model(
                 "left_context": left_context,
                 "right_context": right_context,
             },
-            "messages": messages
+            "messages": full_messages_for_dump
         }
+        if isinstance(backend, GeminiBackend) and backend.cached_model_client is not None:
+            payload["note"] = "System message is cached on Gemini server (not sent per-request)"
         print(json.dumps(payload, indent=2, ensure_ascii=False))
 
         print("\n" + "="*80)
