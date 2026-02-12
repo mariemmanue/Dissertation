@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 
 """
 nlprun -q jag -p standard -r 40G -c 2 \
-  -n gemini_zs_ctx1_leg \
+  -n gemini_zs_ctx2_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -28,11 +28,12 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --file Datasets/FullTest_Final.xlsx \
    --model gemini-2.5-flash \
    --backend gemini \
-    --sheet GEMINI_ZS_CTX1_legit_json \
+    --sheet GEMINI_ZS_CTX2_legit_json \
     --instruction_type zero_shot \
     --extended \
     --dialect_legitimacy \
     --context \
+    --context_mode two_turn \
     --dump_prompt \
     --output_dir Decoder-Only/Gemini/data"
 
