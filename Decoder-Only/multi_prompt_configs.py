@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 
 """
 nlprun -q jag -p standard -r 40G -c 2 \
-  -n json_gemini_zs_ctx_leg \
+  -n gemini_zs_ctx1_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -28,13 +28,12 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --file Datasets/FullTest_Final.xlsx \
    --model gemini-2.5-flash \
    --backend gemini \
-    --sheet GEMINI_ZS_CTX_legit_json \
+    --sheet GEMINI_ZS_CTX1_legit_json \
     --instruction_type zero_shot \
     --extended \
     --dialect_legitimacy \
     --context \
     --dump_prompt \
-    --output_format json \
     --output_dir Decoder-Only/Gemini/data"
 
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -398,10 +397,22 @@ class GeminiBackend(LLMBackend):
             if len(user_turns) <= 1:
                 # Single-turn: simple generation
                 content = user_turns[0]["content"] if user_turns else ""
-                resp = client.generate_content(
-                    content,
-                    generation_config=generation_config
-                )
+                # Apply system instruction if present and not using cached model
+                system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
+                if system_msg and not self.cached_model_client:
+                    model_with_system = genai.GenerativeModel(
+                        model_name=self.model,
+                        system_instruction=system_msg
+                    )
+                    resp = model_with_system.generate_content(
+                        content,
+                        generation_config=generation_config
+                    )
+                else:
+                    resp = client.generate_content(
+                        content,
+                        generation_config=generation_config
+                    )
                 # REMOVED: Candidate extraction code (candidates not supported)
             else:
                 # Multi-turn: use chat with history
