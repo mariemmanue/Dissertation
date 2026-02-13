@@ -25,6 +25,29 @@ nlprun -q jag -p standard -r 40G -c 2 \
     Decoder-Only/Gemini/data/FullTest_Final/ \
     Decoder-Only/Gemini_Combined.xlsx \
     --prefix GEMINI_"
+
+
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n combine_gem \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+    python Decoder-Only/combine_predictions.py \
+    Decoder-Only/Qwen2.5/data/FullTest_Final/ \
+    Decoder-Only/Qwen2.5_Combined.xlsx \
+    --prefix QWEN2.5"
+
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n combine_gem \
+  -o Decoder-Only/GPT/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+    python Decoder-Only/combine_predictions.py \
+    Decoder-Only/GPT/data/FullTest_Final/ \
+    Decoder-Only/GPT_Combined.xlsx \
+    --prefix GPT_"
 """
 
 def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
