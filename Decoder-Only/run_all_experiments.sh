@@ -1,6 +1,6 @@
 #!/bin/bash
 # Auto-generated experimental run script
-# Total jobs: 72
+# Total jobs: 96
 #
 # Grid per model:
 #   instruction_type:   zero_shot, few_shot, zero_shot_cot, few_shot_cot  (4)
@@ -12,10 +12,11 @@
 #
 # Usage:
 #   chmod +x run_all_experiments.sh
-#   ./run_all_experiments.sh           # launch all 72 jobs
+#   ./run_all_experiments.sh           # launch all 96 jobs
 #   ./run_all_experiments.sh phi4      # launch only phi4 jobs (24)
 #   ./run_all_experiments.sh gemini    # launch only gemini jobs (24)
 #   ./run_all_experiments.sh gpt4o     # launch only gpt4o jobs (24)
+#   ./run_all_experiments.sh qwen25    # launch only qwen2.5 jobs (24)
 
 set -e
 
@@ -1466,6 +1467,490 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --extended \
     --output_format markdown \
     --output_dir Decoder-Only/GPT4o/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# QWEN2.5 — Qwen/Qwen2.5-7B-Instruct
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen25" ]]; then
+
+echo "[73] Launching: QWEN25_ZS_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zs_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt"
+
+echo "[74] Launching: QWEN25_ZS_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zs_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[75] Launching: QWEN25_ZS_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zs_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[76] Launching: QWEN25_ZS_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zs_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[77] Launching: QWEN25_ZS_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zs_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[78] Launching: QWEN25_ZS_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zs_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[79] Launching: QWEN25_FS_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fs_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt"
+
+echo "[80] Launching: QWEN25_FS_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fs_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[81] Launching: QWEN25_FS_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fs_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[82] Launching: QWEN25_FS_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fs_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[83] Launching: QWEN25_FS_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fs_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[84] Launching: QWEN25_FS_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fs_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[85] Launching: QWEN25_ZScot_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zscot_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt"
+
+echo "[86] Launching: QWEN25_ZScot_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zscot_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[87] Launching: QWEN25_ZScot_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[88] Launching: QWEN25_ZScot_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zscot_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[89] Launching: QWEN25_ZScot_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[90] Launching: QWEN25_ZScot_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_zscot_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[91] Launching: QWEN25_FScot_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fscot_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt"
+
+echo "[92] Launching: QWEN25_FScot_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fscot_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[93] Launching: QWEN25_FScot_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[94] Launching: QWEN25_FScot_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fscot_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[95] Launching: QWEN25_FScot_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[96] Launching: QWEN25_FScot_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
+  -n qwen25_fscot_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
