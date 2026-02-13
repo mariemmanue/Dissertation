@@ -36,7 +36,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     python Decoder-Only/combine_predictions.py \
     Decoder-Only/Qwen2.5/data/FullTest_Final/ \
     Decoder-Only/Qwen2.5_Combined.xlsx \
-    --prefix QWEN2.5"
+    --prefix QWEN25_"
 
 nlprun -q jag -p standard -r 40G -c 2 \
   -n combine_gem \
