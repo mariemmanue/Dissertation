@@ -65,17 +65,16 @@ def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
                     # Read the CSV
                     df = pd.read_csv(file_path)
                     
-                    # --- NEW CODE: Add Model Name Column ---
-                    # Uses the full filename (e.g., 'PHI4_aint_predictions.csv')
-                    # You can change 'model_name' to whatever header you prefer
-                    df.insert(0, 'model_name', filename.replace('_predictions.csv', ''))
-                    # ---------------------------------------
+                    # Add model name column (keeps prefix so model is identifiable)
+                    full_name = filename.replace('_predictions.csv', '')
+                    model_label = prefix_to_strip.rstrip('_') if prefix_to_strip else full_name
+                    df.insert(0, 'model_name', model_label)
 
                     # Clean up the name for the Sheet Tab
                     # 1. Remove '_predictions.csv'
-                    sheet_name = filename.replace('_predictions.csv', '')
-                    
-                    # 2. Remove prefix (e.g. 'PHI4_')
+                    sheet_name = full_name
+
+                    # 2. Remove prefix (e.g. 'PHI4_') from tab only
                     if prefix_to_strip and sheet_name.startswith(prefix_to_strip):
                         sheet_name = sheet_name[len(prefix_to_strip):]
                     

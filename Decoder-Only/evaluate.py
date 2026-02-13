@@ -48,7 +48,8 @@ if "wh-qu" not in MASIS17_FEATURES:
 # enforce consistent delta direction (b - a)
 PREFERRED_LEVEL_ORDER = {
     "ctx": ("noCTX", "CTX"),          # CTX - noCTX
-    "instr": ("ZS", "FSCOT"),         # FSCOT - ZS
+    "instr": ("ZS", "FScot"),         # FScot - ZS
+    "leg": ("noLeg", "Leg"),          # Leg - noLeg
     "feature_set": ("17", "25"),      # 25 - 17
     "trial": ("A", "B"),              # B - A
 }
@@ -63,7 +64,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 
 def drop_features_column(df: pd.DataFrame) -> pd.DataFrame:
-    return df.drop(columns=["FEATURES", "Source"], errors="ignore")
+    return df.drop(columns=["FEATURES", "Source", "idx"], errors="ignore")
 
 
 def combine_wh_qu(df: pd.DataFrame) -> pd.DataFrame:
@@ -118,13 +119,13 @@ def normalize_sentence_column(df: pd.DataFrame, sheet_name: str) -> Optional[pd.
 def parse_factors(sheet_name: str) -> dict:
     """
     Parse condition factors out of sheet names like:
-      GPT_17_ZS_CTX_A
-      GEMINI_25_FSCOT_noCTX_B
+      Old style: GPT_17_ZS_CTX_A / GEMINI_25_FSCOT_noCTX_B
+      New style: PHI_ZS_noCTX_noLeg / GEMINI_FScot_CTX2t_Leg / PHI4_ZScot_CTX1t_noLeg
     Returns dict with keys:
-      model in {"GPT", "GEMINI"} or None
       feature_set in {"17","25"} or None
-      instr in {"ZS","FSCOT"} or None
-      ctx in {"CTX","noCTX"} or None
+      instr in {"ZS","FS","ZScot","FScot"} or None
+      ctx in {"noCTX","CTX1t","CTX2t"} or None
+      leg in {"Leg","noLeg"} or None
       trial in {"A","B"} or None
     """
     m = str(sheet_name).upper()
@@ -137,23 +138,36 @@ def parse_factors(sheet_name: str) -> dict:
         feature_set = "25"
 
     instr = None
-    if "FSCOT" in toks or "_FSCOT_" in f"_{m}_":
-        instr = "FSCOT"
-    elif "ZS" in toks or "_ZS_" in f"_{m}_":
+    if "FSCOT" in toks:
+        instr = "FScot"
+    elif "ZSCOT" in toks:
+        instr = "ZScot"
+    elif "FS" in toks:
+        instr = "FS"
+    elif "ZS" in toks:
         instr = "ZS"
 
     ctx = None
-    if "NOCTX" in toks or "_NOCTX" in m:
+    if "NOCTX" in toks:
         ctx = "noCTX"
-    elif "CTX" in toks or "_CTX" in m:
+    elif "CTX2T" in toks:
+        ctx = "CTX2t"
+    elif "CTX1T" in toks:
+        ctx = "CTX1t"
+    elif "CTX" in toks:
         ctx = "CTX"
+
+    leg = None
+    if "NOLEG" in toks:
+        leg = "noLeg"
+    elif "LEG" in toks:
+        leg = "Leg"
 
     trial = None
     if toks and toks[-1] in ("A", "B"):
         trial = toks[-1]
 
-    # Add 'model' to the returned dictionary
-    return {"feature_set": feature_set, "instr": instr, "ctx": ctx, "trial": trial}
+    return {"feature_set": feature_set, "instr": instr, "ctx": ctx, "leg": leg, "trial": trial}
 
 def safe_strip_sentence_col(df: pd.DataFrame) -> pd.DataFrame:
     if "sentence" in df.columns:
@@ -595,55 +609,65 @@ def plot_model_metrics(
 # [START] NEW VISUALIZATION FUNCTIONS
 # ==========================================
 
-def parse_model_config(name: str):
+def parse_model_config(name: str, model_name_col: str = None):
     """
-    Parses sheet names to extract Model, Config, Dialect Legitimacy, and Task Type.
-    Example: 'GEMINI_25_FSCOT_CTX_two_legit_labels_...'
+    Parses sheet/model names to extract Model and Config string.
+
+    Handles new naming convention:
+      PHI_ZS_noCTX_noLeg, GEMINI_FScot_CTX2t_Leg, PHI4_ZScot_CTX1t_noLeg
+    And old convention:
+      GPT_17_ZS_CTX_A, GEMINI_25_FSCOT_noCTX_B
+
+    If model_name_col is provided (from combine_predictions.py model_name column),
+    use it to identify the model.
     """
     base = str(name).upper()
-    
+
     # --- 1. Identify Model ---
-    if "MODERN-BERT" in base or "MODERNBERT" in base: model = "Modern-BERT"
+    if model_name_col:
+        model = str(model_name_col)
+    elif "MODERN-BERT" in base or "MODERNBERT" in base: model = "Modern-BERT"
     elif "PHI-4" in base or "PHI4" in base: model = "Phi-4"
+    elif "PHI" in base and "PHI" == base.split("_")[0]: model = "Phi-4"
     elif "BERT" in base: model = "BERT"
     elif "GPT" in base: model = "GPT"
-    elif "GEMINI" in base: model = "Gemini"
+    elif "GEMINI" in base or "GEM" == base.split("_")[0]: model = "Gemini"
+    elif "QWEN25" in base or "QWEN" == base.split("_")[0]: model = "Qwen2.5"
     else: model = base.split("_")[0]
 
     # --- 2. Identify Configuration components ---
     # Instruction Strategy
     if "FSCOT" in base: instr = "Few-Shot CoT"
     elif "ZSCOT" in base: instr = "Zero-Shot CoT"
+    elif "_FS_" in f"_{base}_" or base.endswith("_FS"): instr = "Few-Shot"
     elif "ICL" in base: instr = "Few-Shot (ICL)"
     elif "ZS" in base: instr = "Zero-Shot"
     else: instr = "Standard"
 
     # Context
-    ctx = "No Context" if ("NOCTX" in base or "NO_CTX" in base) else ("Context" if "CTX" in base else "")
+    if "NOCTX" in base or "NO_CTX" in base:
+        ctx = "No Context"
+    elif "CTX2T" in base:
+        ctx = "Context (2-turn)"
+    elif "CTX1T" in base:
+        ctx = "Context (1-turn)"
+    elif "CTX" in base:
+        ctx = "Context"
+    else:
+        ctx = ""
 
-    # --- 3. NEW FACTORS: Legitimacy & Task Type ---
-    # Dialect Legitimacy (legit vs nolegit)
-    if "NOLEGIT" in base or "NO_LEGIT" in base:
+    # --- 3. Dialect Legitimacy ---
+    if "NOLEG" in base:
         legit = "No Legitimacy"
-    elif "LEGIT" in base:
-        legit = "Legitimacy Info"
+    elif "LEG" in base:
+        legit = "Legitimacy"
     else:
-        legit = "" # Default or unknown
-
-    # Task Type (Labels vs Rationales)
-    # Looking for 'rats' or 'rationales' vs 'labels'
-    if "RATS" in base or "RATIONALES" in base:
-        task = "Rationales"
-    elif "LABELS" in base:
-        task = "Labels"
-    else:
-        task = ""
+        legit = ""
 
     # Combine into one descriptive config label
-    # E.g., "Few-Shot CoT + Context | Legitimacy Info | Labels"
-    parts = [p for p in [instr, ctx, legit, task] if p]
+    parts = [p for p in [instr, ctx, legit] if p]
     config = " + ".join(parts)
-    
+
     return model, config
 
 
@@ -1050,7 +1074,10 @@ def evaluate_sheets(file_path: str):
 
 
         name_up = str(sheet_name).upper()
-        if not (name_up.startswith("GPT") or name_up.startswith("BERT") or name_up.startswith("PHI-4") or name_up.startswith("PHI4") or name_up.startswith("PHI") or name_up.startswith("MODERNBERT") or name_up.startswith("GEM") or name_up.startswith("GEMINI")):
+        KNOWN_MODEL_PREFIXES = ("GPT", "BERT", "PHI", "MODERNBERT", "MODERN-BERT", "GEM", "GEMINI", "QWEN")
+        # Also match sheets starting with instruction types (when prefix was stripped by combine_predictions.py)
+        KNOWN_INSTR_PREFIXES = ("ZS_", "FS_", "ZSCOT_", "FSCOT_")
+        if not any(name_up.startswith(p) for p in KNOWN_MODEL_PREFIXES) and not any(name_up.startswith(p) for p in KNOWN_INSTR_PREFIXES):
             continue
 
         df = drop_features_column(df_raw)
@@ -1060,13 +1087,21 @@ def evaluate_sheets(file_path: str):
         df = df.dropna(subset=["sentence"])
         df = safe_strip_sentence_col(df)
 
+        # Use model_name column (from combine_predictions.py) as the canonical name
+        # This preserves the full model identifier even when prefix is stripped from sheet tab
+        if "model_name" in df.columns:
+            canonical_name = str(df["model_name"].iloc[0])
+            df = df.drop(columns=["model_name"])
+        else:
+            canonical_name = str(sheet_name)
+
         df = combine_wh_qu(df)
         df = df.drop_duplicates(subset="sentence")
 
-        model_sheets[sheet_name] = df
+        model_sheets[canonical_name] = df
 
     if not model_sheets:
-        print(f"[WARN] No model sheets (GPT_*/BERT/PHI/MODERNBERT) found in {file_path}.")
+        print(f"[WARN] No model sheets found in {file_path}. Expected sheets starting with model name or instruction type prefix.")
         return
     
     # 1. Start with Gold sentences
@@ -1227,15 +1262,15 @@ def evaluate_sheets(file_path: str):
 
     auto_pairwise_deltas(
         gpt_eval,
-        factors=["feature_set", "ctx", "instr", "trial"],
+        factors=["feature_set", "ctx", "instr", "leg", "trial"],
         output_base=output_base,
         prefix="GPT_",
     )
 
-    # all-model deltas (only where feature_set and ctx exist)
+    # all-model deltas (only where ctx and leg exist)
     auto_pairwise_deltas(
-        all_eval.dropna(subset=["feature_set", "ctx"]),
-        factors=["feature_set", "ctx"],
+        all_eval.dropna(subset=["ctx"]),
+        factors=["feature_set", "ctx", "instr", "leg"],
         output_base=output_base,
         prefix="ALLMODELS_",
     )
