@@ -1090,8 +1090,22 @@ def evaluate_sheets(file_path: str):
         # Use model_name column (from combine_predictions.py) as the canonical name
         # This preserves the full model identifier even when prefix is stripped from sheet tab
         if "model_name" in df.columns:
-            canonical_name = str(df["model_name"].iloc[0])
+            mn = str(df["model_name"].iloc[0])
             df = df.drop(columns=["model_name"])
+            # Check if model_name already contains config info (ZS/FS/ZSCOT/FSCOT)
+            # If it's just a bare model prefix (e.g. "GEMINI"), combine with sheet tab name
+            mn_up = mn.upper()
+            has_config = any(tok in mn_up.split("_") for tok in ("ZS", "FS", "ZSCOT", "FSCOT"))
+            if has_config:
+                canonical_name = mn
+            else:
+                # model_name is just the prefix — combine with sheet tab to get full config name
+                sn = str(sheet_name)
+                # Avoid duplicating the prefix if sheet already starts with it
+                if sn.upper().startswith(mn_up):
+                    canonical_name = sn
+                else:
+                    canonical_name = f"{mn}_{sn}"
         else:
             canonical_name = str(sheet_name)
 
