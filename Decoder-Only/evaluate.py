@@ -1104,43 +1104,24 @@ def evaluate_sheets(file_path: str):
         print(f"[WARN] No model sheets found in {file_path}. Expected sheets starting with model name or instruction type prefix.")
         return
     
-    # 1. Start with Gold sentences
-    common_ids = set(gold_df['sentence'].dropna())
-    initial_gold_count = len(common_ids)
+    gold_sents = set(gold_df['sentence'].dropna())
+    initial_gold_count = len(gold_sents)
     print(f"DEBUG: Starting with {initial_gold_count} Gold sentences.")
-
-    # 2. Intersect with EVERY model sheet found
-    for name, df in model_sheets.items():
-        model_sents = set(df['sentence'].dropna())
-        before_count = len(common_ids)
-        common_ids = common_ids.intersection(model_sents)
-        dropped = before_count - len(common_ids)
-        if dropped > 0:
-            print(f"DEBUG: Dropping {dropped} sentences missing from model '{name}' (Retaining {len(common_ids)})")
-
-    # 3. Safety Check
-    if not common_ids:
-        print("CRITICAL ERROR: Intersection of sentence IDs is EMPTY. No sentences are shared by all models.")
-        return # Or handle gracefully depending on preference
-    
-    if len(common_ids) < initial_gold_count:
-        print(f"STRICT MODE: Pruned evaluation set from {initial_gold_count} to {len(common_ids)} shared sentences.")
-
-    # 4. Apply Filter to Gold
-    gold_df = gold_df[gold_df['sentence'].isin(common_ids)].copy()
-
-    # 5. Apply Filter to All Models
-    for name in model_sheets:
-        model_sheets[name] = model_sheets[name][model_sheets[name]['sentence'].isin(common_ids)].copy()
-    # --- INSERT END ---
-
-
-    eval_results: list[pd.DataFrame] = []
-    per_model_errors: dict[str, pd.DataFrame] = []
-    per_model_errors = {}
 
     # Keep per-model detected feature-set num to ensure factors are filled later
     model_feature_set_num: Dict[str, str] = {}
+
+    # ==========================================
+    # PASS 1: Per-model evaluation (each model on all its completed sentences vs Gold)
+    # ==========================================
+    print("\n" + "="*60)
+    print("PASS 1: Per-model evaluation (all completed sentences)")
+    print("="*60)
+
+    permodel_eval_results: list[pd.DataFrame] = []
+    per_model_errors: dict[str, pd.DataFrame] = {}
+    permodel_output = os.path.join(output_base, "per_model")
+    os.makedirs(permodel_output, exist_ok=True)
 
     for sheet_name, model_df in model_sheets.items():
         detected = detect_feature_set(sheet_name, model_df)
@@ -1154,22 +1135,34 @@ def evaluate_sheets(file_path: str):
         model_df = binarize_if_probabilistic(model_df, features, str(sheet_name))
         model_sheets[sheet_name] = model_df
 
-        print(f"\n--- Evaluating model sheet: {sheet_name} (feature set: {detected}, {len(features)} features) ---")
+        # Per-model: intersect only this model with Gold
+        model_sents = set(model_df['sentence'].dropna())
+        shared_with_gold = gold_sents.intersection(model_sents)
+        n_completed = len(shared_with_gold)
+        print(f"\n--- [Per-model] {sheet_name}: {n_completed}/{initial_gold_count} sentences (feature set: {detected}) ---")
+
+        if not shared_with_gold:
+            print(f"[SKIP] {sheet_name}: no sentences overlap with Gold.")
+            continue
+
+        gold_subset = gold_df[gold_df['sentence'].isin(shared_with_gold)].copy()
+        model_subset = model_df[model_df['sentence'].isin(shared_with_gold)].copy()
 
         model_eval = evaluate_model(
-            model_df=model_df,
-            truth_df=gold_df,
+            model_df=model_subset,
+            truth_df=gold_subset,
             model_name=str(sheet_name),
             features=features,
-            output_base=output_base,
+            output_base=permodel_output,
         )
 
         if not model_eval.empty:
-            eval_results.append(model_eval)
+            model_eval["n_sentences"] = n_completed
+            permodel_eval_results.append(model_eval)
 
             err_df = build_error_df(
-                model_df=model_df,
-                gold_df=gold_df,
+                model_df=model_subset,
+                gold_df=gold_subset,
                 features=features,
                 model_name=str(sheet_name),
                 rationale_df=rationale_sheets.get(sheet_name),
@@ -1180,18 +1173,76 @@ def evaluate_sheets(file_path: str):
             if rat_df is not None:
                 try:
                     annotated = build_annotated_rationales(
-                        pred_df=model_df,
+                        pred_df=model_subset,
                         rationale_df=rat_df,
-                        truth_df=gold_df,
+                        truth_df=gold_subset,
                         features=features,
                         only_disagreements=True,
                         max_rows=None,
                     )
-                    out_csv = os.path.join(output_base, f"{sheet_name}_annotated_rationales.csv")
+                    out_csv = os.path.join(permodel_output, f"{sheet_name}_annotated_rationales.csv")
                     annotated.to_csv(out_csv, index=False)
                     print(f"[INFO] Wrote annotated rationales for {sheet_name} to {out_csv}")
                 except Exception as e:
                     print(f"[WARN] Could not build annotated rationales for {sheet_name}: {e}")
+
+    # Save per-model summary CSV
+    if permodel_eval_results:
+        permodel_all = pd.concat(permodel_eval_results, ignore_index=True)
+        permodel_all.to_csv(os.path.join(permodel_output, "all_per_model_results.csv"), index=False)
+        print(f"\n[INFO] Per-model results saved to {permodel_output}/all_per_model_results.csv")
+
+    # ==========================================
+    # PASS 2: Strict intersection (apples-to-apples comparison)
+    # ==========================================
+    print("\n" + "="*60)
+    print("PASS 2: Strict intersection (shared sentences across ALL models)")
+    print("="*60)
+
+    common_ids = set(gold_sents)
+    for name, df in model_sheets.items():
+        model_sents = set(df['sentence'].dropna())
+        before_count = len(common_ids)
+        common_ids = common_ids.intersection(model_sents)
+        dropped = before_count - len(common_ids)
+        if dropped > 0:
+            print(f"DEBUG: Dropping {dropped} sentences missing from model '{name}' (Retaining {len(common_ids)})")
+
+    if not common_ids:
+        print("[WARN] Intersection of sentence IDs is EMPTY. Skipping strict comparison.")
+        print("[INFO] Per-model results are still available above.")
+        # Use per-model results for downstream plots
+        eval_results = permodel_eval_results
+    else:
+        if len(common_ids) < initial_gold_count:
+            print(f"STRICT MODE: Pruned evaluation set from {initial_gold_count} to {len(common_ids)} shared sentences.")
+
+        gold_strict = gold_df[gold_df['sentence'].isin(common_ids)].copy()
+
+        eval_results: list[pd.DataFrame] = []
+
+        for sheet_name, model_df in model_sheets.items():
+            if sheet_name not in model_feature_set_num:
+                continue
+
+            detected_num = model_feature_set_num[sheet_name]
+            features = MASIS17_FEATURES if detected_num == "17" else EXTENDED_FEATURES
+
+            model_strict = model_df[model_df['sentence'].isin(common_ids)].copy()
+
+            print(f"\n--- [Strict] {sheet_name}: {len(common_ids)} shared sentences ---")
+
+            model_eval = evaluate_model(
+                model_df=model_strict,
+                truth_df=gold_strict,
+                model_name=str(sheet_name),
+                features=features,
+                output_base=output_base,
+            )
+
+            if not model_eval.empty:
+                model_eval["n_sentences"] = len(common_ids)
+                eval_results.append(model_eval)
 
     eval_results = [df for df in eval_results if not df.empty]
     if not eval_results:
@@ -1290,14 +1341,6 @@ def evaluate_sheets(file_path: str):
             save_path=os.path.join(output_base, "EXT25_F1_heatmap_intersection.png"),
             figsize=(14, 10),
         )
-        plot_model_metrics(
-            eval_dfs=ext_dfs,
-            metric="f1",
-            style="bar",
-            align="intersection",
-            title="EXTENDED (25): F1 by feature (shared across 25-feature models)",
-            save_path=os.path.join(output_base, "EXT25_F1_bar_intersection.png"),
-        )
 
     # Dedicated plots for 17-only
     mas_eval = all_eval[all_eval["feature_set"] == "17"].copy()
@@ -1313,14 +1356,6 @@ def evaluate_sheets(file_path: str):
             title="MASIS (17): F1 by feature (shared across 17-feature models)",
             save_path=os.path.join(output_base, "MAS17_F1_heatmap_intersection.png"),
             figsize=(14, 10),
-        )
-        plot_model_metrics(
-            eval_dfs=mas_dfs,
-            metric="f1",
-            style="bar",
-            align="intersection",
-            title="MASIS (17): F1 by feature (shared across 17-feature models)",
-            save_path=os.path.join(output_base, "MAS17_F1_bar_intersection.png"),
         )
 
     # GPT-only means/vars + manual deltas
@@ -1414,15 +1449,6 @@ def evaluate_sheets(file_path: str):
 
     # Cross-model comparisons
     all_models_label = "ALL_MODELS"
-
-    plot_model_metrics(
-        eval_dfs=eval_results,
-        metric="f1",
-        style="bar",
-        align="intersection",
-        title="Model F1 by AAE feature (shared features only)",
-        save_path=os.path.join(output_base, f"{all_models_label}_F1_bar_intersection.png"),
-    )
 
     plot_model_metrics(
         eval_dfs=eval_results,
