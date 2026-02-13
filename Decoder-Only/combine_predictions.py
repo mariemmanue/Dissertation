@@ -88,10 +88,9 @@ def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
                     # Read the CSV
                     df = pd.read_csv(file_path)
                     
-                    # Add model name column (keeps prefix so model is identifiable)
+                    # Add model name column (full config name so model + config is identifiable)
                     full_name = filename.replace('_predictions.csv', '')
-                    model_label = prefix_to_strip.rstrip('_') if prefix_to_strip else full_name
-                    df.insert(0, 'model_name', model_label)
+                    df.insert(0, 'model_name', full_name)
 
                     # Clean up the name for the Sheet Tab
                     # 1. Remove '_predictions.csv'
