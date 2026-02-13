@@ -394,12 +394,12 @@ class GeminiBackend(LLMBackend):
         try:
             client = self.cached_model_client or self.client
             user_turns = [m for m in messages if m["role"] == "user"]
+            system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
 
             if len(user_turns) <= 1:
                 # Single-turn: simple generation
                 content = user_turns[0]["content"] if user_turns else ""
                 # Apply system instruction if present and not using cached model
-                system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
                 if system_msg and not self.cached_model_client:
                     model_with_system = genai.GenerativeModel(
                         model_name=self.model,
@@ -414,21 +414,17 @@ class GeminiBackend(LLMBackend):
                         content,
                         generation_config=generation_config
                     )
-                # REMOVED: Candidate extraction code (candidates not supported)
             else:
                 # Multi-turn: use chat with history
-                # Extract system message (if not cached)
-                system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
-                
                 # Build history from user messages
                 history = []
                 for m in messages:
                     if m["role"] == "user":
                         history.append({"role": "user", "parts": [m["content"]]})
-                
+
                 # Last message is the query
                 last_content = history.pop()["parts"][0]
-                
+
                 # If we have a system message and NOT using cache, create model with system instruction
                 if system_msg and not self.cached_model_client:
                     model_with_system = genai.GenerativeModel(
@@ -444,6 +440,14 @@ class GeminiBackend(LLMBackend):
 
             return resp.text
         except Exception as e:
+            # Detect expired/deleted cache and fall back to non-cached mode
+            err_msg = str(e).lower()
+            if self.cached_model_client and ("cachedcontent not found" in err_msg or "permission denied" in err_msg):
+                print("WARNING: Gemini cache expired or not found. Falling back to non-cached mode.")
+                self.cached_model_client = None
+                self.cache = None
+                # Retry this call without cache (recursive, but only once since cached_model_client is now None)
+                return self.call(messages, instruction_type=instruction_type)
             raise e
         
 
@@ -1783,10 +1787,8 @@ def query_model(
         dialect_legitimacy=dialect_legitimacy,
     )
 
-    # For Gemini with caching: keep full messages for the dump, strip system only for the API call
-    full_messages_for_dump = messages  # Always dump the complete messages
-    if isinstance(backend, GeminiBackend) and backend.cached_model_client is not None:
-        messages = [m for m in messages if m["role"] != "system"]
+    # Always keep full messages (including system) — backends handle system msg internally
+    full_messages_for_dump = messages
 
     # Enhanced prompt dump with context verification
     should_dump = dump_prompt and (dump_first_n == 0 or dump_counter < dump_first_n)
