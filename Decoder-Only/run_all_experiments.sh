@@ -1,6 +1,6 @@
 #!/bin/bash
 # Auto-generated experimental run script
-# Total jobs: 288
+# Total jobs: 312
 #
 # Grid per model:
 #   instruction_type:   zero_shot, few_shot, zero_shot_cot, few_shot_cot  (4)
@@ -12,12 +12,12 @@
 #
 # Usage:
 #   chmod +x run_all_experiments.sh
-#   ./run_all_experiments.sh              # launch all 288 jobs
+#   ./run_all_experiments.sh              # launch all 312 jobs
 #   ./run_all_experiments.sh phi4           # launch only phi4 jobs (24)
 #   ./run_all_experiments.sh gemini         # launch only gemini jobs (24)
 #   ./run_all_experiments.sh gpt52_instant  # launch only GPT-5.2 Instant jobs (24)
 #
-# Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b
+# Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt41, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b
 
 set -e
 
@@ -1984,12 +1984,496 @@ nlprun -q jag -p standard -r 40G -c 2 \
 fi
 
 # ============================================================
+# GPT41 — gpt-4.1
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt41" ]]; then
+
+echo "[097] Launching: GPT41_ZS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zs_noctx_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt"
+
+echo "[098] Launching: GPT41_ZS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zs_noctx_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[099] Launching: GPT41_ZS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zs_ctx1t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[100] Launching: GPT41_ZS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zs_ctx1t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[101] Launching: GPT41_ZS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zs_ctx2t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[102] Launching: GPT41_ZS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zs_ctx2t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[103] Launching: GPT41_FS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fs_noctx_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt"
+
+echo "[104] Launching: GPT41_FS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fs_noctx_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[105] Launching: GPT41_FS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fs_ctx1t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[106] Launching: GPT41_FS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fs_ctx1t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[107] Launching: GPT41_FS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fs_ctx2t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[108] Launching: GPT41_FS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fs_ctx2t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[109] Launching: GPT41_ZScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zscot_noctx_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt"
+
+echo "[110] Launching: GPT41_ZScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zscot_noctx_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[111] Launching: GPT41_ZScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zscot_ctx1t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[112] Launching: GPT41_ZScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zscot_ctx1t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[113] Launching: GPT41_ZScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zscot_ctx2t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[114] Launching: GPT41_ZScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_zscot_ctx2t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[115] Launching: GPT41_FScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fscot_noctx_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt"
+
+echo "[116] Launching: GPT41_FScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fscot_noctx_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[117] Launching: GPT41_FScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fscot_ctx1t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[118] Launching: GPT41_FScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fscot_ctx1t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[119] Launching: GPT41_FScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fscot_ctx2t_noleg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[120] Launching: GPT41_FScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt41_fscot_ctx2t_leg \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-4.1 \
+    --backend openai \
+    --sheet GPT41_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT41/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
 # GPT52_INSTANT — gpt-5.2-chat-latest
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_instant" ]]; then
 
-echo "[097] Launching: GPT52_INSTANT_ZS_noCTX_noLeg"
+echo "[121] Launching: GPT52_INSTANT_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zs_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2007,7 +2491,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[098] Launching: GPT52_INSTANT_ZS_noCTX_Leg"
+echo "[122] Launching: GPT52_INSTANT_ZS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zs_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2026,7 +2510,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[099] Launching: GPT52_INSTANT_ZS_CTX1t_noLeg"
+echo "[123] Launching: GPT52_INSTANT_ZS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2046,7 +2530,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[100] Launching: GPT52_INSTANT_ZS_CTX1t_Leg"
+echo "[124] Launching: GPT52_INSTANT_ZS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zs_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2067,7 +2551,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[101] Launching: GPT52_INSTANT_ZS_CTX2t_noLeg"
+echo "[125] Launching: GPT52_INSTANT_ZS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2087,7 +2571,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[102] Launching: GPT52_INSTANT_ZS_CTX2t_Leg"
+echo "[126] Launching: GPT52_INSTANT_ZS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2108,7 +2592,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[103] Launching: GPT52_INSTANT_FS_noCTX_noLeg"
+echo "[127] Launching: GPT52_INSTANT_FS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fs_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2126,7 +2610,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[104] Launching: GPT52_INSTANT_FS_noCTX_Leg"
+echo "[128] Launching: GPT52_INSTANT_FS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fs_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2145,7 +2629,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[105] Launching: GPT52_INSTANT_FS_CTX1t_noLeg"
+echo "[129] Launching: GPT52_INSTANT_FS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2165,7 +2649,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[106] Launching: GPT52_INSTANT_FS_CTX1t_Leg"
+echo "[130] Launching: GPT52_INSTANT_FS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fs_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2186,7 +2670,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[107] Launching: GPT52_INSTANT_FS_CTX2t_noLeg"
+echo "[131] Launching: GPT52_INSTANT_FS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2206,7 +2690,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[108] Launching: GPT52_INSTANT_FS_CTX2t_Leg"
+echo "[132] Launching: GPT52_INSTANT_FS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2227,7 +2711,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[109] Launching: GPT52_INSTANT_ZScot_noCTX_noLeg"
+echo "[133] Launching: GPT52_INSTANT_ZScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zscot_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2245,7 +2729,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[110] Launching: GPT52_INSTANT_ZScot_noCTX_Leg"
+echo "[134] Launching: GPT52_INSTANT_ZScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zscot_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2264,7 +2748,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[111] Launching: GPT52_INSTANT_ZScot_CTX1t_noLeg"
+echo "[135] Launching: GPT52_INSTANT_ZScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2284,7 +2768,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[112] Launching: GPT52_INSTANT_ZScot_CTX1t_Leg"
+echo "[136] Launching: GPT52_INSTANT_ZScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2305,7 +2789,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[113] Launching: GPT52_INSTANT_ZScot_CTX2t_noLeg"
+echo "[137] Launching: GPT52_INSTANT_ZScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2325,7 +2809,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[114] Launching: GPT52_INSTANT_ZScot_CTX2t_Leg"
+echo "[138] Launching: GPT52_INSTANT_ZScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2346,7 +2830,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[115] Launching: GPT52_INSTANT_FScot_noCTX_noLeg"
+echo "[139] Launching: GPT52_INSTANT_FScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fscot_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2364,7 +2848,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[116] Launching: GPT52_INSTANT_FScot_noCTX_Leg"
+echo "[140] Launching: GPT52_INSTANT_FScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fscot_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2383,7 +2867,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[117] Launching: GPT52_INSTANT_FScot_CTX1t_noLeg"
+echo "[141] Launching: GPT52_INSTANT_FScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2403,7 +2887,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[118] Launching: GPT52_INSTANT_FScot_CTX1t_Leg"
+echo "[142] Launching: GPT52_INSTANT_FScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2424,7 +2908,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[119] Launching: GPT52_INSTANT_FScot_CTX2t_noLeg"
+echo "[143] Launching: GPT52_INSTANT_FScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2444,7 +2928,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[120] Launching: GPT52_INSTANT_FScot_CTX2t_Leg"
+echo "[144] Launching: GPT52_INSTANT_FScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
@@ -2473,7 +2957,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_think_med" ]]; then
 
-echo "[121] Launching: GPT52_THINK_MED_ZS_noCTX_noLeg"
+echo "[145] Launching: GPT52_THINK_MED_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2492,7 +2976,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort medium"
 
-echo "[122] Launching: GPT52_THINK_MED_ZS_noCTX_Leg"
+echo "[146] Launching: GPT52_THINK_MED_ZS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2512,7 +2996,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[123] Launching: GPT52_THINK_MED_ZS_CTX1t_noLeg"
+echo "[147] Launching: GPT52_THINK_MED_ZS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2533,7 +3017,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort medium"
 
-echo "[124] Launching: GPT52_THINK_MED_ZS_CTX1t_Leg"
+echo "[148] Launching: GPT52_THINK_MED_ZS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2555,7 +3039,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[125] Launching: GPT52_THINK_MED_ZS_CTX2t_noLeg"
+echo "[149] Launching: GPT52_THINK_MED_ZS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2576,7 +3060,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort medium"
 
-echo "[126] Launching: GPT52_THINK_MED_ZS_CTX2t_Leg"
+echo "[150] Launching: GPT52_THINK_MED_ZS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2598,7 +3082,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[127] Launching: GPT52_THINK_MED_FS_noCTX_noLeg"
+echo "[151] Launching: GPT52_THINK_MED_FS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2617,7 +3101,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort medium"
 
-echo "[128] Launching: GPT52_THINK_MED_FS_noCTX_Leg"
+echo "[152] Launching: GPT52_THINK_MED_FS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2637,7 +3121,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[129] Launching: GPT52_THINK_MED_FS_CTX1t_noLeg"
+echo "[153] Launching: GPT52_THINK_MED_FS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2658,7 +3142,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort medium"
 
-echo "[130] Launching: GPT52_THINK_MED_FS_CTX1t_Leg"
+echo "[154] Launching: GPT52_THINK_MED_FS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2680,7 +3164,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[131] Launching: GPT52_THINK_MED_FS_CTX2t_noLeg"
+echo "[155] Launching: GPT52_THINK_MED_FS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2701,7 +3185,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort medium"
 
-echo "[132] Launching: GPT52_THINK_MED_FS_CTX2t_Leg"
+echo "[156] Launching: GPT52_THINK_MED_FS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2723,7 +3207,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[133] Launching: GPT52_THINK_MED_ZScot_noCTX_noLeg"
+echo "[157] Launching: GPT52_THINK_MED_ZScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2742,7 +3226,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort medium"
 
-echo "[134] Launching: GPT52_THINK_MED_ZScot_noCTX_Leg"
+echo "[158] Launching: GPT52_THINK_MED_ZScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2762,7 +3246,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[135] Launching: GPT52_THINK_MED_ZScot_CTX1t_noLeg"
+echo "[159] Launching: GPT52_THINK_MED_ZScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2783,7 +3267,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort medium"
 
-echo "[136] Launching: GPT52_THINK_MED_ZScot_CTX1t_Leg"
+echo "[160] Launching: GPT52_THINK_MED_ZScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2805,7 +3289,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[137] Launching: GPT52_THINK_MED_ZScot_CTX2t_noLeg"
+echo "[161] Launching: GPT52_THINK_MED_ZScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2826,7 +3310,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort medium"
 
-echo "[138] Launching: GPT52_THINK_MED_ZScot_CTX2t_Leg"
+echo "[162] Launching: GPT52_THINK_MED_ZScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2848,7 +3332,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[139] Launching: GPT52_THINK_MED_FScot_noCTX_noLeg"
+echo "[163] Launching: GPT52_THINK_MED_FScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2867,7 +3351,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort medium"
 
-echo "[140] Launching: GPT52_THINK_MED_FScot_noCTX_Leg"
+echo "[164] Launching: GPT52_THINK_MED_FScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2887,7 +3371,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[141] Launching: GPT52_THINK_MED_FScot_CTX1t_noLeg"
+echo "[165] Launching: GPT52_THINK_MED_FScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2908,7 +3392,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort medium"
 
-echo "[142] Launching: GPT52_THINK_MED_FScot_CTX1t_Leg"
+echo "[166] Launching: GPT52_THINK_MED_FScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2930,7 +3414,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[143] Launching: GPT52_THINK_MED_FScot_CTX2t_noLeg"
+echo "[167] Launching: GPT52_THINK_MED_FScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2951,7 +3435,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort medium"
 
-echo "[144] Launching: GPT52_THINK_MED_FScot_CTX2t_Leg"
+echo "[168] Launching: GPT52_THINK_MED_FScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_med_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
@@ -2981,7 +3465,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_think_high" ]]; then
 
-echo "[145] Launching: GPT52_THINK_HIGH_ZS_noCTX_noLeg"
+echo "[169] Launching: GPT52_THINK_HIGH_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3000,7 +3484,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort high"
 
-echo "[146] Launching: GPT52_THINK_HIGH_ZS_noCTX_Leg"
+echo "[170] Launching: GPT52_THINK_HIGH_ZS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3020,7 +3504,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[147] Launching: GPT52_THINK_HIGH_ZS_CTX1t_noLeg"
+echo "[171] Launching: GPT52_THINK_HIGH_ZS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3041,7 +3525,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort high"
 
-echo "[148] Launching: GPT52_THINK_HIGH_ZS_CTX1t_Leg"
+echo "[172] Launching: GPT52_THINK_HIGH_ZS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3063,7 +3547,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[149] Launching: GPT52_THINK_HIGH_ZS_CTX2t_noLeg"
+echo "[173] Launching: GPT52_THINK_HIGH_ZS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3084,7 +3568,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort high"
 
-echo "[150] Launching: GPT52_THINK_HIGH_ZS_CTX2t_Leg"
+echo "[174] Launching: GPT52_THINK_HIGH_ZS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3106,7 +3590,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[151] Launching: GPT52_THINK_HIGH_FS_noCTX_noLeg"
+echo "[175] Launching: GPT52_THINK_HIGH_FS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3125,7 +3609,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort high"
 
-echo "[152] Launching: GPT52_THINK_HIGH_FS_noCTX_Leg"
+echo "[176] Launching: GPT52_THINK_HIGH_FS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3145,7 +3629,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[153] Launching: GPT52_THINK_HIGH_FS_CTX1t_noLeg"
+echo "[177] Launching: GPT52_THINK_HIGH_FS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3166,7 +3650,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort high"
 
-echo "[154] Launching: GPT52_THINK_HIGH_FS_CTX1t_Leg"
+echo "[178] Launching: GPT52_THINK_HIGH_FS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3188,7 +3672,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[155] Launching: GPT52_THINK_HIGH_FS_CTX2t_noLeg"
+echo "[179] Launching: GPT52_THINK_HIGH_FS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3209,7 +3693,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort high"
 
-echo "[156] Launching: GPT52_THINK_HIGH_FS_CTX2t_Leg"
+echo "[180] Launching: GPT52_THINK_HIGH_FS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3231,7 +3715,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[157] Launching: GPT52_THINK_HIGH_ZScot_noCTX_noLeg"
+echo "[181] Launching: GPT52_THINK_HIGH_ZScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3250,7 +3734,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort high"
 
-echo "[158] Launching: GPT52_THINK_HIGH_ZScot_noCTX_Leg"
+echo "[182] Launching: GPT52_THINK_HIGH_ZScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3270,7 +3754,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[159] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_noLeg"
+echo "[183] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3291,7 +3775,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort high"
 
-echo "[160] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_Leg"
+echo "[184] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3313,7 +3797,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[161] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_noLeg"
+echo "[185] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3334,7 +3818,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort high"
 
-echo "[162] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_Leg"
+echo "[186] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3356,7 +3840,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[163] Launching: GPT52_THINK_HIGH_FScot_noCTX_noLeg"
+echo "[187] Launching: GPT52_THINK_HIGH_FScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3375,7 +3859,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --reasoning_effort high"
 
-echo "[164] Launching: GPT52_THINK_HIGH_FScot_noCTX_Leg"
+echo "[188] Launching: GPT52_THINK_HIGH_FScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3395,7 +3879,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[165] Launching: GPT52_THINK_HIGH_FScot_CTX1t_noLeg"
+echo "[189] Launching: GPT52_THINK_HIGH_FScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3416,7 +3900,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --reasoning_effort high"
 
-echo "[166] Launching: GPT52_THINK_HIGH_FScot_CTX1t_Leg"
+echo "[190] Launching: GPT52_THINK_HIGH_FScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3438,7 +3922,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[167] Launching: GPT52_THINK_HIGH_FScot_CTX2t_noLeg"
+echo "[191] Launching: GPT52_THINK_HIGH_FScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3459,7 +3943,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --reasoning_effort high"
 
-echo "[168] Launching: GPT52_THINK_HIGH_FScot_CTX2t_Leg"
+echo "[192] Launching: GPT52_THINK_HIGH_FScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
@@ -3489,7 +3973,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "phi4_reasoning" ]]; then
 
-echo "[169] Launching: PHI4_REASONING_ZS_noCTX_noLeg"
+echo "[193] Launching: PHI4_REASONING_ZS_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zs_noctx_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3507,7 +3991,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt"
 
-echo "[170] Launching: PHI4_REASONING_ZS_noCTX_Leg"
+echo "[194] Launching: PHI4_REASONING_ZS_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zs_noctx_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3526,7 +4010,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[171] Launching: PHI4_REASONING_ZS_CTX1t_noLeg"
+echo "[195] Launching: PHI4_REASONING_ZS_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zs_ctx1t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3546,7 +4030,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[172] Launching: PHI4_REASONING_ZS_CTX1t_Leg"
+echo "[196] Launching: PHI4_REASONING_ZS_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zs_ctx1t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3567,7 +4051,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[173] Launching: PHI4_REASONING_ZS_CTX2t_noLeg"
+echo "[197] Launching: PHI4_REASONING_ZS_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zs_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3587,7 +4071,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[174] Launching: PHI4_REASONING_ZS_CTX2t_Leg"
+echo "[198] Launching: PHI4_REASONING_ZS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zs_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3608,7 +4092,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[175] Launching: PHI4_REASONING_FS_noCTX_noLeg"
+echo "[199] Launching: PHI4_REASONING_FS_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fs_noctx_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3626,7 +4110,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt"
 
-echo "[176] Launching: PHI4_REASONING_FS_noCTX_Leg"
+echo "[200] Launching: PHI4_REASONING_FS_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fs_noctx_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3645,7 +4129,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[177] Launching: PHI4_REASONING_FS_CTX1t_noLeg"
+echo "[201] Launching: PHI4_REASONING_FS_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fs_ctx1t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3665,7 +4149,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[178] Launching: PHI4_REASONING_FS_CTX1t_Leg"
+echo "[202] Launching: PHI4_REASONING_FS_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fs_ctx1t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3686,7 +4170,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[179] Launching: PHI4_REASONING_FS_CTX2t_noLeg"
+echo "[203] Launching: PHI4_REASONING_FS_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fs_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3706,7 +4190,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[180] Launching: PHI4_REASONING_FS_CTX2t_Leg"
+echo "[204] Launching: PHI4_REASONING_FS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fs_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3727,7 +4211,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[181] Launching: PHI4_REASONING_ZScot_noCTX_noLeg"
+echo "[205] Launching: PHI4_REASONING_ZScot_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zscot_noctx_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3745,7 +4229,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt"
 
-echo "[182] Launching: PHI4_REASONING_ZScot_noCTX_Leg"
+echo "[206] Launching: PHI4_REASONING_ZScot_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zscot_noctx_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3764,7 +4248,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[183] Launching: PHI4_REASONING_ZScot_CTX1t_noLeg"
+echo "[207] Launching: PHI4_REASONING_ZScot_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zscot_ctx1t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3784,7 +4268,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[184] Launching: PHI4_REASONING_ZScot_CTX1t_Leg"
+echo "[208] Launching: PHI4_REASONING_ZScot_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zscot_ctx1t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3805,7 +4289,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[185] Launching: PHI4_REASONING_ZScot_CTX2t_noLeg"
+echo "[209] Launching: PHI4_REASONING_ZScot_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3825,7 +4309,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[186] Launching: PHI4_REASONING_ZScot_CTX2t_Leg"
+echo "[210] Launching: PHI4_REASONING_ZScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zscot_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3846,7 +4330,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[187] Launching: PHI4_REASONING_FScot_noCTX_noLeg"
+echo "[211] Launching: PHI4_REASONING_FScot_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fscot_noctx_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3864,7 +4348,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt"
 
-echo "[188] Launching: PHI4_REASONING_FScot_noCTX_Leg"
+echo "[212] Launching: PHI4_REASONING_FScot_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fscot_noctx_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3883,7 +4367,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[189] Launching: PHI4_REASONING_FScot_CTX1t_noLeg"
+echo "[213] Launching: PHI4_REASONING_FScot_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fscot_ctx1t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3903,7 +4387,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[190] Launching: PHI4_REASONING_FScot_CTX1t_Leg"
+echo "[214] Launching: PHI4_REASONING_FScot_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fscot_ctx1t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3924,7 +4408,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[191] Launching: PHI4_REASONING_FScot_CTX2t_noLeg"
+echo "[215] Launching: PHI4_REASONING_FScot_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3944,7 +4428,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[192] Launching: PHI4_REASONING_FScot_CTX2t_Leg"
+echo "[216] Launching: PHI4_REASONING_FScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_fscot_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
@@ -3973,7 +4457,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "llama70b" ]]; then
 
-echo "[193] Launching: LLAMA70B_ZS_noCTX_noLeg"
+echo "[217] Launching: LLAMA70B_ZS_noCTX_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zs_noctx_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -3991,7 +4475,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt"
 
-echo "[194] Launching: LLAMA70B_ZS_noCTX_Leg"
+echo "[218] Launching: LLAMA70B_ZS_noCTX_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zs_noctx_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4010,7 +4494,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[195] Launching: LLAMA70B_ZS_CTX1t_noLeg"
+echo "[219] Launching: LLAMA70B_ZS_CTX1t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zs_ctx1t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4030,7 +4514,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode single_turn"
 
-echo "[196] Launching: LLAMA70B_ZS_CTX1t_Leg"
+echo "[220] Launching: LLAMA70B_ZS_CTX1t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zs_ctx1t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4051,7 +4535,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[197] Launching: LLAMA70B_ZS_CTX2t_noLeg"
+echo "[221] Launching: LLAMA70B_ZS_CTX2t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zs_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4071,7 +4555,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode two_turn"
 
-echo "[198] Launching: LLAMA70B_ZS_CTX2t_Leg"
+echo "[222] Launching: LLAMA70B_ZS_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zs_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4092,7 +4576,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[199] Launching: LLAMA70B_FS_noCTX_noLeg"
+echo "[223] Launching: LLAMA70B_FS_noCTX_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fs_noctx_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4110,7 +4594,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt"
 
-echo "[200] Launching: LLAMA70B_FS_noCTX_Leg"
+echo "[224] Launching: LLAMA70B_FS_noCTX_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fs_noctx_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4129,7 +4613,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[201] Launching: LLAMA70B_FS_CTX1t_noLeg"
+echo "[225] Launching: LLAMA70B_FS_CTX1t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fs_ctx1t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4149,7 +4633,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode single_turn"
 
-echo "[202] Launching: LLAMA70B_FS_CTX1t_Leg"
+echo "[226] Launching: LLAMA70B_FS_CTX1t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fs_ctx1t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4170,7 +4654,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[203] Launching: LLAMA70B_FS_CTX2t_noLeg"
+echo "[227] Launching: LLAMA70B_FS_CTX2t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fs_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4190,7 +4674,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode two_turn"
 
-echo "[204] Launching: LLAMA70B_FS_CTX2t_Leg"
+echo "[228] Launching: LLAMA70B_FS_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fs_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4211,7 +4695,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[205] Launching: LLAMA70B_ZScot_noCTX_noLeg"
+echo "[229] Launching: LLAMA70B_ZScot_noCTX_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zscot_noctx_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4229,7 +4713,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt"
 
-echo "[206] Launching: LLAMA70B_ZScot_noCTX_Leg"
+echo "[230] Launching: LLAMA70B_ZScot_noCTX_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zscot_noctx_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4248,7 +4732,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[207] Launching: LLAMA70B_ZScot_CTX1t_noLeg"
+echo "[231] Launching: LLAMA70B_ZScot_CTX1t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zscot_ctx1t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4268,7 +4752,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode single_turn"
 
-echo "[208] Launching: LLAMA70B_ZScot_CTX1t_Leg"
+echo "[232] Launching: LLAMA70B_ZScot_CTX1t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zscot_ctx1t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4289,7 +4773,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[209] Launching: LLAMA70B_ZScot_CTX2t_noLeg"
+echo "[233] Launching: LLAMA70B_ZScot_CTX2t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zscot_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4309,7 +4793,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode two_turn"
 
-echo "[210] Launching: LLAMA70B_ZScot_CTX2t_Leg"
+echo "[234] Launching: LLAMA70B_ZScot_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_zscot_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4330,7 +4814,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[211] Launching: LLAMA70B_FScot_noCTX_noLeg"
+echo "[235] Launching: LLAMA70B_FScot_noCTX_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fscot_noctx_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4348,7 +4832,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt"
 
-echo "[212] Launching: LLAMA70B_FScot_noCTX_Leg"
+echo "[236] Launching: LLAMA70B_FScot_noCTX_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fscot_noctx_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4367,7 +4851,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[213] Launching: LLAMA70B_FScot_CTX1t_noLeg"
+echo "[237] Launching: LLAMA70B_FScot_CTX1t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fscot_ctx1t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4387,7 +4871,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode single_turn"
 
-echo "[214] Launching: LLAMA70B_FScot_CTX1t_Leg"
+echo "[238] Launching: LLAMA70B_FScot_CTX1t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fscot_ctx1t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4408,7 +4892,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[215] Launching: LLAMA70B_FScot_CTX2t_noLeg"
+echo "[239] Launching: LLAMA70B_FScot_CTX2t_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fscot_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4428,7 +4912,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode two_turn"
 
-echo "[216] Launching: LLAMA70B_FScot_CTX2t_Leg"
+echo "[240] Launching: LLAMA70B_FScot_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n llama70b_fscot_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
@@ -4457,7 +4941,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen3_32b" ]]; then
 
-echo "[217] Launching: QWEN3_32B_ZS_noCTX_noLeg"
+echo "[241] Launching: QWEN3_32B_ZS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zs_noctx_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4475,7 +4959,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt"
 
-echo "[218] Launching: QWEN3_32B_ZS_noCTX_Leg"
+echo "[242] Launching: QWEN3_32B_ZS_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zs_noctx_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4494,7 +4978,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[219] Launching: QWEN3_32B_ZS_CTX1t_noLeg"
+echo "[243] Launching: QWEN3_32B_ZS_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zs_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4514,7 +4998,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[220] Launching: QWEN3_32B_ZS_CTX1t_Leg"
+echo "[244] Launching: QWEN3_32B_ZS_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zs_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4535,7 +5019,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[221] Launching: QWEN3_32B_ZS_CTX2t_noLeg"
+echo "[245] Launching: QWEN3_32B_ZS_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4555,7 +5039,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[222] Launching: QWEN3_32B_ZS_CTX2t_Leg"
+echo "[246] Launching: QWEN3_32B_ZS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4576,7 +5060,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[223] Launching: QWEN3_32B_FS_noCTX_noLeg"
+echo "[247] Launching: QWEN3_32B_FS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fs_noctx_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4594,7 +5078,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt"
 
-echo "[224] Launching: QWEN3_32B_FS_noCTX_Leg"
+echo "[248] Launching: QWEN3_32B_FS_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fs_noctx_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4613,7 +5097,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[225] Launching: QWEN3_32B_FS_CTX1t_noLeg"
+echo "[249] Launching: QWEN3_32B_FS_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fs_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4633,7 +5117,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[226] Launching: QWEN3_32B_FS_CTX1t_Leg"
+echo "[250] Launching: QWEN3_32B_FS_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fs_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4654,7 +5138,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[227] Launching: QWEN3_32B_FS_CTX2t_noLeg"
+echo "[251] Launching: QWEN3_32B_FS_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4674,7 +5158,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[228] Launching: QWEN3_32B_FS_CTX2t_Leg"
+echo "[252] Launching: QWEN3_32B_FS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4695,7 +5179,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[229] Launching: QWEN3_32B_ZScot_noCTX_noLeg"
+echo "[253] Launching: QWEN3_32B_ZScot_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zscot_noctx_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4713,7 +5197,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt"
 
-echo "[230] Launching: QWEN3_32B_ZScot_noCTX_Leg"
+echo "[254] Launching: QWEN3_32B_ZScot_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zscot_noctx_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4732,7 +5216,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[231] Launching: QWEN3_32B_ZScot_CTX1t_noLeg"
+echo "[255] Launching: QWEN3_32B_ZScot_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zscot_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4752,7 +5236,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[232] Launching: QWEN3_32B_ZScot_CTX1t_Leg"
+echo "[256] Launching: QWEN3_32B_ZScot_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zscot_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4773,7 +5257,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[233] Launching: QWEN3_32B_ZScot_CTX2t_noLeg"
+echo "[257] Launching: QWEN3_32B_ZScot_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4793,7 +5277,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[234] Launching: QWEN3_32B_ZScot_CTX2t_Leg"
+echo "[258] Launching: QWEN3_32B_ZScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4814,7 +5298,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[235] Launching: QWEN3_32B_FScot_noCTX_noLeg"
+echo "[259] Launching: QWEN3_32B_FScot_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fscot_noctx_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4832,7 +5316,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt"
 
-echo "[236] Launching: QWEN3_32B_FScot_noCTX_Leg"
+echo "[260] Launching: QWEN3_32B_FScot_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fscot_noctx_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4851,7 +5335,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[237] Launching: QWEN3_32B_FScot_CTX1t_noLeg"
+echo "[261] Launching: QWEN3_32B_FScot_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fscot_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4871,7 +5355,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[238] Launching: QWEN3_32B_FScot_CTX1t_Leg"
+echo "[262] Launching: QWEN3_32B_FScot_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fscot_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4892,7 +5376,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[239] Launching: QWEN3_32B_FScot_CTX2t_noLeg"
+echo "[263] Launching: QWEN3_32B_FScot_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4912,7 +5396,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[240] Launching: QWEN3_32B_FScot_CTX2t_Leg"
+echo "[264] Launching: QWEN3_32B_FScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_fscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
@@ -4941,7 +5425,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen3_32b_think" ]]; then
 
-echo "[241] Launching: QWEN3_32B_THINK_ZS_noCTX_noLeg"
+echo "[265] Launching: QWEN3_32B_THINK_ZS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zs_noctx_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -4959,7 +5443,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt"
 
-echo "[242] Launching: QWEN3_32B_THINK_ZS_noCTX_Leg"
+echo "[266] Launching: QWEN3_32B_THINK_ZS_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zs_noctx_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -4978,7 +5462,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[243] Launching: QWEN3_32B_THINK_ZS_CTX1t_noLeg"
+echo "[267] Launching: QWEN3_32B_THINK_ZS_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zs_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -4998,7 +5482,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[244] Launching: QWEN3_32B_THINK_ZS_CTX1t_Leg"
+echo "[268] Launching: QWEN3_32B_THINK_ZS_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zs_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5019,7 +5503,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[245] Launching: QWEN3_32B_THINK_ZS_CTX2t_noLeg"
+echo "[269] Launching: QWEN3_32B_THINK_ZS_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5039,7 +5523,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[246] Launching: QWEN3_32B_THINK_ZS_CTX2t_Leg"
+echo "[270] Launching: QWEN3_32B_THINK_ZS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5060,7 +5544,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[247] Launching: QWEN3_32B_THINK_FS_noCTX_noLeg"
+echo "[271] Launching: QWEN3_32B_THINK_FS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fs_noctx_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5078,7 +5562,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt"
 
-echo "[248] Launching: QWEN3_32B_THINK_FS_noCTX_Leg"
+echo "[272] Launching: QWEN3_32B_THINK_FS_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fs_noctx_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5097,7 +5581,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[249] Launching: QWEN3_32B_THINK_FS_CTX1t_noLeg"
+echo "[273] Launching: QWEN3_32B_THINK_FS_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fs_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5117,7 +5601,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[250] Launching: QWEN3_32B_THINK_FS_CTX1t_Leg"
+echo "[274] Launching: QWEN3_32B_THINK_FS_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fs_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5138,7 +5622,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[251] Launching: QWEN3_32B_THINK_FS_CTX2t_noLeg"
+echo "[275] Launching: QWEN3_32B_THINK_FS_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5158,7 +5642,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[252] Launching: QWEN3_32B_THINK_FS_CTX2t_Leg"
+echo "[276] Launching: QWEN3_32B_THINK_FS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5179,7 +5663,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[253] Launching: QWEN3_32B_THINK_ZScot_noCTX_noLeg"
+echo "[277] Launching: QWEN3_32B_THINK_ZScot_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zscot_noctx_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5197,7 +5681,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt"
 
-echo "[254] Launching: QWEN3_32B_THINK_ZScot_noCTX_Leg"
+echo "[278] Launching: QWEN3_32B_THINK_ZScot_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zscot_noctx_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5216,7 +5700,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[255] Launching: QWEN3_32B_THINK_ZScot_CTX1t_noLeg"
+echo "[279] Launching: QWEN3_32B_THINK_ZScot_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zscot_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5236,7 +5720,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[256] Launching: QWEN3_32B_THINK_ZScot_CTX1t_Leg"
+echo "[280] Launching: QWEN3_32B_THINK_ZScot_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zscot_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5257,7 +5741,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[257] Launching: QWEN3_32B_THINK_ZScot_CTX2t_noLeg"
+echo "[281] Launching: QWEN3_32B_THINK_ZScot_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5277,7 +5761,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[258] Launching: QWEN3_32B_THINK_ZScot_CTX2t_Leg"
+echo "[282] Launching: QWEN3_32B_THINK_ZScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5298,7 +5782,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[259] Launching: QWEN3_32B_THINK_FScot_noCTX_noLeg"
+echo "[283] Launching: QWEN3_32B_THINK_FScot_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fscot_noctx_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5316,7 +5800,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt"
 
-echo "[260] Launching: QWEN3_32B_THINK_FScot_noCTX_Leg"
+echo "[284] Launching: QWEN3_32B_THINK_FScot_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fscot_noctx_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5335,7 +5819,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[261] Launching: QWEN3_32B_THINK_FScot_CTX1t_noLeg"
+echo "[285] Launching: QWEN3_32B_THINK_FScot_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fscot_ctx1t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5355,7 +5839,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[262] Launching: QWEN3_32B_THINK_FScot_CTX1t_Leg"
+echo "[286] Launching: QWEN3_32B_THINK_FScot_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fscot_ctx1t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5376,7 +5860,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[263] Launching: QWEN3_32B_THINK_FScot_CTX2t_noLeg"
+echo "[287] Launching: QWEN3_32B_THINK_FScot_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5396,7 +5880,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[264] Launching: QWEN3_32B_THINK_FScot_CTX2t_Leg"
+echo "[288] Launching: QWEN3_32B_THINK_FScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_fscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
@@ -5425,7 +5909,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwq_32b" ]]; then
 
-echo "[265] Launching: QWQ_32B_ZS_noCTX_noLeg"
+echo "[289] Launching: QWQ_32B_ZS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zs_noctx_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5443,7 +5927,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt"
 
-echo "[266] Launching: QWQ_32B_ZS_noCTX_Leg"
+echo "[290] Launching: QWQ_32B_ZS_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zs_noctx_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5462,7 +5946,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[267] Launching: QWQ_32B_ZS_CTX1t_noLeg"
+echo "[291] Launching: QWQ_32B_ZS_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zs_ctx1t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5482,7 +5966,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[268] Launching: QWQ_32B_ZS_CTX1t_Leg"
+echo "[292] Launching: QWQ_32B_ZS_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zs_ctx1t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5503,7 +5987,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[269] Launching: QWQ_32B_ZS_CTX2t_noLeg"
+echo "[293] Launching: QWQ_32B_ZS_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zs_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5523,7 +6007,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[270] Launching: QWQ_32B_ZS_CTX2t_Leg"
+echo "[294] Launching: QWQ_32B_ZS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zs_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5544,7 +6028,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[271] Launching: QWQ_32B_FS_noCTX_noLeg"
+echo "[295] Launching: QWQ_32B_FS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fs_noctx_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5562,7 +6046,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt"
 
-echo "[272] Launching: QWQ_32B_FS_noCTX_Leg"
+echo "[296] Launching: QWQ_32B_FS_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fs_noctx_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5581,7 +6065,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[273] Launching: QWQ_32B_FS_CTX1t_noLeg"
+echo "[297] Launching: QWQ_32B_FS_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fs_ctx1t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5601,7 +6085,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[274] Launching: QWQ_32B_FS_CTX1t_Leg"
+echo "[298] Launching: QWQ_32B_FS_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fs_ctx1t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5622,7 +6106,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[275] Launching: QWQ_32B_FS_CTX2t_noLeg"
+echo "[299] Launching: QWQ_32B_FS_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fs_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5642,7 +6126,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[276] Launching: QWQ_32B_FS_CTX2t_Leg"
+echo "[300] Launching: QWQ_32B_FS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fs_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5663,7 +6147,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[277] Launching: QWQ_32B_ZScot_noCTX_noLeg"
+echo "[301] Launching: QWQ_32B_ZScot_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zscot_noctx_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5681,7 +6165,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt"
 
-echo "[278] Launching: QWQ_32B_ZScot_noCTX_Leg"
+echo "[302] Launching: QWQ_32B_ZScot_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zscot_noctx_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5700,7 +6184,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[279] Launching: QWQ_32B_ZScot_CTX1t_noLeg"
+echo "[303] Launching: QWQ_32B_ZScot_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zscot_ctx1t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5720,7 +6204,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[280] Launching: QWQ_32B_ZScot_CTX1t_Leg"
+echo "[304] Launching: QWQ_32B_ZScot_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zscot_ctx1t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5741,7 +6225,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[281] Launching: QWQ_32B_ZScot_CTX2t_noLeg"
+echo "[305] Launching: QWQ_32B_ZScot_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zscot_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5761,7 +6245,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[282] Launching: QWQ_32B_ZScot_CTX2t_Leg"
+echo "[306] Launching: QWQ_32B_ZScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_zscot_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5782,7 +6266,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[283] Launching: QWQ_32B_FScot_noCTX_noLeg"
+echo "[307] Launching: QWQ_32B_FScot_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fscot_noctx_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5800,7 +6284,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt"
 
-echo "[284] Launching: QWQ_32B_FScot_noCTX_Leg"
+echo "[308] Launching: QWQ_32B_FScot_noCTX_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fscot_noctx_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5819,7 +6303,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[285] Launching: QWQ_32B_FScot_CTX1t_noLeg"
+echo "[309] Launching: QWQ_32B_FScot_CTX1t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fscot_ctx1t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5839,7 +6323,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[286] Launching: QWQ_32B_FScot_CTX1t_Leg"
+echo "[310] Launching: QWQ_32B_FScot_CTX1t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fscot_ctx1t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5860,7 +6344,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[287] Launching: QWQ_32B_FScot_CTX2t_noLeg"
+echo "[311] Launching: QWQ_32B_FScot_CTX2t_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fscot_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
@@ -5880,7 +6364,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[288] Launching: QWQ_32B_FScot_CTX2t_Leg"
+echo "[312] Launching: QWQ_32B_FScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwq_32b_fscot_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \

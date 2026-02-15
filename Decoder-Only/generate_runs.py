@@ -57,7 +57,15 @@ MODELS = {
         "nlprun_flags": "-q jag -p standard -r 40G -c 2",
         "extra_args": "--thinking_level high",
     },
-    # ── New: GPT-5.2 family (replaces retired GPT-4o) ──
+    # ── New: GPT-4.1 (non-reasoning, still available via API) ──
+    "gpt41": {
+        "backend": "openai",
+        "model": "gpt-4.1",
+        "output_dir": "Decoder-Only/GPT41/data",
+        "log_dir": "Decoder-Only/GPT41/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+    },
+    # ── New: GPT-5.2 family ──
     "gpt52_instant": {
         "backend": "openai",
         "model": "gpt-5.2-chat-latest",
