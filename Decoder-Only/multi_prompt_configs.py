@@ -14,6 +14,8 @@ import math
 from transformers import pipeline as hf_pipeline
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import google.generativeai as genai
+from google import genai as genai_new
+from google.genai import types as genai_types
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
@@ -449,7 +451,88 @@ class GeminiBackend(LLMBackend):
                 # Retry this call without cache (recursive, but only once since cached_model_client is now None)
                 return self.call(messages, instruction_type=instruction_type)
             raise e
-        
+
+
+class Gemini3Backend(LLMBackend):
+    """
+    Google Gemini 3 Pro API backend (uses the new google.genai library).
+
+    Gemini 3 Pro is a reasoning model with thinking enabled by default.
+    thinking_level controls depth: "low" (minimal reasoning) or "high" (deep reasoning, default).
+
+    CONFIDENCE SUPPORT: Not supported (API doesn't expose logprobs)
+    """
+    def __init__(self, model: str, thinking_level: str = "high"):
+        super().__init__(name="gemini3", model=model)
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("Set GEMINI_API_KEY environment variable.")
+        self.client = genai_new.Client(api_key=api_key)
+        self.thinking_level = thinking_level
+        self._enc = tiktoken.get_encoding("cl100k_base")
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages):
+        text = "\n".join(m["content"] for m in messages)
+        try:
+            result = self.client.models.count_tokens(
+                model=self.model, contents=text
+            )
+            return result.total_tokens
+        except Exception:
+            return len(self._enc.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self._enc.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 4000
+
+        system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
+        user_turns = [m for m in messages if m["role"] == "user"]
+
+        config = genai_types.GenerateContentConfig(
+            temperature=0.1,
+            max_output_tokens=max_tokens,
+            system_instruction=system_msg,
+            thinking_config=genai_types.ThinkingConfig(
+                thinking_level=self.thinking_level
+            ),
+        )
+
+        try:
+            if len(user_turns) <= 1:
+                content = user_turns[0]["content"] if user_turns else ""
+                resp = self.client.models.generate_content(
+                    model=self.model,
+                    contents=content,
+                    config=config,
+                )
+            else:
+                # Multi-turn: build contents list
+                contents = []
+                for m in user_turns[:-1]:
+                    contents.append(genai_types.Content(
+                        role="user",
+                        parts=[genai_types.Part(text=m["content"])]
+                    ))
+                contents.append(genai_types.Content(
+                    role="user",
+                    parts=[genai_types.Part(text=user_turns[-1]["content"])]
+                ))
+                resp = self.client.models.generate_content(
+                    model=self.model,
+                    contents=contents,
+                    config=config,
+                )
+
+            return resp.text
+        except Exception as e:
+            raise e
+
 
 class PhiBackend(LLMBackend):
     """
@@ -2433,14 +2516,18 @@ def main():
     parser.add_argument("--context_mode",     type=str, default="single_turn",
                         choices=["single_turn", "two_turn"])
     parser.add_argument("--backend",          type=str, default="openai",
-                        choices=["openai", "openai_reasoning", "gemini", "phi", "phi_reasoning",
-                                 "llama", "qwen", "qwen3", "qwen3_thinking", "qwq"])
+                        choices=["openai", "openai_reasoning", "gemini", "gemini3",
+                                 "phi", "phi_reasoning", "llama",
+                                 "qwen", "qwen3", "qwen3_thinking", "qwq"])
     parser.add_argument("--model",            type=str, default="gpt-5.2-chat-latest",
                         help="Model identifier (e.g. gpt-5.2-chat-latest, gpt-5.2, gemini-2.5-flash, "
                              "microsoft/Phi-4-reasoning, meta-llama/Llama-3.1-70B-Instruct, Qwen/Qwen3-32B)")
     parser.add_argument("--reasoning_effort", type=str, default="medium",
                         choices=["low", "medium", "high", "xhigh"],
                         help="Reasoning effort for OpenAI reasoning models (default: medium)")
+    parser.add_argument("--thinking_level",  type=str, default="high",
+                        choices=["low", "high"],
+                        help="Thinking level for Gemini 3 Pro (default: high)")
     parser.add_argument("--output_format",    type=str, default="markdown",
                         choices=["json", "markdown"],
                         help="'markdown' (Analysis + Results list) or 'json' (Analysis + JSON labels)")
@@ -2458,6 +2545,8 @@ def main():
         backend = OpenAIReasoningBackend(model=args.model, reasoning_effort=args.reasoning_effort)
     elif args.backend == "gemini":
         backend = GeminiBackend(model=args.model)
+    elif args.backend == "gemini3":
+        backend = Gemini3Backend(model=args.model, thinking_level=args.thinking_level)
     elif args.backend == "phi":
         backend = PhiBackend(model=args.model)
     elif args.backend == "phi_reasoning":
@@ -2707,7 +2796,7 @@ def main():
             dump_counter += 1
 
         # API rate-limit courtesy sleep (local models don't need this)
-        if args.backend in ("openai", "openai_reasoning", "gemini") and args.rate_limit_delay > 0:
+        if args.backend in ("openai", "openai_reasoning", "gemini", "gemini3") and args.rate_limit_delay > 0:
             time.sleep(args.rate_limit_delay)
 
         if arm_used == "two_turn":

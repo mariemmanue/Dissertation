@@ -48,6 +48,15 @@ MODELS = {
         "log_dir": "Decoder-Only/Qwen2.5/slurm_logs",
         "nlprun_flags": "-g 1 -q sphinx -p standard -r 100G -c 4",
     },
+    # ── New: Gemini 3 Pro (reasoning, thinking=high) ──
+    "gemini3_pro": {
+        "backend": "gemini3",
+        "model": "gemini-3-pro-preview",
+        "output_dir": "Decoder-Only/Gemini3_Pro/data",
+        "log_dir": "Decoder-Only/Gemini3_Pro/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--thinking_level high",
+    },
     # ── New: GPT-5.2 family (replaces retired GPT-4o) ──
     "gpt52_instant": {
         "backend": "openai",
