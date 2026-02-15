@@ -1,6 +1,6 @@
 #!/bin/bash
 # Auto-generated experimental run script
-# Total jobs: 96
+# Total jobs: 288
 #
 # Grid per model:
 #   instruction_type:   zero_shot, few_shot, zero_shot_cot, few_shot_cot  (4)
@@ -12,11 +12,12 @@
 #
 # Usage:
 #   chmod +x run_all_experiments.sh
-#   ./run_all_experiments.sh           # launch all 96 jobs
-#   ./run_all_experiments.sh phi4      # launch only phi4 jobs (24)
-#   ./run_all_experiments.sh gemini    # launch only gemini jobs (24)
-#   ./run_all_experiments.sh gpt4o     # launch only gpt4o jobs (24)
-#   ./run_all_experiments.sh qwen25    # launch only qwen2.5 jobs (24)
+#   ./run_all_experiments.sh              # launch all 288 jobs
+#   ./run_all_experiments.sh phi4           # launch only phi4 jobs (24)
+#   ./run_all_experiments.sh gemini         # launch only gemini jobs (24)
+#   ./run_all_experiments.sh gpt52_instant  # launch only GPT-5.2 Instant jobs (24)
+#
+# Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b
 
 set -e
 
@@ -28,7 +29,7 @@ MODEL_FILTER="${1:-all}"
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "phi4" ]]; then
 
-echo "[01] Launching: PHI4_ZS_noCTX_noLeg"
+echo "[001] Launching: PHI4_ZS_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zs_noctx_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -46,7 +47,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt"
 
-echo "[02] Launching: PHI4_ZS_noCTX_Leg"
+echo "[002] Launching: PHI4_ZS_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zs_noctx_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -65,7 +66,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[03] Launching: PHI4_ZS_CTX1t_noLeg"
+echo "[003] Launching: PHI4_ZS_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zs_ctx1t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -85,7 +86,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[04] Launching: PHI4_ZS_CTX1t_Leg"
+echo "[004] Launching: PHI4_ZS_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zs_ctx1t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -106,7 +107,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[05] Launching: PHI4_ZS_CTX2t_noLeg"
+echo "[005] Launching: PHI4_ZS_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zs_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -126,7 +127,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[06] Launching: PHI4_ZS_CTX2t_Leg"
+echo "[006] Launching: PHI4_ZS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zs_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -147,7 +148,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[07] Launching: PHI4_FS_noCTX_noLeg"
+echo "[007] Launching: PHI4_FS_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fs_noctx_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -165,7 +166,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt"
 
-echo "[08] Launching: PHI4_FS_noCTX_Leg"
+echo "[008] Launching: PHI4_FS_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fs_noctx_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -184,7 +185,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[09] Launching: PHI4_FS_CTX1t_noLeg"
+echo "[009] Launching: PHI4_FS_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fs_ctx1t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -204,7 +205,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[10] Launching: PHI4_FS_CTX1t_Leg"
+echo "[010] Launching: PHI4_FS_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fs_ctx1t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -225,7 +226,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[11] Launching: PHI4_FS_CTX2t_noLeg"
+echo "[011] Launching: PHI4_FS_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fs_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -245,7 +246,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[12] Launching: PHI4_FS_CTX2t_Leg"
+echo "[012] Launching: PHI4_FS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fs_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -266,7 +267,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[13] Launching: PHI4_ZScot_noCTX_noLeg"
+echo "[013] Launching: PHI4_ZScot_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zscot_noctx_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -284,7 +285,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt"
 
-echo "[14] Launching: PHI4_ZScot_noCTX_Leg"
+echo "[014] Launching: PHI4_ZScot_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zscot_noctx_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -303,7 +304,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[15] Launching: PHI4_ZScot_CTX1t_noLeg"
+echo "[015] Launching: PHI4_ZScot_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zscot_ctx1t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -323,7 +324,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[16] Launching: PHI4_ZScot_CTX1t_Leg"
+echo "[016] Launching: PHI4_ZScot_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zscot_ctx1t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -344,7 +345,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[17] Launching: PHI4_ZScot_CTX2t_noLeg"
+echo "[017] Launching: PHI4_ZScot_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -364,7 +365,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[18] Launching: PHI4_ZScot_CTX2t_Leg"
+echo "[018] Launching: PHI4_ZScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zscot_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -385,7 +386,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[19] Launching: PHI4_FScot_noCTX_noLeg"
+echo "[019] Launching: PHI4_FScot_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fscot_noctx_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -403,7 +404,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt"
 
-echo "[20] Launching: PHI4_FScot_noCTX_Leg"
+echo "[020] Launching: PHI4_FScot_noCTX_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fscot_noctx_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -422,7 +423,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[21] Launching: PHI4_FScot_CTX1t_noLeg"
+echo "[021] Launching: PHI4_FScot_CTX1t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fscot_ctx1t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -442,7 +443,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode single_turn"
 
-echo "[22] Launching: PHI4_FScot_CTX1t_Leg"
+echo "[022] Launching: PHI4_FScot_CTX1t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fscot_ctx1t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -463,7 +464,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[23] Launching: PHI4_FScot_CTX2t_noLeg"
+echo "[023] Launching: PHI4_FScot_CTX2t_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -483,7 +484,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode two_turn"
 
-echo "[24] Launching: PHI4_FScot_CTX2t_Leg"
+echo "[024] Launching: PHI4_FScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_fscot_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
@@ -512,7 +513,7 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini" ]]; then
 
-echo "[25] Launching: GEMINI_ZS_noCTX_noLeg"
+echo "[025] Launching: GEMINI_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zs_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -530,7 +531,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt"
 
-echo "[26] Launching: GEMINI_ZS_noCTX_Leg"
+echo "[026] Launching: GEMINI_ZS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zs_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -549,7 +550,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[27] Launching: GEMINI_ZS_CTX1t_noLeg"
+echo "[027] Launching: GEMINI_ZS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zs_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -569,7 +570,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[28] Launching: GEMINI_ZS_CTX1t_Leg"
+echo "[028] Launching: GEMINI_ZS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zs_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -590,7 +591,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[29] Launching: GEMINI_ZS_CTX2t_noLeg"
+echo "[029] Launching: GEMINI_ZS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zs_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -610,7 +611,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[30] Launching: GEMINI_ZS_CTX2t_Leg"
+echo "[030] Launching: GEMINI_ZS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zs_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -631,7 +632,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[31] Launching: GEMINI_FS_noCTX_noLeg"
+echo "[031] Launching: GEMINI_FS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fs_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -649,7 +650,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt"
 
-echo "[32] Launching: GEMINI_FS_noCTX_Leg"
+echo "[032] Launching: GEMINI_FS_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fs_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -668,7 +669,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[33] Launching: GEMINI_FS_CTX1t_noLeg"
+echo "[033] Launching: GEMINI_FS_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fs_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -688,7 +689,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[34] Launching: GEMINI_FS_CTX1t_Leg"
+echo "[034] Launching: GEMINI_FS_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fs_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -709,7 +710,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[35] Launching: GEMINI_FS_CTX2t_noLeg"
+echo "[035] Launching: GEMINI_FS_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fs_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -729,7 +730,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[36] Launching: GEMINI_FS_CTX2t_Leg"
+echo "[036] Launching: GEMINI_FS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fs_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -750,7 +751,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[37] Launching: GEMINI_ZScot_noCTX_noLeg"
+echo "[037] Launching: GEMINI_ZScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zscot_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -768,7 +769,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt"
 
-echo "[38] Launching: GEMINI_ZScot_noCTX_Leg"
+echo "[038] Launching: GEMINI_ZScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zscot_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -787,7 +788,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[39] Launching: GEMINI_ZScot_CTX1t_noLeg"
+echo "[039] Launching: GEMINI_ZScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zscot_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -807,7 +808,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[40] Launching: GEMINI_ZScot_CTX1t_Leg"
+echo "[040] Launching: GEMINI_ZScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zscot_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -828,7 +829,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[41] Launching: GEMINI_ZScot_CTX2t_noLeg"
+echo "[041] Launching: GEMINI_ZScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zscot_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -848,7 +849,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[42] Launching: GEMINI_ZScot_CTX2t_Leg"
+echo "[042] Launching: GEMINI_ZScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_zscot_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -869,7 +870,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[43] Launching: GEMINI_FScot_noCTX_noLeg"
+echo "[043] Launching: GEMINI_FScot_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fscot_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -887,7 +888,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt"
 
-echo "[44] Launching: GEMINI_FScot_noCTX_Leg"
+echo "[044] Launching: GEMINI_FScot_noCTX_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fscot_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -906,7 +907,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[45] Launching: GEMINI_FScot_CTX1t_noLeg"
+echo "[045] Launching: GEMINI_FScot_CTX1t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fscot_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -926,7 +927,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode single_turn"
 
-echo "[46] Launching: GEMINI_FScot_CTX1t_Leg"
+echo "[046] Launching: GEMINI_FScot_CTX1t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fscot_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -947,7 +948,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[47] Launching: GEMINI_FScot_CTX2t_noLeg"
+echo "[047] Launching: GEMINI_FScot_CTX2t_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fscot_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -967,7 +968,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context \
     --context_mode two_turn"
 
-echo "[48] Launching: GEMINI_FScot_CTX2t_Leg"
+echo "[048] Launching: GEMINI_FScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gemini_fscot_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
@@ -991,482 +992,482 @@ nlprun -q jag -p standard -r 40G -c 2 \
 fi
 
 # ============================================================
-# GPT4O — gpt-4o
+# QWEN25_7B — Qwen/Qwen2.5-7B-Instruct
 # ============================================================
 
-if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt4o" ]]; then
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen25_7b" ]]; then
 
-echo "[49] Launching: GPT4O_ZS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zs_noctx_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[049] Launching: QWEN25_7B_ZS_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zs_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZS_noCTX_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZS_noCTX_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt"
 
-echo "[50] Launching: GPT4O_ZS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zs_noctx_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[050] Launching: QWEN25_7B_ZS_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zs_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZS_noCTX_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZS_noCTX_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[51] Launching: GPT4O_ZS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zs_ctx1t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[051] Launching: QWEN25_7B_ZS_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zs_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZS_CTX1t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZS_CTX1t_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[52] Launching: GPT4O_ZS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zs_ctx1t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[052] Launching: QWEN25_7B_ZS_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zs_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZS_CTX1t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZS_CTX1t_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[53] Launching: GPT4O_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zs_ctx2t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[053] Launching: QWEN25_7B_ZS_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zs_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZS_CTX2t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZS_CTX2t_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[54] Launching: GPT4O_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zs_ctx2t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[054] Launching: QWEN25_7B_ZS_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zs_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZS_CTX2t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZS_CTX2t_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[55] Launching: GPT4O_FS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fs_noctx_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[055] Launching: QWEN25_7B_FS_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fs_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FS_noCTX_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FS_noCTX_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt"
 
-echo "[56] Launching: GPT4O_FS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fs_noctx_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[056] Launching: QWEN25_7B_FS_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fs_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FS_noCTX_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FS_noCTX_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[57] Launching: GPT4O_FS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fs_ctx1t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[057] Launching: QWEN25_7B_FS_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fs_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FS_CTX1t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FS_CTX1t_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[58] Launching: GPT4O_FS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fs_ctx1t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[058] Launching: QWEN25_7B_FS_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fs_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FS_CTX1t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FS_CTX1t_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[59] Launching: GPT4O_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fs_ctx2t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[059] Launching: QWEN25_7B_FS_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fs_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FS_CTX2t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FS_CTX2t_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[60] Launching: GPT4O_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fs_ctx2t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[060] Launching: QWEN25_7B_FS_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fs_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FS_CTX2t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FS_CTX2t_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[61] Launching: GPT4O_ZScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zscot_noctx_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[061] Launching: QWEN25_7B_ZScot_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zscot_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZScot_noCTX_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZScot_noCTX_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt"
 
-echo "[62] Launching: GPT4O_ZScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zscot_noctx_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[062] Launching: QWEN25_7B_ZScot_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zscot_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZScot_noCTX_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZScot_noCTX_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[63] Launching: GPT4O_ZScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zscot_ctx1t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[063] Launching: QWEN25_7B_ZScot_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZScot_CTX1t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZScot_CTX1t_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[64] Launching: GPT4O_ZScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zscot_ctx1t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[064] Launching: QWEN25_7B_ZScot_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zscot_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZScot_CTX1t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZScot_CTX1t_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[65] Launching: GPT4O_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zscot_ctx2t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[065] Launching: QWEN25_7B_ZScot_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZScot_CTX2t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZScot_CTX2t_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[66] Launching: GPT4O_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_zscot_ctx2t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[066] Launching: QWEN25_7B_ZScot_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_zscot_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_ZScot_CTX2t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_ZScot_CTX2t_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[67] Launching: GPT4O_FScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fscot_noctx_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[067] Launching: QWEN25_7B_FScot_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fscot_noctx_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FScot_noCTX_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FScot_noCTX_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt"
 
-echo "[68] Launching: GPT4O_FScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fscot_noctx_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[068] Launching: QWEN25_7B_FScot_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fscot_noctx_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FScot_noCTX_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FScot_noCTX_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[69] Launching: GPT4O_FScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fscot_ctx1t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[069] Launching: QWEN25_7B_FScot_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FScot_CTX1t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FScot_CTX1t_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[70] Launching: GPT4O_FScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fscot_ctx1t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[070] Launching: QWEN25_7B_FScot_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fscot_ctx1t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FScot_CTX1t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FScot_CTX1t_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[71] Launching: GPT4O_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fscot_ctx2t_noleg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[071] Launching: QWEN25_7B_FScot_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FScot_CTX2t_noLeg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FScot_CTX2t_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[72] Launching: GPT4O_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gpt4o_fscot_ctx2t_leg \
-  -o Decoder-Only/GPT4o/slurm_logs/%x-%j.out \
+echo "[072] Launching: QWEN25_7B_FScot_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n qwen25_7b_fscot_ctx2t_leg \
+  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model gpt-4o \
-    --backend openai \
-    --sheet GPT4O_FScot_CTX2t_Leg \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --backend qwen \
+    --sheet QWEN25_7B_FScot_CTX2t_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/GPT4o/data \
+    --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
@@ -1475,482 +1476,4426 @@ nlprun -q jag -p standard -r 40G -c 2 \
 fi
 
 # ============================================================
-# QWEN2.5 — Qwen/Qwen2.5-7B-Instruct
+# GEMINI3_PRO — gemini-3-pro-preview
 # ============================================================
 
-if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen25" ]]; then
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_pro" ]]; then
 
-echo "[73] Launching: QWEN25_ZS_noCTX_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zs_noctx_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[073] Launching: GEMINI3_PRO_ZS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zs_noctx_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZS_noCTX_noLeg \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_noCTX_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --thinking_level high"
+
+echo "[074] Launching: GEMINI3_PRO_ZS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zs_noctx_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[075] Launching: GEMINI3_PRO_ZS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zs_ctx1t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --thinking_level high"
+
+echo "[076] Launching: GEMINI3_PRO_ZS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zs_ctx1t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[077] Launching: GEMINI3_PRO_ZS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zs_ctx2t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --thinking_level high"
+
+echo "[078] Launching: GEMINI3_PRO_ZS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zs_ctx2t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[079] Launching: GEMINI3_PRO_FS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fs_noctx_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --thinking_level high"
+
+echo "[080] Launching: GEMINI3_PRO_FS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fs_noctx_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[081] Launching: GEMINI3_PRO_FS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fs_ctx1t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --thinking_level high"
+
+echo "[082] Launching: GEMINI3_PRO_FS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fs_ctx1t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[083] Launching: GEMINI3_PRO_FS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fs_ctx2t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --thinking_level high"
+
+echo "[084] Launching: GEMINI3_PRO_FS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fs_ctx2t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[085] Launching: GEMINI3_PRO_ZScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zscot_noctx_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --thinking_level high"
+
+echo "[086] Launching: GEMINI3_PRO_ZScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zscot_noctx_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[087] Launching: GEMINI3_PRO_ZScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zscot_ctx1t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --thinking_level high"
+
+echo "[088] Launching: GEMINI3_PRO_ZScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zscot_ctx1t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[089] Launching: GEMINI3_PRO_ZScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zscot_ctx2t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --thinking_level high"
+
+echo "[090] Launching: GEMINI3_PRO_ZScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_zscot_ctx2t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[091] Launching: GEMINI3_PRO_FScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fscot_noctx_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --thinking_level high"
+
+echo "[092] Launching: GEMINI3_PRO_FScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fscot_noctx_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[093] Launching: GEMINI3_PRO_FScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fscot_ctx1t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --thinking_level high"
+
+echo "[094] Launching: GEMINI3_PRO_FScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fscot_ctx1t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+echo "[095] Launching: GEMINI3_PRO_FScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fscot_ctx2t_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --thinking_level high"
+
+echo "[096] Launching: GEMINI3_PRO_FScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gemini3_pro_fscot_ctx2t_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --thinking_level high"
+
+fi
+
+# ============================================================
+# GPT52_INSTANT — gpt-5.2-chat-latest
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_instant" ]]; then
+
+echo "[097] Launching: GPT52_INSTANT_ZS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zs_noctx_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[74] Launching: QWEN25_ZS_noCTX_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zs_noctx_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[098] Launching: GPT52_INSTANT_ZS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zs_noctx_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZS_noCTX_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZS_noCTX_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[75] Launching: QWEN25_ZS_CTX1t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zs_ctx1t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[099] Launching: GPT52_INSTANT_ZS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zs_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZS_CTX1t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZS_CTX1t_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[76] Launching: QWEN25_ZS_CTX1t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zs_ctx1t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[100] Launching: GPT52_INSTANT_ZS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zs_ctx1t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZS_CTX1t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZS_CTX1t_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[77] Launching: QWEN25_ZS_CTX2t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zs_ctx2t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[101] Launching: GPT52_INSTANT_ZS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zs_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZS_CTX2t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZS_CTX2t_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[78] Launching: QWEN25_ZS_CTX2t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zs_ctx2t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[102] Launching: GPT52_INSTANT_ZS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zs_ctx2t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZS_CTX2t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZS_CTX2t_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[79] Launching: QWEN25_FS_noCTX_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fs_noctx_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[103] Launching: GPT52_INSTANT_FS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fs_noctx_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FS_noCTX_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FS_noCTX_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[80] Launching: QWEN25_FS_noCTX_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fs_noctx_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[104] Launching: GPT52_INSTANT_FS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fs_noctx_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FS_noCTX_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FS_noCTX_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[81] Launching: QWEN25_FS_CTX1t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fs_ctx1t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[105] Launching: GPT52_INSTANT_FS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fs_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FS_CTX1t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FS_CTX1t_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[82] Launching: QWEN25_FS_CTX1t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fs_ctx1t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[106] Launching: GPT52_INSTANT_FS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fs_ctx1t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FS_CTX1t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FS_CTX1t_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[83] Launching: QWEN25_FS_CTX2t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fs_ctx2t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[107] Launching: GPT52_INSTANT_FS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fs_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FS_CTX2t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FS_CTX2t_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[84] Launching: QWEN25_FS_CTX2t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fs_ctx2t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[108] Launching: GPT52_INSTANT_FS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fs_ctx2t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FS_CTX2t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FS_CTX2t_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[85] Launching: QWEN25_ZScot_noCTX_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zscot_noctx_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[109] Launching: GPT52_INSTANT_ZScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zscot_noctx_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZScot_noCTX_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZScot_noCTX_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[86] Launching: QWEN25_ZScot_noCTX_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zscot_noctx_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[110] Launching: GPT52_INSTANT_ZScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zscot_noctx_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZScot_noCTX_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZScot_noCTX_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[87] Launching: QWEN25_ZScot_CTX1t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zscot_ctx1t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[111] Launching: GPT52_INSTANT_ZScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zscot_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZScot_CTX1t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZScot_CTX1t_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[88] Launching: QWEN25_ZScot_CTX1t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zscot_ctx1t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[112] Launching: GPT52_INSTANT_ZScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zscot_ctx1t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZScot_CTX1t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZScot_CTX1t_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[89] Launching: QWEN25_ZScot_CTX2t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zscot_ctx2t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[113] Launching: GPT52_INSTANT_ZScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zscot_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZScot_CTX2t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZScot_CTX2t_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[90] Launching: QWEN25_ZScot_CTX2t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_zscot_ctx2t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[114] Launching: GPT52_INSTANT_ZScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_zscot_ctx2t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_ZScot_CTX2t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_ZScot_CTX2t_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
     --dialect_legitimacy"
 
-echo "[91] Launching: QWEN25_FScot_noCTX_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fscot_noctx_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[115] Launching: GPT52_INSTANT_FScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fscot_noctx_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FScot_noCTX_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FScot_noCTX_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt"
 
-echo "[92] Launching: QWEN25_FScot_noCTX_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fscot_noctx_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[116] Launching: GPT52_INSTANT_FScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fscot_noctx_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FScot_noCTX_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FScot_noCTX_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --dialect_legitimacy"
 
-echo "[93] Launching: QWEN25_FScot_CTX1t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fscot_ctx1t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[117] Launching: GPT52_INSTANT_FScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fscot_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FScot_CTX1t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FScot_CTX1t_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn"
 
-echo "[94] Launching: QWEN25_FScot_CTX1t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fscot_ctx1t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[118] Launching: GPT52_INSTANT_FScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fscot_ctx1t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FScot_CTX1t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FScot_CTX1t_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[95] Launching: QWEN25_FScot_CTX2t_noLeg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fscot_ctx2t_noleg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[119] Launching: GPT52_INSTANT_FScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fscot_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FScot_CTX2t_noLeg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FScot_CTX2t_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
     --context_mode two_turn"
 
-echo "[96] Launching: QWEN25_FScot_CTX2t_Leg"
-nlprun -g 1 -q sphinx -p standard -r 80G -c 4 \
-  -n qwen25_fscot_ctx2t_leg \
-  -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
+echo "[120] Launching: GPT52_INSTANT_FScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_instant_fscot_ctx2t_leg \
+  -o Decoder-Only/GPT52_Instant/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
-    --model Qwen/Qwen2.5-7B-Instruct \
-    --backend qwen \
-    --sheet QWEN25_FScot_CTX2t_Leg \
+    --model gpt-5.2-chat-latest \
+    --backend openai \
+    --sheet GPT52_INSTANT_FScot_CTX2t_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
-    --output_dir Decoder-Only/Qwen2.5/data \
+    --output_dir Decoder-Only/GPT52_Instant/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# GPT52_THINK_MED — gpt-5.2
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_think_med" ]]; then
+
+echo "[121] Launching: GPT52_THINK_MED_ZS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zs_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --reasoning_effort medium"
+
+echo "[122] Launching: GPT52_THINK_MED_ZS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zs_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[123] Launching: GPT52_THINK_MED_ZS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zs_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort medium"
+
+echo "[124] Launching: GPT52_THINK_MED_ZS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zs_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[125] Launching: GPT52_THINK_MED_ZS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zs_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort medium"
+
+echo "[126] Launching: GPT52_THINK_MED_ZS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zs_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[127] Launching: GPT52_THINK_MED_FS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fs_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --reasoning_effort medium"
+
+echo "[128] Launching: GPT52_THINK_MED_FS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fs_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[129] Launching: GPT52_THINK_MED_FS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fs_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort medium"
+
+echo "[130] Launching: GPT52_THINK_MED_FS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fs_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[131] Launching: GPT52_THINK_MED_FS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fs_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort medium"
+
+echo "[132] Launching: GPT52_THINK_MED_FS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fs_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[133] Launching: GPT52_THINK_MED_ZScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zscot_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --reasoning_effort medium"
+
+echo "[134] Launching: GPT52_THINK_MED_ZScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zscot_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[135] Launching: GPT52_THINK_MED_ZScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zscot_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort medium"
+
+echo "[136] Launching: GPT52_THINK_MED_ZScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zscot_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[137] Launching: GPT52_THINK_MED_ZScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zscot_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort medium"
+
+echo "[138] Launching: GPT52_THINK_MED_ZScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_zscot_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[139] Launching: GPT52_THINK_MED_FScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fscot_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --reasoning_effort medium"
+
+echo "[140] Launching: GPT52_THINK_MED_FScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fscot_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[141] Launching: GPT52_THINK_MED_FScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fscot_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort medium"
+
+echo "[142] Launching: GPT52_THINK_MED_FScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fscot_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+echo "[143] Launching: GPT52_THINK_MED_FScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fscot_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort medium"
+
+echo "[144] Launching: GPT52_THINK_MED_FScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_med_fscot_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_MED_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_Med/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort medium"
+
+fi
+
+# ============================================================
+# GPT52_THINK_HIGH — gpt-5.2
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_think_high" ]]; then
+
+echo "[145] Launching: GPT52_THINK_HIGH_ZS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zs_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --reasoning_effort high"
+
+echo "[146] Launching: GPT52_THINK_HIGH_ZS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zs_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[147] Launching: GPT52_THINK_HIGH_ZS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zs_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort high"
+
+echo "[148] Launching: GPT52_THINK_HIGH_ZS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zs_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[149] Launching: GPT52_THINK_HIGH_ZS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zs_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort high"
+
+echo "[150] Launching: GPT52_THINK_HIGH_ZS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zs_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[151] Launching: GPT52_THINK_HIGH_FS_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fs_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --reasoning_effort high"
+
+echo "[152] Launching: GPT52_THINK_HIGH_FS_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fs_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[153] Launching: GPT52_THINK_HIGH_FS_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fs_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort high"
+
+echo "[154] Launching: GPT52_THINK_HIGH_FS_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fs_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[155] Launching: GPT52_THINK_HIGH_FS_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fs_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort high"
+
+echo "[156] Launching: GPT52_THINK_HIGH_FS_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fs_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[157] Launching: GPT52_THINK_HIGH_ZScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zscot_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --reasoning_effort high"
+
+echo "[158] Launching: GPT52_THINK_HIGH_ZScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zscot_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[159] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zscot_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort high"
+
+echo "[160] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zscot_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[161] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zscot_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort high"
+
+echo "[162] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_zscot_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[163] Launching: GPT52_THINK_HIGH_FScot_noCTX_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fscot_noctx_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --reasoning_effort high"
+
+echo "[164] Launching: GPT52_THINK_HIGH_FScot_noCTX_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fscot_noctx_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[165] Launching: GPT52_THINK_HIGH_FScot_CTX1t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fscot_ctx1t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --reasoning_effort high"
+
+echo "[166] Launching: GPT52_THINK_HIGH_FScot_CTX1t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fscot_ctx1t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+echo "[167] Launching: GPT52_THINK_HIGH_FScot_CTX2t_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fscot_ctx2t_noleg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --reasoning_effort high"
+
+echo "[168] Launching: GPT52_THINK_HIGH_FScot_CTX2t_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n gpt52_think_high_fscot_ctx2t_leg \
+  -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model gpt-5.2 \
+    --backend openai_reasoning \
+    --sheet GPT52_THINK_HIGH_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/GPT52_Thinking_High/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy \
+    --reasoning_effort high"
+
+fi
+
+# ============================================================
+# PHI4_REASONING — microsoft/Phi-4-reasoning
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "phi4_reasoning" ]]; then
+
+echo "[169] Launching: PHI4_REASONING_ZS_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zs_noctx_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt"
+
+echo "[170] Launching: PHI4_REASONING_ZS_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zs_noctx_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[171] Launching: PHI4_REASONING_ZS_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zs_ctx1t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[172] Launching: PHI4_REASONING_ZS_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zs_ctx1t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[173] Launching: PHI4_REASONING_ZS_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zs_ctx2t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[174] Launching: PHI4_REASONING_ZS_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zs_ctx2t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[175] Launching: PHI4_REASONING_FS_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fs_noctx_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt"
+
+echo "[176] Launching: PHI4_REASONING_FS_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fs_noctx_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[177] Launching: PHI4_REASONING_FS_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fs_ctx1t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[178] Launching: PHI4_REASONING_FS_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fs_ctx1t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[179] Launching: PHI4_REASONING_FS_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fs_ctx2t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[180] Launching: PHI4_REASONING_FS_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fs_ctx2t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[181] Launching: PHI4_REASONING_ZScot_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zscot_noctx_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt"
+
+echo "[182] Launching: PHI4_REASONING_ZScot_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zscot_noctx_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[183] Launching: PHI4_REASONING_ZScot_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zscot_ctx1t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[184] Launching: PHI4_REASONING_ZScot_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zscot_ctx1t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[185] Launching: PHI4_REASONING_ZScot_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zscot_ctx2t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[186] Launching: PHI4_REASONING_ZScot_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_zscot_ctx2t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[187] Launching: PHI4_REASONING_FScot_noCTX_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fscot_noctx_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt"
+
+echo "[188] Launching: PHI4_REASONING_FScot_noCTX_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fscot_noctx_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[189] Launching: PHI4_REASONING_FScot_CTX1t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fscot_ctx1t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[190] Launching: PHI4_REASONING_FScot_CTX1t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fscot_ctx1t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[191] Launching: PHI4_REASONING_FScot_CTX2t_noLeg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fscot_ctx2t_noleg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[192] Launching: PHI4_REASONING_FScot_CTX2t_Leg"
+nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
+  -n phi4_reasoning_fscot_ctx2t_leg \
+  -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model microsoft/Phi-4-reasoning \
+    --backend phi_reasoning \
+    --sheet PHI4_REASONING_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Phi-4-reasoning/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# LLAMA70B — meta-llama/Llama-3.1-70B-Instruct
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "llama70b" ]]; then
+
+echo "[193] Launching: LLAMA70B_ZS_noCTX_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zs_noctx_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt"
+
+echo "[194] Launching: LLAMA70B_ZS_noCTX_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zs_noctx_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[195] Launching: LLAMA70B_ZS_CTX1t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zs_ctx1t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[196] Launching: LLAMA70B_ZS_CTX1t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zs_ctx1t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[197] Launching: LLAMA70B_ZS_CTX2t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zs_ctx2t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[198] Launching: LLAMA70B_ZS_CTX2t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zs_ctx2t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[199] Launching: LLAMA70B_FS_noCTX_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fs_noctx_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt"
+
+echo "[200] Launching: LLAMA70B_FS_noCTX_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fs_noctx_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[201] Launching: LLAMA70B_FS_CTX1t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fs_ctx1t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[202] Launching: LLAMA70B_FS_CTX1t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fs_ctx1t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[203] Launching: LLAMA70B_FS_CTX2t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fs_ctx2t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[204] Launching: LLAMA70B_FS_CTX2t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fs_ctx2t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[205] Launching: LLAMA70B_ZScot_noCTX_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zscot_noctx_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt"
+
+echo "[206] Launching: LLAMA70B_ZScot_noCTX_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zscot_noctx_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[207] Launching: LLAMA70B_ZScot_CTX1t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zscot_ctx1t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[208] Launching: LLAMA70B_ZScot_CTX1t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zscot_ctx1t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[209] Launching: LLAMA70B_ZScot_CTX2t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zscot_ctx2t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[210] Launching: LLAMA70B_ZScot_CTX2t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_zscot_ctx2t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[211] Launching: LLAMA70B_FScot_noCTX_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fscot_noctx_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt"
+
+echo "[212] Launching: LLAMA70B_FScot_noCTX_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fscot_noctx_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[213] Launching: LLAMA70B_FScot_CTX1t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fscot_ctx1t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[214] Launching: LLAMA70B_FScot_CTX1t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fscot_ctx1t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[215] Launching: LLAMA70B_FScot_CTX2t_noLeg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fscot_ctx2t_noleg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[216] Launching: LLAMA70B_FScot_CTX2t_Leg"
+nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
+  -n llama70b_fscot_ctx2t_leg \
+  -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model meta-llama/Llama-3.1-70B-Instruct \
+    --backend llama \
+    --sheet LLAMA70B_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Llama-3.1-70B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# QWEN3_32B — Qwen/Qwen3-32B
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen3_32b" ]]; then
+
+echo "[217] Launching: QWEN3_32B_ZS_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zs_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt"
+
+echo "[218] Launching: QWEN3_32B_ZS_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zs_noctx_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[219] Launching: QWEN3_32B_ZS_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zs_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[220] Launching: QWEN3_32B_ZS_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zs_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[221] Launching: QWEN3_32B_ZS_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zs_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[222] Launching: QWEN3_32B_ZS_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zs_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[223] Launching: QWEN3_32B_FS_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fs_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt"
+
+echo "[224] Launching: QWEN3_32B_FS_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fs_noctx_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[225] Launching: QWEN3_32B_FS_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fs_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[226] Launching: QWEN3_32B_FS_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fs_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[227] Launching: QWEN3_32B_FS_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fs_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[228] Launching: QWEN3_32B_FS_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fs_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[229] Launching: QWEN3_32B_ZScot_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zscot_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt"
+
+echo "[230] Launching: QWEN3_32B_ZScot_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zscot_noctx_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[231] Launching: QWEN3_32B_ZScot_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[232] Launching: QWEN3_32B_ZScot_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zscot_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[233] Launching: QWEN3_32B_ZScot_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[234] Launching: QWEN3_32B_ZScot_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_zscot_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[235] Launching: QWEN3_32B_FScot_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fscot_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt"
+
+echo "[236] Launching: QWEN3_32B_FScot_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fscot_noctx_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[237] Launching: QWEN3_32B_FScot_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[238] Launching: QWEN3_32B_FScot_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fscot_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[239] Launching: QWEN3_32B_FScot_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[240] Launching: QWEN3_32B_FScot_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_fscot_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3 \
+    --sheet QWEN3_32B_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# QWEN3_32B_THINK — Qwen/Qwen3-32B
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen3_32b_think" ]]; then
+
+echo "[241] Launching: QWEN3_32B_THINK_ZS_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zs_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt"
+
+echo "[242] Launching: QWEN3_32B_THINK_ZS_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zs_noctx_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[243] Launching: QWEN3_32B_THINK_ZS_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zs_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[244] Launching: QWEN3_32B_THINK_ZS_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zs_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[245] Launching: QWEN3_32B_THINK_ZS_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zs_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[246] Launching: QWEN3_32B_THINK_ZS_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zs_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[247] Launching: QWEN3_32B_THINK_FS_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fs_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt"
+
+echo "[248] Launching: QWEN3_32B_THINK_FS_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fs_noctx_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[249] Launching: QWEN3_32B_THINK_FS_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fs_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[250] Launching: QWEN3_32B_THINK_FS_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fs_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[251] Launching: QWEN3_32B_THINK_FS_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fs_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[252] Launching: QWEN3_32B_THINK_FS_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fs_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[253] Launching: QWEN3_32B_THINK_ZScot_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zscot_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt"
+
+echo "[254] Launching: QWEN3_32B_THINK_ZScot_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zscot_noctx_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[255] Launching: QWEN3_32B_THINK_ZScot_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[256] Launching: QWEN3_32B_THINK_ZScot_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zscot_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[257] Launching: QWEN3_32B_THINK_ZScot_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[258] Launching: QWEN3_32B_THINK_ZScot_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_zscot_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[259] Launching: QWEN3_32B_THINK_FScot_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fscot_noctx_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt"
+
+echo "[260] Launching: QWEN3_32B_THINK_FScot_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fscot_noctx_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[261] Launching: QWEN3_32B_THINK_FScot_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fscot_ctx1t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[262] Launching: QWEN3_32B_THINK_FScot_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fscot_ctx1t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[263] Launching: QWEN3_32B_THINK_FScot_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fscot_ctx2t_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[264] Launching: QWEN3_32B_THINK_FScot_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwen3_32b_think_fscot_ctx2t_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32B_THINK_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# QWQ_32B — Qwen/QwQ-32B
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwq_32b" ]]; then
+
+echo "[265] Launching: QWQ_32B_ZS_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zs_noctx_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZS_noCTX_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt"
+
+echo "[266] Launching: QWQ_32B_ZS_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zs_noctx_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZS_noCTX_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[267] Launching: QWQ_32B_ZS_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zs_ctx1t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZS_CTX1t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[268] Launching: QWQ_32B_ZS_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zs_ctx1t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZS_CTX1t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[269] Launching: QWQ_32B_ZS_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zs_ctx2t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZS_CTX2t_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[270] Launching: QWQ_32B_ZS_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zs_ctx2t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZS_CTX2t_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[271] Launching: QWQ_32B_FS_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fs_noctx_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FS_noCTX_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt"
+
+echo "[272] Launching: QWQ_32B_FS_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fs_noctx_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FS_noCTX_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[273] Launching: QWQ_32B_FS_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fs_ctx1t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FS_CTX1t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[274] Launching: QWQ_32B_FS_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fs_ctx1t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FS_CTX1t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[275] Launching: QWQ_32B_FS_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fs_ctx2t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FS_CTX2t_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[276] Launching: QWQ_32B_FS_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fs_ctx2t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FS_CTX2t_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[277] Launching: QWQ_32B_ZScot_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zscot_noctx_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZScot_noCTX_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt"
+
+echo "[278] Launching: QWQ_32B_ZScot_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zscot_noctx_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZScot_noCTX_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[279] Launching: QWQ_32B_ZScot_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zscot_ctx1t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZScot_CTX1t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[280] Launching: QWQ_32B_ZScot_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zscot_ctx1t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZScot_CTX1t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[281] Launching: QWQ_32B_ZScot_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zscot_ctx2t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZScot_CTX2t_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[282] Launching: QWQ_32B_ZScot_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_zscot_ctx2t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_ZScot_CTX2t_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn \
+    --dialect_legitimacy"
+
+echo "[283] Launching: QWQ_32B_FScot_noCTX_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fscot_noctx_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FScot_noCTX_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt"
+
+echo "[284] Launching: QWQ_32B_FScot_noCTX_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fscot_noctx_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FScot_noCTX_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --dialect_legitimacy"
+
+echo "[285] Launching: QWQ_32B_FScot_CTX1t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fscot_ctx1t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FScot_CTX1t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn"
+
+echo "[286] Launching: QWQ_32B_FScot_CTX1t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fscot_ctx1t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FScot_CTX1t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode single_turn \
+    --dialect_legitimacy"
+
+echo "[287] Launching: QWQ_32B_FScot_CTX2t_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fscot_ctx2t_noleg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FScot_CTX2t_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode two_turn"
+
+echo "[288] Launching: QWQ_32B_FScot_CTX2t_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n qwq_32b_fscot_ctx2t_leg \
+  -o Decoder-Only/QwQ-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && \
+   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+   conda activate cgedit && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file Datasets/FullTest_Final.xlsx \
+    --model Qwen/QwQ-32B \
+    --backend qwq \
+    --sheet QWQ_32B_FScot_CTX2t_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format markdown \
+    --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
     --context_mode two_turn \
