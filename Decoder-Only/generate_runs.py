@@ -9,8 +9,10 @@ Grid per model:
   ────────────────────────────────────────────────────────────────────────
   Total per model:     4 × 3 × 2 = 24
 
-Models: GPT-4o, Gemini 2.5 Flash, Phi-4
-Total jobs: 72
+Models: GPT-5.2 Instant, GPT-5.2 Thinking (med/high), Gemini 2.5 Flash,
+        Phi-4, Phi-4-reasoning, Qwen 2.5-7B, Qwen3-32B (think/no-think),
+        QwQ-32B, Llama 3.1-70B
+Total jobs: 288
 """
 
 import itertools
@@ -24,6 +26,7 @@ BASE_DIR = "/nlp/scr/mtano/Dissertation"
 CONDA_INIT = ". /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh"
 
 MODELS = {
+    # ── Existing models ──
     "phi4": {
         "backend": "phi",
         "model": "microsoft/phi-4",
@@ -38,12 +41,76 @@ MODELS = {
         "log_dir": "Decoder-Only/Gemini/slurm_logs",
         "nlprun_flags": "-q jag -p standard -r 40G -c 2",
     },
-    "gpt4o": {
+    "qwen25_7b": {
+        "backend": "qwen",
+        "model": "Qwen/Qwen2.5-7B-Instruct",
+        "output_dir": "Decoder-Only/Qwen2.5/data",
+        "log_dir": "Decoder-Only/Qwen2.5/slurm_logs",
+        "nlprun_flags": "-g 1 -q sphinx -p standard -r 100G -c 4",
+    },
+    # ── New: GPT-5.2 family (replaces retired GPT-4o) ──
+    "gpt52_instant": {
         "backend": "openai",
-        "model": "gpt-4o",
-        "output_dir": "Decoder-Only/GPT4o/data",
-        "log_dir": "Decoder-Only/GPT4o/slurm_logs",
+        "model": "gpt-5.2-chat-latest",
+        "output_dir": "Decoder-Only/GPT52_Instant/data",
+        "log_dir": "Decoder-Only/GPT52_Instant/slurm_logs",
         "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+    },
+    "gpt52_think_med": {
+        "backend": "openai_reasoning",
+        "model": "gpt-5.2",
+        "output_dir": "Decoder-Only/GPT52_Thinking_Med/data",
+        "log_dir": "Decoder-Only/GPT52_Thinking_Med/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--reasoning_effort medium",
+    },
+    "gpt52_think_high": {
+        "backend": "openai_reasoning",
+        "model": "gpt-5.2",
+        "output_dir": "Decoder-Only/GPT52_Thinking_High/data",
+        "log_dir": "Decoder-Only/GPT52_Thinking_High/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--reasoning_effort high",
+    },
+    # ── New: Phi-4-reasoning (pairs with phi4) ──
+    "phi4_reasoning": {
+        "backend": "phi_reasoning",
+        "model": "microsoft/Phi-4-reasoning",
+        "output_dir": "Decoder-Only/Phi-4-reasoning/data",
+        "log_dir": "Decoder-Only/Phi-4-reasoning/slurm_logs",
+        "nlprun_flags": "-g 1 -q sphinx -p standard -r 100G -c 4",
+    },
+    # ── New: Llama 3.1-70B (large open-source baseline) ──
+    "llama70b": {
+        "backend": "llama",
+        "model": "meta-llama/Llama-3.1-70B-Instruct",
+        "output_dir": "Decoder-Only/Llama-3.1-70B/data",
+        "log_dir": "Decoder-Only/Llama-3.1-70B/slurm_logs",
+        "nlprun_flags": "-g 4 -q sphinx -p standard -r 300G -c 8",
+    },
+    # ── New: Qwen3-32B non-thinking (non-reasoning baseline) ──
+    "qwen3_32b": {
+        "backend": "qwen3",
+        "model": "Qwen/Qwen3-32B",
+        "output_dir": "Decoder-Only/Qwen3-32B/data",
+        "log_dir": "Decoder-Only/Qwen3-32B/slurm_logs",
+        "nlprun_flags": "-g 2 -q sphinx -p standard -r 200G -c 4",
+    },
+    # ── New: Qwen3-32B thinking (reasoning mode) ──
+    "qwen3_32b_think": {
+        "backend": "qwen3_thinking",
+        "model": "Qwen/Qwen3-32B",
+        "output_dir": "Decoder-Only/Qwen3-32B-Thinking/data",
+        "log_dir": "Decoder-Only/Qwen3-32B-Thinking/slurm_logs",
+        "nlprun_flags": "-g 2 -q sphinx -p standard -r 200G -c 4",
+    },
+    # ── New: QwQ-32B (always-reasoning) ──
+    "qwq_32b": {
+        "backend": "qwq",
+        "model": "Qwen/QwQ-32B",
+        "output_dir": "Decoder-Only/QwQ-32B/data",
+        "log_dir": "Decoder-Only/QwQ-32B/slurm_logs",
+        "nlprun_flags": "-g 2 -q sphinx -p standard -r 200G -c 4",
     },
 }
 
@@ -116,6 +183,10 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg):
     if dialect_leg:
         py_args.append("--dialect_legitimacy")
 
+    # Append any model-specific extra args (e.g. --reasoning_effort)
+    if "extra_args" in m:
+        py_args.append(m["extra_args"])
+
     py_args_str = " \\\n    ".join(py_args)
 
     cmd = (
@@ -132,10 +203,13 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg):
 
 
 def main():
+    model_keys = list(MODELS.keys())
+    total_jobs = len(MODELS) * len(INSTRUCTION_TYPES) * len(CONTEXT_SETTINGS) * len(DIALECT_LEGITIMACY)
+
     lines = [
         "#!/bin/bash",
         "# Auto-generated experimental run script",
-        f"# Total jobs: {len(MODELS) * len(INSTRUCTION_TYPES) * len(CONTEXT_SETTINGS) * len(DIALECT_LEGITIMACY)}",
+        f"# Total jobs: {total_jobs}",
         "#",
         "# Grid per model:",
         "#   instruction_type:   zero_shot, few_shot, zero_shot_cot, few_shot_cot  (4)",
@@ -147,10 +221,12 @@ def main():
         "#",
         "# Usage:",
         "#   chmod +x run_all_experiments.sh",
-        "#   ./run_all_experiments.sh           # launch all 72 jobs",
-        "#   ./run_all_experiments.sh phi4      # launch only phi4 jobs (24)",
-        "#   ./run_all_experiments.sh gemini    # launch only gemini jobs (24)",
-        "#   ./run_all_experiments.sh gpt4o     # launch only gpt4o jobs (24)",
+        f"#   ./run_all_experiments.sh              # launch all {total_jobs} jobs",
+        "#   ./run_all_experiments.sh phi4           # launch only phi4 jobs (24)",
+        "#   ./run_all_experiments.sh gemini         # launch only gemini jobs (24)",
+        "#   ./run_all_experiments.sh gpt52_instant  # launch only GPT-5.2 Instant jobs (24)",
+        "#",
+        f"# Available model keys: {', '.join(model_keys)}",
         "",
         "set -e",
         "",
@@ -173,7 +249,7 @@ def main():
             cmd, sheet, job = generate_command(model_key, inst_type, ctx_setting, dialect_leg)
             job_count += 1
 
-            lines.append(f"echo \"[{job_count:02d}] Launching: {sheet}\"")
+            lines.append(f"echo \"[{job_count:03d}] Launching: {sheet}\"")
             lines.append(cmd)
             lines.append("")
 

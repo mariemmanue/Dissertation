@@ -491,10 +491,10 @@ class PhiBackend(LLMBackend):
         prompt = self.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
-        
+
         # Tokenize input
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-        
+
         # Set max_new_tokens based on instruction type
         if "cot" in instruction_type:
             max_tokens = 16000
@@ -511,13 +511,13 @@ class PhiBackend(LLMBackend):
             return_dict_in_generate=True,  # ← Now works!
             output_scores=True,  # ← Now works!
         )
-        
 
-        
+
+
         # Decode generated text (skip input tokens)
         generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
         generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-        
+
         # Extract scores for confidence
         if hasattr(outputs, 'scores') and outputs.scores:
             self._last_confidence_data = {
@@ -539,6 +539,471 @@ class PhiBackend(LLMBackend):
 
         return generated_text
 
+
+class OpenAIReasoningBackend(OpenAIBackend):
+    """
+    OpenAI API backend for reasoning models (GPT-5.2 Thinking).
+
+    Extends OpenAIBackend with reasoning_effort parameter.
+    Note: logprobs may not be available for reasoning models;
+    falls back gracefully if unsupported.
+    """
+    def __init__(self, model: str, reasoning_effort: str = "medium"):
+        super().__init__(model=model)
+        self.name = "openai_reasoning"
+        self.reasoning_effort = reasoning_effort
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 4000
+
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.1,
+                max_tokens=max_tokens,
+                logprobs=True,
+                top_logprobs=2,
+                reasoning_effort=self.reasoning_effort,
+            )
+        except Exception as e:
+            # Fallback: retry without logprobs if unsupported for reasoning models
+            if "logprobs" in str(e).lower():
+                print(f"WARNING: logprobs not supported for {self.model} with reasoning. Retrying without.")
+                resp = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=0.1,
+                    max_tokens=max_tokens,
+                    reasoning_effort=self.reasoning_effort,
+                )
+            else:
+                raise
+
+        if hasattr(resp.choices[0], 'logprobs') and resp.choices[0].logprobs:
+            self._last_confidence_data = {
+                'type': 'logprobs',
+                'data': resp.choices[0].logprobs
+            }
+
+        return resp.choices[0].message.content
+
+
+class PhiReasoningBackend(LLMBackend):
+    """
+    HuggingFace Phi-4-reasoning backend (local inference).
+
+    Uses recommended inference params for Phi-4-reasoning:
+    temperature=0.8, top_p=0.95, top_k=50, max_new_tokens=32768.
+    Strips <think>...</think> blocks from output before returning.
+
+    CONFIDENCE SUPPORT: Global proxy only
+    """
+    def __init__(self, model: str):
+        super().__init__(name="phi_reasoning", model=model)
+        print(f"Loading Phi-4-reasoning from {model}...")
+
+        self.model_id = model
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype="auto",
+            device_map="auto",
+        )
+        self.device = self.model.device
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
+        # Phi-4-reasoning recommended params; longer max for reasoning chain
+        max_tokens = 32768 if "cot" in instruction_type else 16000
+
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
+            do_sample=True,
+            temperature=0.8,
+            top_p=0.95,
+            top_k=50,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text
+            }
+
+        # Strip reasoning blocks
+        generated_text = re.sub(r"<think>.*?</think>", "", generated_text, flags=re.DOTALL).strip()
+
+        # Strip markdown code fences
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
+
+
+class LlamaBackend(LLMBackend):
+    """
+    HuggingFace Llama model backend (local inference).
+
+    CONFIDENCE SUPPORT: Global proxy only
+    """
+    def __init__(self, model: str):
+        super().__init__(name="llama", model=model)
+        print(f"Loading Llama from {model}...")
+
+        self.model_id = model
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
+            trust_remote_code=True,
+            torch_dtype="auto",
+            device_map="auto",
+        )
+        self.device = self.model.device
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 2000
+
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
+            do_sample=True,
+            temperature=0.1,
+            top_p=0.9,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text
+            }
+
+        # Strip markdown code fences
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
+
+
+class Qwen3Backend(LLMBackend):
+    """
+    HuggingFace Qwen3 backend with thinking DISABLED (non-reasoning mode).
+
+    Uses Qwen3 recommended non-thinking params: temperature=0.7, top_p=0.8, top_k=20.
+
+    CONFIDENCE SUPPORT: Global proxy only
+    """
+    def __init__(self, model: str):
+        super().__init__(name="qwen3", model=model)
+        print(f"Loading Qwen3 (non-thinking) from {model}...")
+
+        self.model_id = model
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype="auto",
+            device_map="auto",
+        )
+        self.device = self.model.device
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted = self.tokenizer.apply_chat_template(
+                messages, tokenize=False, enable_thinking=False
+            )
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+            enable_thinking=False
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
+        if "cot" in instruction_type:
+            max_tokens = 16000
+        else:
+            max_tokens = 2000
+
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
+            do_sample=True,
+            temperature=0.7,
+            top_p=0.8,
+            top_k=20,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text
+            }
+
+        # Strip markdown code fences
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
+
+
+class Qwen3ThinkingBackend(LLMBackend):
+    """
+    HuggingFace Qwen3 backend with thinking ENABLED (reasoning mode).
+
+    Uses Qwen3 recommended thinking params: temperature=0.6, top_p=0.95, top_k=20.
+    Strips <think>...</think> blocks from output before returning.
+
+    CONFIDENCE SUPPORT: Global proxy only
+    """
+    def __init__(self, model: str):
+        super().__init__(name="qwen3_thinking", model=model)
+        print(f"Loading Qwen3 (thinking) from {model}...")
+
+        self.model_id = model
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype="auto",
+            device_map="auto",
+        )
+        self.device = self.model.device
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted = self.tokenizer.apply_chat_template(
+                messages, tokenize=False, enable_thinking=True
+            )
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+            enable_thinking=True
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
+        # Longer max for reasoning chain
+        max_tokens = 32768 if "cot" in instruction_type else 16000
+
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
+            do_sample=True,
+            temperature=0.6,
+            top_p=0.95,
+            top_k=20,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text
+            }
+
+        # Strip reasoning blocks
+        generated_text = re.sub(r"<think>.*?</think>", "", generated_text, flags=re.DOTALL).strip()
+
+        # Strip markdown code fences
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
+
+
+class QwQBackend(LLMBackend):
+    """
+    HuggingFace QwQ-32B backend (always-reasoning, based on Qwen2.5).
+
+    QwQ always produces reasoning chains; strips <think>...</think> blocks
+    from output before returning.
+
+    CONFIDENCE SUPPORT: Global proxy only
+    """
+    def __init__(self, model: str):
+        super().__init__(name="qwq", model=model)
+        print(f"Loading QwQ from {model}...")
+
+        self.model_id = model
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype="auto",
+            device_map="auto",
+        )
+        self.device = self.model.device
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
+        # Longer max for reasoning chain
+        max_tokens = 32768 if "cot" in instruction_type else 16000
+
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
+            do_sample=True,
+            temperature=0.6,
+            top_p=0.95,
+            top_k=20,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text
+            }
+
+        # Strip reasoning blocks
+        generated_text = re.sub(r"<think>.*?</think>", "", generated_text, flags=re.DOTALL).strip()
+
+        # Strip markdown code fences
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
 
 
 # ==================== OUTPUT PARSING ====================
@@ -1968,9 +2433,14 @@ def main():
     parser.add_argument("--context_mode",     type=str, default="single_turn",
                         choices=["single_turn", "two_turn"])
     parser.add_argument("--backend",          type=str, default="openai",
-                        choices=["openai", "gemini", "phi", "qwen"])
-    parser.add_argument("--model",            type=str, default="gpt-4o",
-                        help="Model identifier (e.g. gpt-4o, gemini-2.0-flash-exp, microsoft/Phi-4)")
+                        choices=["openai", "openai_reasoning", "gemini", "phi", "phi_reasoning",
+                                 "llama", "qwen", "qwen3", "qwen3_thinking", "qwq"])
+    parser.add_argument("--model",            type=str, default="gpt-5.2-chat-latest",
+                        help="Model identifier (e.g. gpt-5.2-chat-latest, gpt-5.2, gemini-2.5-flash, "
+                             "microsoft/Phi-4-reasoning, meta-llama/Llama-3.1-70B-Instruct, Qwen/Qwen3-32B)")
+    parser.add_argument("--reasoning_effort", type=str, default="medium",
+                        choices=["low", "medium", "high", "xhigh"],
+                        help="Reasoning effort for OpenAI reasoning models (default: medium)")
     parser.add_argument("--output_format",    type=str, default="markdown",
                         choices=["json", "markdown"],
                         help="'markdown' (Analysis + Results list) or 'json' (Analysis + JSON labels)")
@@ -1984,12 +2454,24 @@ def main():
     # -------------------- BACKEND INIT (single block) --------------------
     if args.backend == "openai":
         backend = OpenAIBackend(model=args.model)
+    elif args.backend == "openai_reasoning":
+        backend = OpenAIReasoningBackend(model=args.model, reasoning_effort=args.reasoning_effort)
     elif args.backend == "gemini":
         backend = GeminiBackend(model=args.model)
     elif args.backend == "phi":
         backend = PhiBackend(model=args.model)
+    elif args.backend == "phi_reasoning":
+        backend = PhiReasoningBackend(model=args.model)
+    elif args.backend == "llama":
+        backend = LlamaBackend(model=args.model)
     elif args.backend == "qwen":
         backend = QwenBackend(model=args.model)
+    elif args.backend == "qwen3":
+        backend = Qwen3Backend(model=args.model)
+    elif args.backend == "qwen3_thinking":
+        backend = Qwen3ThinkingBackend(model=args.model)
+    elif args.backend == "qwq":
+        backend = QwQBackend(model=args.model)
     else:
         raise ValueError(f"Unknown backend: {args.backend}")
 
@@ -2225,7 +2707,7 @@ def main():
             dump_counter += 1
 
         # API rate-limit courtesy sleep (local models don't need this)
-        if args.backend in ("openai", "gemini") and args.rate_limit_delay > 0:
+        if args.backend in ("openai", "openai_reasoning", "gemini") and args.rate_limit_delay > 0:
             time.sleep(args.rate_limit_delay)
 
         if arm_used == "two_turn":
