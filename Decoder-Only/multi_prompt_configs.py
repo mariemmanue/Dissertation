@@ -1227,6 +1227,10 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
 
             tokens = data.content
 
+            # DEBUG: Print first 30 tokens to see tokenization pattern
+            print("DEBUG logprobs: first 30 tokens →",
+                  [(t.token, round(t.logprob, 4)) for t in tokens[:30] if hasattr(t, 'token')])
+
             for i, token_data in enumerate(tokens):
                 if not hasattr(token_data, 'token') or not hasattr(token_data, 'logprob'):
                     continue
@@ -1241,11 +1245,22 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
                     if hasattr(tokens[j], 'token'):
                         lookback_text += tokens[j].token
 
+                # Also build forward-inclusive text (token might be part of "0\n" etc.)
+                full_context = lookback_text + token_data.token
+
                 # Find matching feature
                 matched = False
                 for feat in feature_names:
-                    pattern = rf'-\s*{re.escape(feat)}\s*:\s*$'
-                    if re.search(pattern, lookback_text):
+                    # Try multiple patterns to handle different tokenizations:
+                    # 1. "- feature: " at end of lookback (original)
+                    # 2. "feature: " anywhere in lookback (relaxed)
+                    # 3. "feature:" at end of lookback (no space before 0/1)
+                    patterns = [
+                        rf'-\s*{re.escape(feat)}\s*:\s*$',           # - feat: $
+                        rf'{re.escape(feat)}\s*:\s*$',               # feat: $
+                        rf'[*\-]\s*{re.escape(feat)}\s*:\s*$',      # * feat: $ or - feat: $
+                    ]
+                    if any(re.search(p, lookback_text) for p in patterns):
                         prob = max(math.exp(token_data.logprob), 1e-10)  # Floor at 1e-10
                         if feat not in confidences:  # Only set if not already set
                             confidences[feat] = prob
@@ -1253,9 +1268,7 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
                         break  # Assume only one feature per token
 
                 if not matched:
-                    # Uncomment for debugging:
-                    # print(f"DEBUG: No feature match for token '{token}' at position {i}")
-                    pass
+                    print(f"DEBUG: Unmatched '0'/'1' token at pos {i}, lookback: ...{lookback_text[-60:]}")
 
         except AttributeError as e:
             print(f"Warning: OpenAI logprobs structure error: {e}")
@@ -2803,6 +2816,13 @@ def main():
             used_two_turn_count += 1
         elif arm_used == "single_turn":
             used_single_turn_count += 1
+
+        # Print raw model output to log
+        print(f"\n{'─'*60}")
+        print(f"IDX {idx} | {sentence[:80]}...")
+        print(f"{'─'*60}")
+        print(raw if raw else "(EMPTY RESPONSE)")
+        print(f"{'─'*60}\n")
 
         if not raw:
             writemeta(idx, sentence, usable, arm_used, context_included,

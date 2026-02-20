@@ -29,6 +29,9 @@ MODEL_FILTER="${1:-all}"
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "phi4" ]]; then
 
+mkdir -p Decoder-Only/Phi-4/slurm_logs
+mkdir -p Decoder-Only/Phi-4/data
+
 echo "[001] Launching: PHI4_ZS_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_zs_noctx_noleg \
@@ -512,6 +515,9 @@ fi
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini" ]]; then
+
+mkdir -p Decoder-Only/Gemini/slurm_logs
+mkdir -p Decoder-Only/Gemini/data
 
 echo "[025] Launching: GEMINI_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -997,6 +1003,9 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen25_7b" ]]; then
 
+mkdir -p Decoder-Only/Qwen2.5/slurm_logs
+mkdir -p Decoder-Only/Qwen2.5/data
+
 echo "[049] Launching: QWEN25_7B_ZS_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n qwen25_7b_zs_noctx_noleg \
@@ -1480,6 +1489,9 @@ fi
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_pro" ]]; then
+
+mkdir -p Decoder-Only/Gemini3_Pro/slurm_logs
+mkdir -p Decoder-Only/Gemini3_Pro/data
 
 echo "[073] Launching: GEMINI3_PRO_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -1989,6 +2001,9 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt41" ]]; then
 
+mkdir -p Decoder-Only/GPT41/slurm_logs
+mkdir -p Decoder-Only/GPT41/data
+
 echo "[097] Launching: GPT41_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt41_zs_noctx_noleg \
@@ -2473,6 +2488,9 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_instant" ]]; then
 
+mkdir -p Decoder-Only/GPT52_Instant/slurm_logs
+mkdir -p Decoder-Only/GPT52_Instant/data
+
 echo "[121] Launching: GPT52_INSTANT_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_instant_zs_noctx_noleg \
@@ -2956,6 +2974,9 @@ fi
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_think_med" ]]; then
+
+mkdir -p Decoder-Only/GPT52_Thinking_Med/slurm_logs
+mkdir -p Decoder-Only/GPT52_Thinking_Med/data
 
 echo "[145] Launching: GPT52_THINK_MED_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -3465,6 +3486,9 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52_think_high" ]]; then
 
+mkdir -p Decoder-Only/GPT52_Thinking_High/slurm_logs
+mkdir -p Decoder-Only/GPT52_Thinking_High/data
+
 echo "[169] Launching: GPT52_THINK_HIGH_ZS_noCTX_noLeg"
 nlprun -q jag -p standard -r 40G -c 2 \
   -n gpt52_think_high_zs_noctx_noleg \
@@ -3973,6 +3997,9 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "phi4_reasoning" ]]; then
 
+mkdir -p Decoder-Only/Phi-4-reasoning/slurm_logs
+mkdir -p Decoder-Only/Phi-4-reasoning/data
+
 echo "[193] Launching: PHI4_REASONING_ZS_noCTX_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n phi4_reasoning_zs_noctx_noleg \
@@ -4456,6 +4483,9 @@ fi
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "llama70b" ]]; then
+
+mkdir -p Decoder-Only/Llama-3.1-70B/slurm_logs
+mkdir -p Decoder-Only/Llama-3.1-70B/data
 
 echo "[217] Launching: LLAMA70B_ZS_noCTX_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
@@ -4941,6 +4971,9 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen3_32b" ]]; then
 
+mkdir -p Decoder-Only/Qwen3-32B/slurm_logs
+mkdir -p Decoder-Only/Qwen3-32B/data
+
 echo "[241] Launching: QWEN3_32B_ZS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_zs_noctx_noleg \
@@ -5425,6 +5458,9 @@ fi
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen3_32b_think" ]]; then
 
+mkdir -p Decoder-Only/Qwen3-32B-Thinking/slurm_logs
+mkdir -p Decoder-Only/Qwen3-32B-Thinking/data
+
 echo "[265] Launching: QWEN3_32B_THINK_ZS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n qwen3_32b_think_zs_noctx_noleg \
@@ -5908,6 +5944,9 @@ fi
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwq_32b" ]]; then
+
+mkdir -p Decoder-Only/QwQ-32B/slurm_logs
+mkdir -p Decoder-Only/QwQ-32B/data
 
 echo "[289] Launching: QWQ_32B_ZS_noCTX_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \

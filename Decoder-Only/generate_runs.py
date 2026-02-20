@@ -259,6 +259,9 @@ def main():
         lines.append("")
         lines.append(f'if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "{model_key}" ]]; then')
         lines.append("")
+        lines.append(f'mkdir -p {MODELS[model_key]["log_dir"]}')
+        lines.append(f'mkdir -p {MODELS[model_key]["output_dir"]}')
+        lines.append("")
 
         for inst_type, ctx_setting, dialect_leg in itertools.product(
             INSTRUCTION_TYPES, CONTEXT_SETTINGS, DIALECT_LEGITIMACY
