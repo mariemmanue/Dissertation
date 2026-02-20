@@ -1110,7 +1110,8 @@ def extract_results(text: str, expected_features: list) -> tuple:
     global_rationale = analysis_match.group(1).strip() if analysis_match else "No analysis found."
 
     # Extract binary labels from the Results block
-    pattern = r"[-\*]\s*([\w-]+):\s*(0|1)"
+    # Handles: "- feat: 0", "* feat: 0", "- **feat:** 0", "- **feat**: 0"
+    pattern = r"[-\*]\s*\*{0,2}([\w-]+)\*{0,2}\s*:\*{0,2}\s*(0|1)"
     for key, val in re.findall(pattern, text):
         if key in expected_features:
             vals[key] = int(val)
@@ -2184,9 +2185,11 @@ def build_user_msg(
             "substring and explain the grammatical pattern. For features that are absent (0), briefly state "
             "why the rule is not met.\n\n"
             "**PART 2 — `### Results`**\n"
-            "After your analysis, output ALL features as a bulleted list:\n"
+            "After your analysis, output ALL features as a bulleted list using EXACTLY this format "
+            "(no bold, no extra text on the label line):\n"
             "- feature-name: 1\n"
             "- feature-name: 0\n\n"
+            "Do NOT bold the feature names. Do NOT add explanations on the same line as the label. "
             "Every feature in the list below must appear exactly once.\n"
         )
     else:
