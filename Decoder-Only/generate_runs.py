@@ -209,7 +209,7 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg):
     cmd = (
         f'nlprun {m["nlprun_flags"]} \\\n'
         f'  -n {job} \\\n'
-        f'  -o {m["log_dir"]}/%x-%j.out \\\n'
+        f'  -o {m["log_dir"]}/%x.out \\\n'
         f'  "cd {BASE_DIR} && \\\n'
         f'   {CONDA_INIT} && \\\n'
         f'   conda activate {CONDA_ENV} && \\\n'
