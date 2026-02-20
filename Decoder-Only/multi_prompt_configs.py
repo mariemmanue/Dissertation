@@ -1251,14 +1251,14 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
                 # Find matching feature
                 matched = False
                 for feat in feature_names:
-                    # Try multiple patterns to handle different tokenizations:
-                    # 1. "- feature: " at end of lookback (original)
-                    # 2. "feature: " anywhere in lookback (relaxed)
-                    # 3. "feature:" at end of lookback (no space before 0/1)
+                    # Handle different output formats:
+                    # GPT-4o:  "- zero-poss: 0"
+                    # GPT-4.1: "- **zero-poss:** 0"
+                    feat_esc = re.escape(feat)
                     patterns = [
-                        rf'-\s*{re.escape(feat)}\s*:\s*$',           # - feat: $
-                        rf'{re.escape(feat)}\s*:\s*$',               # feat: $
-                        rf'[*\-]\s*{re.escape(feat)}\s*:\s*$',      # * feat: $ or - feat: $
+                        rf'\*\*{feat_esc}\*?\*?:?\*?\*?\s*$',   # **feat:** or **feat**:
+                        rf'-\s*\*?\*?{feat_esc}\*?\*?\s*:\*?\*?\s*$',  # - feat: or - **feat:**
+                        rf'{feat_esc}\s*:\s*$',                  # feat: (plain)
                     ]
                     if any(re.search(p, lookback_text) for p in patterns):
                         prob = max(math.exp(token_data.logprob), 1e-10)  # Floor at 1e-10
