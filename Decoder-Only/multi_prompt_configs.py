@@ -132,11 +132,13 @@ class TokenTracker:
     def __init__(self):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
+        self.total_cached_tokens = 0
         self.api_call_count = 0
-    
+
     def reset(self):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
+        self.total_cached_tokens = 0
         self.api_call_count = 0
 
 
@@ -215,7 +217,7 @@ class OpenAIBackend(LLMBackend):
             max_tokens = 4000
         
         resp = self.client.chat.completions.create(
-            model=self.model, 
+            model=self.model,
             messages=messages,
             temperature=0.1,  # Add explicit temperature
             max_tokens=max_tokens,  # Add explicit max_tokens
@@ -229,6 +231,20 @@ class OpenAIBackend(LLMBackend):
                 'type': 'logprobs',
                 'data': resp.choices[0].logprobs
             }
+
+        # Store API-reported usage for accurate billing verification
+        self._last_cached_tokens = 0
+        self._last_usage = None
+        if hasattr(resp, 'usage') and resp.usage:
+            self._last_usage = {
+                'prompt_tokens': resp.usage.prompt_tokens,
+                'completion_tokens': resp.usage.completion_tokens,
+                'total_tokens': resp.usage.total_tokens,
+            }
+            details = getattr(resp.usage, 'prompt_tokens_details', None)
+            if details:
+                self._last_cached_tokens = getattr(details, 'cached_tokens', 0) or 0
+                self._last_usage['cached_tokens'] = self._last_cached_tokens
 
         return resp.choices[0].message.content
 
@@ -671,6 +687,13 @@ class OpenAIReasoningBackend(OpenAIBackend):
                 'type': 'logprobs',
                 'data': resp.choices[0].logprobs
             }
+
+        # Track cached tokens if available
+        self._last_cached_tokens = 0
+        if hasattr(resp, 'usage') and resp.usage:
+            details = getattr(resp.usage, 'prompt_tokens_details', None)
+            if details:
+                self._last_cached_tokens = getattr(details, 'cached_tokens', 0) or 0
 
         return resp.choices[0].message.content
 
@@ -2324,6 +2347,9 @@ def print_final_usage_summary(tracker: TokenTracker):
     print(f"Input Tokens:        {tracker.total_input_tokens}")
     print(f"Output Tokens:       {tracker.total_output_tokens}")
     print(f"Total Tokens:        {total_tokens}")
+    if tracker.total_cached_tokens > 0:
+        pct = 100 * tracker.total_cached_tokens / tracker.total_input_tokens if tracker.total_input_tokens else 0
+        print(f"Cached Tokens:       {tracker.total_cached_tokens} ({pct:.1f}% of input — billed at reduced rate)")
 
 # ==================== MODEL QUERY ====================
 
@@ -2464,17 +2490,27 @@ def query_model(
             # Make API call
             output_text = backend.call(messages, instruction_type=instruction_type)
 
-            # Count output tokens AFTER successful call
-            output_tokens = backend.count_output_tokens(output_text)
+            # Use API-reported usage if available, otherwise local estimate
+            api_usage = getattr(backend, '_last_usage', None)
+            if api_usage:
+                input_tokens = api_usage['prompt_tokens']
+                output_tokens = api_usage['completion_tokens']
+            else:
+                output_tokens = backend.count_output_tokens(output_text)
 
             tracker.total_input_tokens += input_tokens
             tracker.total_output_tokens += output_tokens
             tracker.api_call_count += 1
 
+            # Track cached tokens from OpenAI response
+            cached = getattr(backend, '_last_cached_tokens', 0)
+            tracker.total_cached_tokens += cached
+
             # Print summary
+            cache_info = f" | Cached: {cached}" if cached > 0 else ""
             print(
                 f"API Call #{tracker.api_call_count} | "
-                f"Input: {input_tokens} | Output: {output_tokens} | "
+                f"Input: {input_tokens} | Output: {output_tokens}{cache_info} | "
                 f"Running total: {tracker.total_input_tokens + tracker.total_output_tokens}"
             )
 
