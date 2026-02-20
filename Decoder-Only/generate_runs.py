@@ -175,10 +175,10 @@ def make_job_name(model_key, inst_type, ctx_setting, dialect_leg):
 
 # ==================== GENERATE ====================
 
-def generate_command(model_key, inst_type, ctx_setting, dialect_leg):
+def generate_command(model_key, inst_type, ctx_setting, dialect_leg, job_num=0):
     m = MODELS[model_key]
     sheet = make_sheet_name(model_key, inst_type, ctx_setting, dialect_leg)
-    job = make_job_name(model_key, inst_type, ctx_setting, dialect_leg)
+    job = f"{job_num:02d}_{make_job_name(model_key, inst_type, ctx_setting, dialect_leg)}"
 
     # Build python args
     py_args = [
@@ -263,10 +263,12 @@ def main():
         lines.append(f'mkdir -p {MODELS[model_key]["output_dir"]}')
         lines.append("")
 
+        model_job_num = 0
         for inst_type, ctx_setting, dialect_leg in itertools.product(
             INSTRUCTION_TYPES, CONTEXT_SETTINGS, DIALECT_LEGITIMACY
         ):
-            cmd, sheet, job = generate_command(model_key, inst_type, ctx_setting, dialect_leg)
+            model_job_num += 1
+            cmd, sheet, job = generate_command(model_key, inst_type, ctx_setting, dialect_leg, job_num=model_job_num)
             job_count += 1
 
             lines.append(f"echo \"[{job_count:03d}] Launching: {sheet}\"")
