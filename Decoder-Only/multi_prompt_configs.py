@@ -1228,11 +1228,25 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
 
             tokens = data.content
 
-            # DEBUG: Print first 30 tokens to see tokenization pattern
-            print("DEBUG logprobs: first 30 tokens →",
-                  [(t.token, round(t.logprob, 4)) for t in tokens[:30] if hasattr(t, 'token')])
+            # Find the token position where "### Results" starts
+            # Only extract confidences from the Results section (not Analysis)
+            results_start = 0
+            full_text = ""
+            for i, t in enumerate(tokens):
+                if hasattr(t, 'token'):
+                    full_text += t.token
+                    if "### Results" in full_text and results_start == 0:
+                        results_start = i
+                        print(f"DEBUG logprobs: '### Results' found at token {i}")
+
+            if results_start == 0:
+                print("WARNING: '### Results' header not found in token stream, scanning all tokens")
 
             for i, token_data in enumerate(tokens):
+                # Skip tokens before ### Results section
+                if i < results_start:
+                    continue
+
                 if not hasattr(token_data, 'token') or not hasattr(token_data, 'logprob'):
                     continue
 
@@ -1240,33 +1254,33 @@ def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed
                 if token not in ["0", "1"]:
                     continue
 
-                # Build lookback context (previous 15 tokens)
+                # Build lookback context (previous 15 tokens, but only within Results)
                 lookback_text = ""
-                for j in range(max(0, i-15), i):
+                for j in range(max(results_start, i-15), i):
                     if hasattr(tokens[j], 'token'):
                         lookback_text += tokens[j].token
 
-                # Also build forward-inclusive text (token might be part of "0\n" etc.)
-                full_context = lookback_text + token_data.token
+                # Skip if this 0/1 is part of a feature NAME (e.g. "wh-qu1")
+                # Check if the preceding char is a letter or hyphen (part of a word)
+                if lookback_text and lookback_text[-1:] not in [' ', '\n', '\t', ':']:
+                    continue
 
                 # Find matching feature
                 matched = False
                 for feat in feature_names:
-                    # Handle different output formats:
-                    # GPT-4o:  "- zero-poss: 0"
-                    # GPT-4.1: "- **zero-poss:** 0"
+                    # Handle: "- feat: 0", "- **feat:** 0", "* feat: 0"
                     feat_esc = re.escape(feat)
                     patterns = [
-                        rf'\*\*{feat_esc}\*?\*?:?\*?\*?\s*$',   # **feat:** or **feat**:
-                        rf'-\s*\*?\*?{feat_esc}\*?\*?\s*:\*?\*?\s*$',  # - feat: or - **feat:**
-                        rf'{feat_esc}\s*:\s*$',                  # feat: (plain)
+                        rf'\*\*{feat_esc}\*?\*?:?\*?\*?\s*$',         # **feat:** or **feat**:
+                        rf'[-\*]\s*\*?\*?{feat_esc}\*?\*?\s*:\*?\*?\s*$',  # - feat: or - **feat:**
+                        rf'{feat_esc}\s*:\s*$',                        # feat: (plain)
                     ]
                     if any(re.search(p, lookback_text) for p in patterns):
-                        prob = max(math.exp(token_data.logprob), 1e-10)  # Floor at 1e-10
-                        if feat not in confidences:  # Only set if not already set
+                        prob = max(math.exp(token_data.logprob), 1e-10)
+                        if feat not in confidences:
                             confidences[feat] = prob
                         matched = True
-                        break  # Assume only one feature per token
+                        break
 
                 if not matched:
                     print(f"DEBUG: Unmatched '0'/'1' token at pos {i}, lookback: ...{lookback_text[-60:]}")
