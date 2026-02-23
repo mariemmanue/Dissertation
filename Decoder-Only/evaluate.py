@@ -23,6 +23,7 @@ import seaborn as sns
 import re
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, cohen_kappa_score
+from scipy.stats import wilcoxon
 from itertools import combinations
 
 from multi_prompt_configs import (
@@ -873,6 +874,284 @@ def compute_pairwise_deltas(
         out[colname] = d
 
     return pd.DataFrame(out).reset_index()
+
+
+# ───────────────────────────────────────────────────────────────
+# Statistical Significance Tests
+# ───────────────────────────────────────────────────────────────
+
+def compute_factor_significance(
+    df: pd.DataFrame,
+    *,
+    factor_col: str,
+    a_level: str,
+    b_level: str,
+    metric: str = "f1",
+    n_bootstrap: int = 10_000,
+    alpha: float = 0.05,
+    seed: int = 42,
+) -> pd.DataFrame:
+    """
+    For each feature, compute mean *metric* at a_level and b_level
+    (averaging over all other experimental conditions), then run:
+      1. Paired Wilcoxon signed-rank test on the per-feature differences
+      2. Bootstrap 95 % CI on the mean difference
+      3. Cohen's d effect size
+    Returns a DataFrame with one row per feature plus an ``_OVERALL`` row.
+    """
+    group_a = df[df[factor_col] == a_level].groupby("feature")[metric].mean()
+    group_b = df[df[factor_col] == b_level].groupby("feature")[metric].mean()
+
+    shared = group_a.index.intersection(group_b.index)
+    if shared.empty:
+        return pd.DataFrame()
+
+    vals_a = group_a.loc[shared].values
+    vals_b = group_b.loc[shared].values
+    deltas = vals_b - vals_a
+
+    # Per-feature rows
+    rows = []
+    for feat, va, vb, d in zip(shared, vals_a, vals_b, deltas):
+        rows.append({
+            "feature": feat,
+            f"{metric}_{a_level}": round(va, 4),
+            f"{metric}_{b_level}": round(vb, 4),
+            "delta": round(d, 4),
+        })
+
+    # Wilcoxon signed-rank (needs ≥6 non-zero differences)
+    nonzero = deltas[deltas != 0]
+    if len(nonzero) >= 6:
+        stat, p_val = wilcoxon(deltas, alternative="two-sided")
+    else:
+        stat, p_val = float("nan"), float("nan")
+
+    # Bootstrap CI
+    rng = np.random.default_rng(seed)
+    boot_means = np.array([
+        rng.choice(deltas, size=len(deltas), replace=True).mean()
+        for _ in range(n_bootstrap)
+    ])
+    ci_lo = float(np.percentile(boot_means, 100 * alpha / 2))
+    ci_hi = float(np.percentile(boot_means, 100 * (1 - alpha / 2)))
+
+    # Cohen's d
+    mean_d = float(deltas.mean())
+    std_d = float(deltas.std(ddof=1))
+    cohens_d = mean_d / std_d if std_d > 0 else float("nan")
+
+    overall = {
+        "feature": "_OVERALL",
+        f"{metric}_{a_level}": round(float(vals_a.mean()), 4),
+        f"{metric}_{b_level}": round(float(vals_b.mean()), 4),
+        "delta": round(mean_d, 4),
+        "wilcoxon_stat": round(float(stat), 4) if not np.isnan(stat) else None,
+        "wilcoxon_p": round(float(p_val), 6) if not np.isnan(p_val) else None,
+        "bootstrap_ci_lo": round(ci_lo, 4),
+        "bootstrap_ci_hi": round(ci_hi, 4),
+        "cohens_d": round(cohens_d, 4) if not np.isnan(cohens_d) else None,
+        "n_features": len(deltas),
+        "significant": bool(p_val < alpha) if not np.isnan(p_val) else None,
+    }
+
+    # Copy global stats onto each per-feature row for CSV convenience
+    for row in rows:
+        for k in ("wilcoxon_stat", "wilcoxon_p", "bootstrap_ci_lo",
+                   "bootstrap_ci_hi", "cohens_d", "n_features", "significant"):
+            row[k] = overall[k]
+
+    rows.append(overall)
+    return pd.DataFrame(rows)
+
+
+def _holm_bonferroni(p_values: np.ndarray, alpha: float = 0.05) -> np.ndarray:
+    """Holm–Bonferroni step-down correction for multiple comparisons."""
+    n = len(p_values)
+    order = np.argsort(p_values)
+    corrected = np.full(n, np.nan)
+    for rank, idx in enumerate(order):
+        if np.isnan(p_values[idx]):
+            corrected[idx] = np.nan
+        else:
+            corrected[idx] = min(float(p_values[idx]) * (n - rank), 1.0)
+    # Enforce monotonicity
+    sorted_corr = corrected[order]
+    for i in range(1, n):
+        if not np.isnan(sorted_corr[i]):
+            sorted_corr[i] = max(sorted_corr[i], sorted_corr[i - 1])
+    corrected[order] = sorted_corr
+    return corrected
+
+
+def compute_multilevel_significance(
+    df: pd.DataFrame,
+    *,
+    factor_col: str,
+    levels: Optional[List[str]] = None,
+    metric: str = "f1",
+    n_bootstrap: int = 10_000,
+    alpha: float = 0.05,
+    correction: str = "holm",
+    seed: int = 42,
+) -> pd.DataFrame:
+    """
+    All pairwise significance tests between multiple levels of a factor.
+    Applies Holm–Bonferroni correction across the family of comparisons.
+    """
+    if levels is None:
+        levels = sorted(df[factor_col].dropna().unique().tolist())
+
+    pairs = list(combinations(levels, 2))
+    summaries: list[dict] = []
+    raw_ps: list[float] = []
+
+    for a_lev, b_lev in pairs:
+        sub = df[df[factor_col].isin([a_lev, b_lev])].copy()
+        result = compute_factor_significance(
+            sub,
+            factor_col=factor_col,
+            a_level=a_lev,
+            b_level=b_lev,
+            metric=metric,
+            n_bootstrap=n_bootstrap,
+            alpha=alpha,
+            seed=seed,
+        )
+        if result.empty:
+            continue
+        row = result[result["feature"] == "_OVERALL"].iloc[0].to_dict()
+        row["comparison"] = f"{b_lev}_minus_{a_lev}"
+        row["a_level"] = a_lev
+        row["b_level"] = b_lev
+        summaries.append(row)
+        raw_ps.append(row.get("wilcoxon_p") if row.get("wilcoxon_p") is not None else np.nan)
+
+    if not summaries:
+        return pd.DataFrame()
+
+    out = pd.DataFrame(summaries)
+    p_arr = np.array([p if p is not None else np.nan for p in raw_ps], dtype=float)
+    out["p_corrected"] = _holm_bonferroni(p_arr, alpha)
+    out["significant_corrected"] = out["p_corrected"] < alpha
+    return out
+
+
+def auto_significance_tests(
+    df: pd.DataFrame,
+    *,
+    factors: List[str],
+    output_base: str,
+    prefix: str,
+    metric: str = "f1",
+    n_bootstrap: int = 10_000,
+    alpha: float = 0.05,
+) -> None:
+    """
+    Run significance tests for all factors, mirroring auto_pairwise_deltas().
+    Two-level factors  -> Wilcoxon + bootstrap CI + Cohen's d.
+    Multi-level factors -> all pairwise comparisons with Holm correction.
+    """
+    work = df.copy().dropna(subset=["feature"])
+    factors = [f for f in factors if f in work.columns]
+
+    all_summaries: list[dict] = []
+
+    for fac in factors:
+        levels = sorted(work[fac].dropna().unique().tolist())
+
+        if len(levels) < 2:
+            continue
+
+        sub = work.dropna(subset=[fac]).copy()
+
+        if len(levels) == 2:
+            # Respect PREFERRED_LEVEL_ORDER for direction
+            if fac in PREFERRED_LEVEL_ORDER:
+                pref_a, pref_b = PREFERRED_LEVEL_ORDER[fac]
+                if set(levels) == {pref_a, pref_b}:
+                    a_level, b_level = pref_a, pref_b
+                else:
+                    a_level, b_level = levels[0], levels[1]
+            else:
+                a_level, b_level = levels[0], levels[1]
+
+            result = compute_factor_significance(
+                sub, factor_col=fac, a_level=a_level, b_level=b_level,
+                metric=metric, n_bootstrap=n_bootstrap, alpha=alpha,
+            )
+            if result.empty:
+                continue
+
+            csv_path = os.path.join(
+                output_base,
+                f"{prefix}significance_{fac}__{b_level}_minus_{a_level}.csv",
+            )
+            result.to_csv(csv_path, index=False)
+
+            overall = result[result["feature"] == "_OVERALL"].iloc[0]
+            print(f"\n[SIG] {fac}: {b_level} vs {a_level}")
+            print(f"  Mean delta  = {overall['delta']:.4f}")
+            print(f"  Wilcoxon p  = {overall['wilcoxon_p']}")
+            print(f"  95% CI      = [{overall['bootstrap_ci_lo']:.4f}, {overall['bootstrap_ci_hi']:.4f}]")
+            print(f"  Cohen's d   = {overall['cohens_d']}")
+            print(f"  Significant = {overall['significant']}")
+            print(f"  Wrote {csv_path}")
+
+            all_summaries.append({
+                "factor": fac,
+                "comparison": f"{b_level}_minus_{a_level}",
+                "mean_delta": overall["delta"],
+                "wilcoxon_p": overall["wilcoxon_p"],
+                "ci_lo": overall["bootstrap_ci_lo"],
+                "ci_hi": overall["bootstrap_ci_hi"],
+                "cohens_d": overall["cohens_d"],
+                "significant": overall["significant"],
+                "n_features": overall["n_features"],
+            })
+
+        else:
+            # Multi-level: pairwise + Holm correction
+            result = compute_multilevel_significance(
+                sub, factor_col=fac, levels=levels,
+                metric=metric, n_bootstrap=n_bootstrap, alpha=alpha,
+                correction="holm",
+            )
+            if result.empty:
+                continue
+
+            csv_path = os.path.join(
+                output_base, f"{prefix}significance_{fac}__pairwise.csv",
+            )
+            result.to_csv(csv_path, index=False)
+
+            print(f"\n[SIG] {fac}: {len(levels)} levels -> {len(result)} pairwise comparisons")
+            show_cols = [c for c in ("comparison", "delta", "wilcoxon_p",
+                                     "p_corrected", "significant_corrected",
+                                     "cohens_d") if c in result.columns]
+            print(result[show_cols].to_string(index=False))
+            print(f"  Wrote {csv_path}")
+
+            for _, row in result.iterrows():
+                all_summaries.append({
+                    "factor": fac,
+                    "comparison": row.get("comparison"),
+                    "mean_delta": row.get("delta"),
+                    "wilcoxon_p": row.get("wilcoxon_p"),
+                    "p_corrected": row.get("p_corrected"),
+                    "ci_lo": row.get("bootstrap_ci_lo"),
+                    "ci_hi": row.get("bootstrap_ci_hi"),
+                    "cohens_d": row.get("cohens_d"),
+                    "significant": row.get("significant_corrected", row.get("significant")),
+                    "n_features": row.get("n_features"),
+                })
+
+    if all_summaries:
+        summary_df = pd.DataFrame(all_summaries)
+        summary_path = os.path.join(output_base, f"{prefix}significance_summary.csv")
+        summary_df.to_csv(summary_path, index=False)
+        print(f"\n[SIG] Combined summary -> {summary_path}")
+        print(summary_df.to_string(index=False))
 
 
 def build_error_df(
