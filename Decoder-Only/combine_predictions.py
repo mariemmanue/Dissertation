@@ -45,9 +45,9 @@ nlprun -q jag -p standard -r 40G -c 2 \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \
     python Decoder-Only/combine_predictions.py \
-    Decoder-Only/GPT/data/FullTest_Final/ \
-    Decoder-Only/GPT_Combined.xlsx \
-    --prefix GPT_"
+    Decoder-Only/GPT41/data/FullTest_Final/ \
+    Decoder-Only/GPT41_Combined.xlsx \
+    --prefix GPT41_"
 """
 
 def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
@@ -92,15 +92,10 @@ def combine_to_excel(input_dir, output_file, prefix_to_strip=None):
                     full_name = filename.replace('_predictions.csv', '')
                     df.insert(0, 'model_name', full_name)
 
-                    # Clean up the name for the Sheet Tab
-                    # 1. Remove '_predictions.csv'
+                    # Use full name (including model prefix) as the sheet tab
                     sheet_name = full_name
 
-                    # 2. Remove prefix (e.g. 'PHI4_') from tab only
-                    if prefix_to_strip and sheet_name.startswith(prefix_to_strip):
-                        sheet_name = sheet_name[len(prefix_to_strip):]
-                    
-                    # 3. Excel limits sheet names to 31 characters
+                    # Excel limits sheet names to 31 characters
                     if len(sheet_name) > 31:
                         original_name = sheet_name
                         sheet_name = sheet_name[:31]

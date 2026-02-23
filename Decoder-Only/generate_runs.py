@@ -20,6 +20,7 @@ import itertools
 # ==================== CONFIG ====================
 
 INPUT_FILE = "Datasets/FullTest_Final.xlsx"
+GOLD_FILE = "Datasets/FullTest_Final.xlsx"  # gold labels source (CSV or Excel with Gold sheet)
 OUTPUT_FORMAT = "markdown"  # all models use markdown
 CONDA_ENV = "cgedit"
 BASE_DIR = "/nlp/scr/mtano/Dissertation"
@@ -183,6 +184,7 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg, job_num=0):
     # Build python args
     py_args = [
         f"--file {INPUT_FILE}",
+        f"--gold {GOLD_FILE}",
         f"--model {m['model']}",
         f"--backend {m['backend']}",
         f"--sheet {sheet}",

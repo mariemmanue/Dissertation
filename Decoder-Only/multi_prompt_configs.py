@@ -13,9 +13,9 @@ import argparse
 import math
 from transformers import pipeline as hf_pipeline
 from transformers import AutoTokenizer, AutoModelForCausalLM
-import google.generativeai as genai
-from google import genai as genai_new
-from google.genai import types as genai_types
+# import google.generativeai as genai
+# from google import genai as genai_new
+# from google.genai import types as genai_types
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
@@ -2564,6 +2564,9 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run LLM experiments for AAE feature annotation.")
     parser.add_argument("--file",             type=str, required=True,  help="Input Excel file path")
+    parser.add_argument("--gold",             type=str, default=None,
+                        help="Gold labels CSV/Excel file (provides sentences). "
+                             "If omitted, reads 'Gold' sheet from --file.")
     parser.add_argument("--sheet",            type=str, required=True,  help="Sheet name for predictions")
     parser.add_argument("--extended",         action="store_true",      help="Use extended 27-feature set")
     parser.add_argument("--context",          action="store_true",      help="Include prev/next sentence context")
@@ -2661,24 +2664,32 @@ def main():
 
 
     # -------------------- LOAD DATA --------------------
-    sheets = pd.read_excel(args.file, sheet_name=None)
-
-    # Validate sheet exists
-    if "Gold" not in sheets:
-        raise ValueError(f"Excel file must contain a 'Gold' sheet. Found: {list(sheets.keys())}")
-
-    golddf = sheets["Gold"]
+    # Load gold / sentence data
+    if args.gold:
+        # Load sentences from separate gold file (CSV or Excel)
+        gold_path = args.gold
+        print(f"Loading sentences from gold file: {gold_path}")
+        if gold_path.endswith('.csv'):
+            golddf = pd.read_csv(gold_path)
+        else:
+            golddf = pd.read_excel(gold_path)
+    else:
+        # Fallback: read Gold sheet from --file Excel
+        sheets = pd.read_excel(args.file, sheet_name=None)
+        if "Gold" not in sheets:
+            raise ValueError(f"Excel file must contain a 'Gold' sheet (or use --gold). Found: {list(sheets.keys())}")
+        golddf = sheets["Gold"]
 
     # Validate column exists
     if "sentence" not in golddf.columns:
-        raise ValueError(f"'Gold' sheet must have 'sentence' column. Found: {list(golddf.columns)}")
+        raise ValueError(f"Gold data must have 'sentence' column. Found: {list(golddf.columns)}")
 
     golddf = golddf.dropna(subset=["sentence"]).reset_index(drop=True)
 
     # Warn if context is requested but no ordering info
     if args.context and "idx" not in golddf.columns:
-        print("WARNING: Context requested but no 'idx' column found. Assuming row order = discourse order.") 
-        
+        print("WARNING: Context requested but no 'idx' column found. Assuming row order = discourse order.")
+
     eval_sentences = golddf["sentence"].dropna().tolist()
     print(f"Sentences to evaluate: {len(eval_sentences)}")
 

@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, cohen_kappa_score
+from itertools import combinations
 
 from multi_prompt_configs import (
     EXTENDED_FEATURES,
@@ -1022,7 +1023,100 @@ def _ensure_numeric_feature_set(factors: dict, detected_feature_set: Optional[st
     return out
 
 
-def evaluate_sheets(file_path: str):
+def compute_interrater_reliability(
+    gold_dfs: Dict[str, pd.DataFrame],
+    features: List[str],
+    output_path: str,
+):
+    """
+    Compute pairwise interrater reliability (Cohen's kappa + % agreement)
+    between all gold raters for each feature.
+    """
+    rater_names = list(gold_dfs.keys())
+    if len(rater_names) < 2:
+        print("[INFO] Only one gold rater — skipping interrater reliability.")
+        return
+
+    print(f"\n{'='*60}")
+    print(f"=== Interrater Reliability ({len(rater_names)} raters) ===")
+    print(f"{'='*60}")
+
+    rows = []
+    for r1, r2 in combinations(rater_names, 2):
+        df1 = gold_dfs[r1]
+        df2 = gold_dfs[r2]
+
+        # Align on shared sentences
+        merged = df1.merge(df2, on="sentence", suffixes=(f"_{r1}", f"_{r2}"))
+        n_shared = len(merged)
+        if n_shared == 0:
+            print(f"[WARN] No overlapping sentences between {r1} and {r2}.")
+            continue
+
+        print(f"\n{r1} vs {r2}: {n_shared} shared sentences")
+
+        for feat in features:
+            col1 = f"{feat}_{r1}"
+            col2 = f"{feat}_{r2}"
+            if col1 not in merged.columns or col2 not in merged.columns:
+                continue
+
+            y1 = merged[col1].dropna().astype(int)
+            y2 = merged[col2].dropna().astype(int)
+
+            # Align indices after dropna
+            common = y1.index.intersection(y2.index)
+            y1, y2 = y1.loc[common], y2.loc[common]
+
+            if len(y1) == 0:
+                continue
+
+            pct_agree = (y1 == y2).mean()
+
+            # Cohen's kappa (handle edge case: all same label)
+            try:
+                kappa = cohen_kappa_score(y1, y2)
+            except Exception:
+                kappa = float('nan')
+
+            rows.append({
+                "rater_1": r1,
+                "rater_2": r2,
+                "feature": feat,
+                "n_sentences": len(y1),
+                "pct_agreement": round(pct_agree, 4),
+                "cohens_kappa": round(kappa, 4) if not np.isnan(kappa) else None,
+            })
+
+            print(f"  {feat}: kappa={kappa:.3f}  agree={pct_agree:.1%}")
+
+    if not rows:
+        print("[WARN] No interrater reliability data computed.")
+        return
+
+    irr_df = pd.DataFrame(rows)
+
+    # Summary: average across features per pair
+    summary = irr_df.groupby(["rater_1", "rater_2"]).agg(
+        mean_kappa=("cohens_kappa", "mean"),
+        mean_agreement=("pct_agreement", "mean"),
+        n_features=("feature", "count"),
+    ).reset_index()
+
+    print(f"\n=== Interrater Reliability Summary ===")
+    print(summary.to_string(index=False))
+
+    # Save
+    irr_path = os.path.join(output_path, "interrater_reliability.csv")
+    irr_df.to_csv(irr_path, index=False)
+    print(f"\n[INFO] Wrote interrater reliability to {irr_path}")
+
+    summary_path = os.path.join(output_path, "interrater_reliability_summary.csv")
+    summary.to_csv(summary_path, index=False)
+    print(f"[INFO] Wrote summary to {summary_path}")
+
+
+def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] = None):
     print(f"\n===============================")
     print(f"=== Evaluating {file_path} ===")
     print(f"===============================\n")
@@ -1033,27 +1127,39 @@ def evaluate_sheets(file_path: str):
 
     sheets = pd.read_excel(file_path, sheet_name=None, engine="openpyxl")
 
-    gold_df = sheets.get("Gold")
-    if gold_df is None:
-        print(f"[WARN] No 'Gold' sheet in {file_path}. Skipping.")
-        return
+    # Load primary gold: from CLI files (first rater) or from workbook
+    if gold_dfs:
+        primary_rater = list(gold_dfs.keys())[0]
+        gold_df = gold_dfs[primary_rater]
+        print(f"[INFO] Using primary gold from CLI: {primary_rater} ({len(gold_df)} sentences)")
+    else:
+        gold_df = sheets.get("Gold")
+        if gold_df is None:
+            print(f"[WARN] No 'Gold' sheet in {file_path} and no --gold provided. Skipping.")
+            return
 
-    gold_df = drop_features_column(gold_df)
-    gold_df = normalize_sentence_column(gold_df, "Gold")
-    if gold_df is None:
-        print(f"[WARN] Gold sheet missing sentence column in {file_path}. Skipping workbook.")
-        return
-    gold_df = gold_df.dropna(subset=["sentence"])
-    gold_df = safe_strip_sentence_col(gold_df)
+        gold_df = drop_features_column(gold_df)
+        gold_df = normalize_sentence_column(gold_df, "Gold")
+        if gold_df is None:
+            print(f"[WARN] Gold sheet missing sentence column in {file_path}. Skipping workbook.")
+            return
+        gold_df = gold_df.dropna(subset=["sentence"])
+        gold_df = safe_strip_sentence_col(gold_df)
 
-    gold_df = combine_wh_qu(gold_df)
-    gold_df = gold_df.drop_duplicates(subset="sentence")
+        gold_df = combine_wh_qu(gold_df)
+        gold_df = gold_df.drop_duplicates(subset="sentence")
 
     model_sheets: dict[str, pd.DataFrame] = {}
     rationale_sheets: dict[str, pd.DataFrame] = {}
 
+    # Determine which sheet names to skip (gold-related)
+    gold_sheet_names = {"Gold"}
+    if gold_dfs:
+        # Also skip any sheets matching gold rater names
+        gold_sheet_names.update(gold_dfs.keys())
+
     for sheet_name, df_raw in sheets.items():
-        if sheet_name == "Gold":
+        if sheet_name in gold_sheet_names:
             continue
         if str(sheet_name).startswith("~$"):
             continue
@@ -1074,10 +1180,11 @@ def evaluate_sheets(file_path: str):
 
 
         name_up = str(sheet_name).upper()
-        KNOWN_MODEL_PREFIXES = ("GPT", "BERT", "PHI", "MODERNBERT", "MODERN-BERT", "GEM", "GEMINI", "QWEN")
-        # Also match sheets starting with instruction types (when prefix was stripped by combine_predictions.py)
-        KNOWN_INSTR_PREFIXES = ("ZS_", "FS_", "ZSCOT_", "FSCOT_")
-        if not any(name_up.startswith(p) for p in KNOWN_MODEL_PREFIXES) and not any(name_up.startswith(p) for p in KNOWN_INSTR_PREFIXES):
+        KNOWN_MODEL_PREFIXES = (
+            "GPT", "BERT", "PHI", "MODERNBERT", "MODERN-BERT",
+            "GEM", "GEMINI", "QWEN", "QWQ", "LLAMA", "TEST_",
+        )
+        if not any(name_up.startswith(p) for p in KNOWN_MODEL_PREFIXES):
             continue
 
         df = drop_features_column(df_raw)
@@ -1539,22 +1646,61 @@ def evaluate_sheets(file_path: str):
 
         print(f"[INFO] Wrote error breakdown to {errors_xlsx}")
 
+    # Interrater reliability (if multiple gold raters provided)
+    if gold_dfs and len(gold_dfs) >= 2:
+        # Determine features from the first model sheet
+        irr_features = list(EXTENDED_FEATURES) if any(
+            f in gold_df.columns for f in EXTENDED_FEATURES if f not in MASIS17_FEATURES
+        ) else list(MASIS17_FEATURES)
+        compute_interrater_reliability(gold_dfs, irr_features, output_base)
+
+
+def load_gold_file(path: str) -> pd.DataFrame:
+    """Load a gold labels file (CSV or Excel) and normalize it."""
+    if path.endswith('.csv'):
+        df = pd.read_csv(path)
+    else:
+        # Excel: read first sheet (or 'Gold' sheet if it exists)
+        sheets = pd.read_excel(path, sheet_name=None, engine="openpyxl")
+        if "Gold" in sheets:
+            df = sheets["Gold"]
+        else:
+            # Use first sheet
+            df = list(sheets.values())[0]
+
+    df = drop_features_column(df)
+    df = normalize_sentence_column(df, os.path.basename(path))
+    if df is None:
+        raise ValueError(f"Gold file {path} missing sentence column.")
+    df = df.dropna(subset=["sentence"])
+    df = safe_strip_sentence_col(df)
+    df = combine_wh_qu(df)
+    df = df.drop_duplicates(subset="sentence")
+    return df
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="Evaluate AAE Model Predictions against Gold Standard."
     )
-    
+
     parser.add_argument(
-        "input_path", 
-        nargs="?", 
-        default="data/*.xlsx", 
+        "input_path",
+        nargs="?",
+        default="data/*.xlsx",
         help="Path to a specific .xlsx file, a directory, or a glob pattern (default: data/*.xlsx)"
     )
-    
+
     parser.add_argument(
-        "--output-dir", 
-        default="Results/", 
+        "--gold", nargs="+", default=None,
+        help="Gold label file(s) as CSV or Excel. First file is primary gold. "
+             "Additional files are secondary raters for interrater reliability. "
+             "If omitted, reads 'Gold' sheet from each input workbook."
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        default="Results/",
         help="Base directory to save evaluation results"
     )
 
@@ -1563,15 +1709,25 @@ def main():
     # 1. Update the global output directory variable used by evaluate_sheets
     global output_dir
     output_dir = args.output_dir
-    
+
     # Ensure output directory exists
     if not os.path.exists(output_dir):
         print(f"[INFO] Creating output directory: {output_dir}")
         os.makedirs(output_dir, exist_ok=True)
 
-    # 2. Resolve input paths (handle files, directories, and glob patterns)
+    # 2. Load gold files if provided via CLI
+    gold_dfs = None
+    if args.gold:
+        gold_dfs = {}
+        for gpath in args.gold:
+            rater_name = os.path.splitext(os.path.basename(gpath))[0]
+            print(f"[INIT] Loading gold file: {gpath} (rater: {rater_name})")
+            gold_dfs[rater_name] = load_gold_file(gpath)
+        print(f"[INIT] Loaded {len(gold_dfs)} gold rater(s): {list(gold_dfs.keys())}")
+
+    # 3. Resolve input paths (handle files, directories, and glob patterns)
     filepaths = []
-    
+
     # Check if input is a direct directory
     if os.path.isdir(args.input_path):
         filepaths = glob.glob(os.path.join(args.input_path, "*.xlsx"))
@@ -1590,10 +1746,10 @@ def main():
     for fp in filepaths:
         print(f" - {fp}")
 
-    # 3. Run evaluation for each file
+    # 4. Run evaluation for each file
     for filepath in filepaths:
         try:
-            evaluate_sheets(filepath)
+            evaluate_sheets(filepath, gold_dfs=gold_dfs)
         except Exception as e:
             print(f"\n[ERROR] Failed to evaluate {filepath}: {e}")
             import traceback
