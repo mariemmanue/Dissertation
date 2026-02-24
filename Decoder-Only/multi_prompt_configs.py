@@ -2313,9 +2313,19 @@ def build_messages(
             "role": "user",
             "content": (
                 "### CONTEXT ###\n"
-                "(Use ONLY to resolve subject reference and tense, NOT to infer events)\n\n"  # ← Reminder here
+                "(Use ONLY to resolve subject reference and tense, NOT to infer events)\n\n"
                 "CONTEXT (do NOT analyze yet; this is NOT the target utterance).\n\n"
                 f"{context_block}"
+            ),
+        }
+        # Synthetic assistant ack so the conversation follows the standard
+        # user → assistant → user alternation that chat models expect.
+        ack_msg = {
+            "role": "assistant",
+            "content": (
+                "Understood. I have noted the surrounding context and will use it "
+                "only to resolve subject reference and tense when you provide the "
+                "target utterance. I will not analyze or label the context itself."
             ),
         }
         user_content = build_user_msg(
@@ -2323,10 +2333,10 @@ def build_messages(
             features=features,
             output_format=output_format,
             instruction_type=instruction_type,
-            context_block=None,  # ← No reminder in TARGET message
+            context_block=None,
         )
         user_msg = {"role": "user", "content": user_content}
-        return [system_msg, context_msg, user_msg], "two_turn"
+        return [system_msg, context_msg, ack_msg, user_msg], "two_turn"
 
     # Single-turn (default): context embedded in user message (reminder goes here)
     user_content = build_user_msg(
