@@ -772,6 +772,146 @@ def plot_aggregated_model_performance(
         print(f"[INFO] Saved aggregated bar chart to {save_path}")
     plt.close()
 
+
+# ==================== SUMMARY VISUALIZATIONS ====================
+
+
+def plot_config_leaderboard(
+    all_eval: pd.DataFrame,
+    save_path: str,
+    figsize: tuple = (10, 8),
+) -> None:
+    """Horizontal bar chart of configs ranked by macro-F1."""
+    macro = (
+        all_eval.groupby("model")["f1"]
+        .mean()
+        .sort_values(ascending=True)
+        .reset_index(name="macro_f1")
+    )
+
+    factor_cols = [c for c in ("instr", "ctx", "leg") if c in all_eval.columns]
+    if factor_cols:
+        factor_labels = all_eval.groupby("model")[factor_cols].first().reset_index()
+        macro = macro.merge(factor_labels, on="model", how="left")
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Color by instruction type if available
+    if "instr" in macro.columns:
+        unique_instr = sorted(macro["instr"].dropna().unique())
+        cmap = plt.cm.get_cmap("Set2", max(len(unique_instr), 1))
+        palette = {lvl: cmap(i) for i, lvl in enumerate(unique_instr)}
+        colors = [palette.get(row.get("instr"), "steelblue") for _, row in macro.iterrows()]
+    else:
+        palette = None
+        colors = "steelblue"
+
+    ax.barh(macro["model"], macro["macro_f1"], color=colors)
+
+    # Annotate bars with factor levels
+    if factor_cols:
+        for i, (_, row) in enumerate(macro.iterrows()):
+            parts = [str(row[c]) for c in factor_cols if pd.notna(row.get(c))]
+            if parts:
+                ax.text(
+                    row["macro_f1"] + 0.005, i,
+                    " | ".join(parts),
+                    va="center", fontsize=7, color="gray",
+                )
+
+    ax.set_xlabel("Macro F1")
+    ax.set_title("Configuration Leaderboard (ranked by macro-F1)")
+    ax.set_xlim(0, min(1.05, macro["macro_f1"].max() + 0.1))
+
+    if palette:
+        from matplotlib.patches import Patch
+        legend_elements = [Patch(facecolor=palette[k], label=k) for k in sorted(palette)]
+        ax.legend(handles=legend_elements, title="Instruction", loc="lower right", fontsize=8)
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[INFO] Saved config leaderboard to {save_path}")
+
+
+def plot_variable_effects(
+    summary_df: Optional[pd.DataFrame],
+    save_path: str,
+    figsize: tuple = (8, 6),
+) -> None:
+    """Forest plot: mean delta ± 95% CI per factor comparison."""
+    if summary_df is None or summary_df.empty:
+        print("[INFO] No significance summary to plot; skipping forest plot.")
+        return
+
+    df = summary_df.copy()
+    df["label"] = df.apply(
+        lambda r: f"{r['factor']}: {r['comparison'].replace('_minus_', ' vs ')}", axis=1
+    )
+    df = df.sort_values("mean_delta", key=abs, ascending=True).reset_index(drop=True)
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    for i, row in df.iterrows():
+        color = "firebrick" if row.get("significant") else "gray"
+        ci_lo = row.get("ci_lo", row["mean_delta"])
+        ci_hi = row.get("ci_hi", row["mean_delta"])
+
+        ax.plot([ci_lo, ci_hi], [i, i], color=color, linewidth=2, solid_capstyle="round")
+        ax.plot(row["mean_delta"], i, "o", color=color, markersize=7, zorder=5)
+
+    ax.axvline(x=0, color="black", linewidth=0.8, linestyle="--", alpha=0.7)
+    ax.set_yticks(range(len(df)))
+    ax.set_yticklabels(df["label"].tolist(), fontsize=9)
+    ax.set_xlabel("Mean ΔF1 (b − a)")
+    ax.set_title("Variable Effects on F1 (forest plot)")
+
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], marker="o", color="firebrick", linestyle="-", label="Significant (p < 0.05)"),
+        Line2D([0], [0], marker="o", color="gray", linestyle="-", label="Not significant"),
+    ]
+    ax.legend(handles=legend_elements, loc="lower right", fontsize=8)
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[INFO] Saved variable effects forest plot to {save_path}")
+
+
+def generate_summary_table(
+    all_eval: pd.DataFrame,
+    save_path: str,
+) -> pd.DataFrame:
+    """One-stop leaderboard CSV: rank, model, macro_f1, micro_f1, factor levels."""
+    macro = all_eval.groupby("model")["f1"].mean().reset_index(name="macro_f1")
+
+    micro_rows = []
+    for model_name, grp in all_eval.groupby("model"):
+        tp = grp["TP"].sum()
+        fp = grp["FP"].sum()
+        fn = grp["FN"].sum()
+        denom = 2 * tp + fp + fn
+        micro_f1 = (2 * tp / denom) if denom > 0 else 0.0
+        micro_rows.append({"model": model_name, "micro_f1": round(micro_f1, 4)})
+    micro = pd.DataFrame(micro_rows)
+
+    summary = macro.merge(micro, on="model", how="left")
+
+    factor_cols = [c for c in ("instr", "ctx", "leg", "feature_set", "trial") if c in all_eval.columns]
+    if factor_cols:
+        factors = all_eval.groupby("model")[factor_cols].first().reset_index()
+        summary = summary.merge(factors, on="model", how="left")
+
+    summary = summary.sort_values("macro_f1", ascending=False).reset_index(drop=True)
+    summary.insert(0, "rank", summary.index + 1)
+    summary["macro_f1"] = summary["macro_f1"].round(4)
+
+    summary.to_csv(save_path, index=False)
+    print(f"[INFO] Wrote summary leaderboard to {save_path} ({len(summary)} configs)")
+    return summary
+
+
 def detect_feature_set(sheet_name: str, df: pd.DataFrame) -> Optional[str]:
     """
     Returns: "masis" or "extended" or None.
@@ -1038,11 +1178,12 @@ def auto_significance_tests(
     metric: str = "f1",
     n_bootstrap: int = 10_000,
     alpha: float = 0.05,
-) -> None:
+) -> Optional[pd.DataFrame]:
     """
     Run significance tests for all factors, mirroring auto_pairwise_deltas().
     Two-level factors  -> Wilcoxon + bootstrap CI + Cohen's d.
     Multi-level factors -> all pairwise comparisons with Holm correction.
+    Returns the combined summary DataFrame (one row per factor comparison).
     """
     work = df.copy().dropna(subset=["feature"])
     factors = [f for f in factors if f in work.columns]
@@ -1144,6 +1285,9 @@ def auto_significance_tests(
         summary_df.to_csv(summary_path, index=False)
         print(f"\n[SIG] Combined summary -> {summary_path}")
         print(summary_df.to_string(index=False))
+        return summary_df
+
+    return None
 
 
 def build_error_df(
@@ -1644,42 +1788,6 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
 
     all_eval = pd.concat(eval_results, ignore_index=True)
 
-    # Trial-specific plots (if trial parsed)
-    for trial in ["A", "B"]:
-        eval_dfs_trial = [df for df in eval_results if parse_factors(df["model"].iloc[0]).get("trial") == trial]
-        if not eval_dfs_trial:
-            continue
-
-        label = f"TRIAL_{trial}"
-
-        plot_model_metrics(
-            eval_dfs=eval_dfs_trial,
-            metric="f1",
-            style="heatmap",
-            align="intersection",
-            title=f"{label}: F1 by feature (shared features only)",
-            save_path=os.path.join(output_base, f"{label}_F1_heatmap_intersection.png"),
-            figsize=(14, 10),
-        )
-
-        plot_overall_f1_scores(
-            eval_dfs=eval_dfs_trial,
-            align="intersection",
-            save_path=os.path.join(output_base, f"{label}_Overall_F1_intersection.png"),
-        )
-
-        plot_overall_micro_f1_scores(
-            eval_dfs=eval_dfs_trial,
-            align="intersection",
-            save_path=os.path.join(output_base, f"{label}_MicroF1_intersection.png"),
-        )
-
-        plot_f1_scores_per_feature(
-            eval_dfs=eval_dfs_trial,
-            align="intersection",
-            save_path=os.path.join(output_base, f"{label}_Per_Feature_F1_intersection.png"),
-        )
-
     # Add factor columns (patched: ensure feature_set num exists even when name doesn't contain it)
     def _factors_for_model_name(mname: str) -> dict:
         base = parse_factors(mname)
@@ -1716,6 +1824,53 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         factors=["feature_set", "ctx", "instr", "leg"],
         output_base=output_base,
         prefix="ALLMODELS_",
+    )
+
+    # ==========================================
+    # Significance tests + summary visualizations
+    # ==========================================
+
+    # GPT-only significance tests
+    gpt_sig_df = None
+    if not gpt_eval.empty:
+        gpt_sig_df = auto_significance_tests(
+            gpt_eval,
+            factors=["feature_set", "ctx", "instr", "leg", "trial"],
+            output_base=output_base,
+            prefix="GPT_",
+        )
+
+    # All-model significance tests
+    all_sig_df = auto_significance_tests(
+        all_eval.dropna(subset=["ctx"]),
+        factors=["feature_set", "ctx", "instr", "leg"],
+        output_base=output_base,
+        prefix="ALLMODELS_",
+    )
+
+    # Forest plots for variable effects
+    if gpt_sig_df is not None:
+        plot_variable_effects(
+            gpt_sig_df,
+            save_path=os.path.join(output_base, "GPT_variable_effects_forest.png"),
+        )
+
+    if all_sig_df is not None:
+        plot_variable_effects(
+            all_sig_df,
+            save_path=os.path.join(output_base, "ALLMODELS_variable_effects_forest.png"),
+        )
+
+    # Config leaderboard
+    plot_config_leaderboard(
+        all_eval,
+        save_path=os.path.join(output_base, "config_leaderboard.png"),
+    )
+
+    # Summary table CSV
+    generate_summary_table(
+        all_eval,
+        save_path=os.path.join(output_base, "summary_leaderboard.csv"),
     )
 
     # Dedicated plots for 25-only
@@ -1808,36 +1963,6 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
             )
         else:
             print(f"[WARN] Expected {colname} not found in delta_ctx columns: {list(delta_ctx.columns)}")
-
-    # ==========================================
-    # [START] Generate Multi-Model Comparison Plots
-    # ==========================================
-    print("\n[INFO] generating faceted model comparison plots...")
-    
-    # 1. Apply the parser to create clean columns for plotting
-    # We apply this to the 'model' column (which contains sheet names like 'GEMINI_25_...')
-    parsed_data = all_eval["model"].apply(lambda x: pd.Series(parse_model_config(str(x)), index=["clean_model", "config"]))
-    
-    # 2. Join these new columns to the main dataframe
-    # We drop existing cols if they exist to avoid duplicates
-    all_eval_for_plot = pd.concat([
-        all_eval.drop(columns=["clean_model", "config"], errors="ignore"), 
-        parsed_data
-    ], axis=1)
-
-    # 3. Call the plotting functions
-    plot_faceted_model_comparison(
-        [all_eval_for_plot], 
-        save_path=os.path.join(output_base, "ALL_MODELS_Faceted_Comparison.png")
-    )
-    
-    plot_aggregated_model_performance(
-        [all_eval_for_plot], 
-        save_path=os.path.join(output_base, "ALL_MODELS_Aggregated_Performance.png")
-    )
-    # ==========================================
-    # [END] Multi-Model Comparison Plots
-    # ==========================================
 
     # Cross-model comparisons
     all_models_label = "ALL_MODELS"
