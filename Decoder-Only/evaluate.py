@@ -497,16 +497,8 @@ def evaluate_model(model_df: pd.DataFrame, truth_df: pd.DataFrame, model_name: s
     cm_df = pd.DataFrame(cm_data_rows, columns=["TP", "FP", "FN", "TN"], index=filtered_features)
 
     if cm_df.empty:
-        print(f"[INFO] No non-empty features for {model_name}; skipping confusion-matrix plot.")
-        # Return an empty DataFrame so caller can handle it
+        print(f"[INFO] No non-empty features for {model_name}; skipping.")
         return pd.DataFrame()
-            
-    plot_per_feature_confusion_matrix(
-        cm_df,
-        model_name,
-        filtered_features,
-        save_path=os.path.join(output_base, f"{model_name}_confusion_matrix.png"),
-    )
 
     results = pd.DataFrame(summary)
     print("\n=== Summary Metrics ===")
