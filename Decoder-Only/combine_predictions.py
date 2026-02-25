@@ -28,7 +28,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 
 nlprun -q jag -p standard -r 40G -c 2 \
-  -n combine_gem \
+  -n combine_ qwen25 \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
@@ -39,8 +39,8 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --prefix QWEN25_"
 
 nlprun -q jag -p standard -r 40G -c 2 \
-  -n combine_gem \
-  -o Decoder-Only/GPT/slurm_logs/%x-%j.out \
+  -n combine_gpt41 \
+  -o Decoder-Only/GPT41/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && \
    . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
    conda activate cgedit && \

@@ -13,9 +13,9 @@ import argparse
 import math
 from transformers import pipeline as hf_pipeline
 from transformers import AutoTokenizer, AutoModelForCausalLM
-# import google.generativeai as genai
-# from google import genai as genai_new
-# from google.genai import types as genai_types
+import google.generativeai as genai
+from google import genai as genai_new
+from google.genai import types as genai_types
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
