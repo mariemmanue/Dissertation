@@ -1595,11 +1595,14 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
 
 
         name_up = str(sheet_name).upper()
-        KNOWN_MODEL_PREFIXES = (
+        KNOWN_PREFIXES = (
+            # Model prefixes (full config names like GPT41_ZS_CTX2t_noLeg)
             "GPT", "BERT", "PHI", "MODERNBERT", "MODERN-BERT",
             "GEM", "GEMINI", "QWEN", "QWQ", "LLAMA", "TEST_",
+            # Instruction prefixes (stripped names like ZS_CTX2t_noLeg)
+            "ZS", "FS", "ZSCOT", "FSCOT",
         )
-        if not any(name_up.startswith(p) for p in KNOWN_MODEL_PREFIXES):
+        if not any(name_up.startswith(p) for p in KNOWN_PREFIXES):
             continue
 
         df = drop_features_column(df_raw)
@@ -1609,27 +1612,13 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         df = df.dropna(subset=["sentence"])
         df = safe_strip_sentence_col(df)
 
-        # Use model_name column (from combine_predictions.py) as the canonical name
-        # This preserves the full model identifier even when prefix is stripped from sheet tab
+        # Determine canonical name for this config.
+        # When model prefix is stripped (sheet = "ZS_CTX2t_noLeg", model_name = "GPT41_ZS_CTX2t_noLeg"),
+        # use the SHORT sheet tab as display name so plot labels stay clean.
+        # The full name in model_name is used by parse_factors() for model identity.
         if "model_name" in df.columns:
-            mn = str(df["model_name"].iloc[0])
             df = df.drop(columns=["model_name"])
-            # Check if model_name already contains config info (ZS/FS/ZSCOT/FSCOT)
-            # If it's just a bare model prefix (e.g. "GEMINI"), combine with sheet tab name
-            mn_up = mn.upper()
-            has_config = any(tok in mn_up.split("_") for tok in ("ZS", "FS", "ZSCOT", "FSCOT"))
-            if has_config:
-                canonical_name = mn
-            else:
-                # model_name is just the prefix — combine with sheet tab to get full config name
-                sn = str(sheet_name)
-                # Avoid duplicating the prefix if sheet already starts with it
-                if sn.upper().startswith(mn_up):
-                    canonical_name = sn
-                else:
-                    canonical_name = f"{mn}_{sn}"
-        else:
-            canonical_name = str(sheet_name)
+        canonical_name = str(sheet_name)
 
         df = combine_wh_qu(df)
         df = df.drop_duplicates(subset="sentence")
@@ -1807,70 +1796,46 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
 
     all_eval = pd.concat([all_eval, factors_df], axis=1)
 
-    # GPT-only deltas
-    gpt_eval = all_eval[all_eval["model"].str.upper().str.startswith("GPT_")].copy()
-    gpt_eval = gpt_eval.dropna(subset=["feature_set", "ctx"])
+    # Derive model label from workbook filename (e.g. "GPT41_Combined" → "GPT41")
+    model_label = file_basename.replace("_Combined", "").replace("_combined", "")
 
+    # Pairwise deltas across all configs in this workbook
+    work_eval = all_eval.dropna(subset=["ctx"]).copy() if "ctx" in all_eval.columns else all_eval.copy()
     auto_pairwise_deltas(
-        gpt_eval,
+        work_eval,
         factors=["feature_set", "ctx", "instr", "leg", "trial"],
         output_base=output_base,
-        prefix="GPT_",
-    )
-
-    # all-model deltas (only where ctx and leg exist)
-    auto_pairwise_deltas(
-        all_eval.dropna(subset=["ctx"]),
-        factors=["feature_set", "ctx", "instr", "leg"],
-        output_base=output_base,
-        prefix="ALLMODELS_",
+        prefix=f"{model_label}_",
     )
 
     # ==========================================
     # Significance tests + summary visualizations
     # ==========================================
 
-    # GPT-only significance tests
-    gpt_sig_df = None
-    if not gpt_eval.empty:
-        gpt_sig_df = auto_significance_tests(
-            gpt_eval,
-            factors=["feature_set", "ctx", "instr", "leg", "trial"],
-            output_base=output_base,
-            prefix="GPT_",
-        )
-
-    # All-model significance tests
-    all_sig_df = auto_significance_tests(
-        all_eval.dropna(subset=["ctx"]),
-        factors=["feature_set", "ctx", "instr", "leg"],
+    sig_df = auto_significance_tests(
+        work_eval,
+        factors=["feature_set", "ctx", "instr", "leg", "trial"],
         output_base=output_base,
-        prefix="ALLMODELS_",
+        prefix=f"{model_label}_",
     )
 
-    # Forest plots for variable effects
-    if gpt_sig_df is not None:
+    # Forest plot for variable effects
+    if sig_df is not None:
         plot_variable_effects(
-            gpt_sig_df,
-            save_path=os.path.join(output_base, "GPT_variable_effects_forest.png"),
-        )
-
-    if all_sig_df is not None:
-        plot_variable_effects(
-            all_sig_df,
-            save_path=os.path.join(output_base, "ALLMODELS_variable_effects_forest.png"),
+            sig_df,
+            save_path=os.path.join(output_base, f"{model_label}_variable_effects_forest.png"),
         )
 
     # Config leaderboard
     plot_config_leaderboard(
         all_eval,
-        save_path=os.path.join(output_base, "config_leaderboard.png"),
+        save_path=os.path.join(output_base, f"{model_label}_config_leaderboard.png"),
     )
 
     # Summary table CSV
     generate_summary_table(
         all_eval,
-        save_path=os.path.join(output_base, "summary_leaderboard.csv"),
+        save_path=os.path.join(output_base, f"{model_label}_summary_leaderboard.csv"),
     )
 
     # Dedicated plots for 25-only
@@ -1884,7 +1849,7 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
             metric="f1",
             style="heatmap",
             align="intersection",
-            title="EXTENDED (25): F1 by feature (shared across 25-feature models)",
+            title=f"{model_label} EXTENDED (25): F1 by feature",
             save_path=os.path.join(output_base, "EXT25_F1_heatmap_intersection.png"),
             figsize=(14, 10),
         )
@@ -1900,79 +1865,27 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
             metric="f1",
             style="heatmap",
             align="intersection",
-            title="MASIS (17): F1 by feature (shared across 17-feature models)",
+            title=f"{model_label} MASIS (17): F1 by feature",
             save_path=os.path.join(output_base, "MAS17_F1_heatmap_intersection.png"),
             figsize=(14, 10),
         )
 
-    # GPT-only means/vars + manual deltas
-    if gpt_eval.empty:
-        print("[WARN] No GPT_* model rows found; skipping GPT-only analyses (means/vars/deltas).")
-    else:
-        mean_f1_per_feature = (
-            gpt_eval.groupby("feature")["f1"].mean().sort_values(ascending=False).reset_index(name="mean_f1_gpt")
-        )
-        mean_f1_per_feature.to_csv(os.path.join(output_base, "gpt_mean_f1_per_feature.csv"), index=False)
+    # Per-model mean/variance of F1 across configs
+    mean_f1 = all_eval.groupby("feature")["f1"].mean().sort_values(ascending=False).reset_index(name="mean_f1")
+    mean_f1.to_csv(os.path.join(output_base, f"{model_label}_mean_f1_per_feature.csv"), index=False)
 
-        var_f1_per_feature = gpt_eval.groupby("feature")["f1"].var(ddof=1).reset_index(name="var_f1_gpt")
-        var_f1_per_feature.to_csv(os.path.join(output_base, "gpt_var_f1_per_feature.csv"), index=False)
+    var_f1 = all_eval.groupby("feature")["f1"].var(ddof=1).reset_index(name="var_f1")
+    var_f1.to_csv(os.path.join(output_base, f"{model_label}_var_f1_per_feature.csv"), index=False)
 
-        # shared features across GPT models
-        shared = None
-        for _, sub in gpt_eval.groupby("model"):
-            feats = set(sub["feature"].unique())
-            shared = feats if shared is None else (shared & feats)
-        shared = shared or set()
-        gpt_shared = gpt_eval[gpt_eval["feature"].isin(shared)].copy()
-
-        delta_instr = compute_pairwise_deltas(
-            gpt_shared,
-            index_cols=["feature", "feature_set"],
-            factor_col="instr",
-            a_level="ZS",
-            b_level="FSCOT",
-            metrics=("precision", "recall", "f1"),
-            require_metric="f1",
-            aggfunc="mean",
-        )
-        delta_instr.to_csv(os.path.join(output_base, "delta_ZS_to_FSCOT_per_feature.csv"), index=False)
-
-        delta_ctx = compute_pairwise_deltas(
-            gpt_shared,
-            index_cols=["feature", "feature_set", "instr"],
-            factor_col="ctx",
-            a_level="noCTX",
-            b_level="CTX",
-            metrics=("precision", "recall", "f1"),
-            require_metric="f1",
-            aggfunc="mean",
-        )
-
-        out_csv = os.path.join(output_base, "delta_CTX_per_feature.csv")
-        delta_ctx.to_csv(out_csv, index=False)
-        print(f"[INFO] Wrote {out_csv} ({len(delta_ctx)} rows)")
-
-        # FIX: correct column name
-        colname = "d_f1_CTX_minus_noCTX"
-        if colname in delta_ctx.columns:
-            plot_delta_heatmap(
-                delta_ctx,
-                value_col=colname,
-                title="GPT ΔF1: CTX − noCTX (per feature; paired within other factors)",
-                save_path=os.path.join(output_base, "GPT_delta_CTX_f1_heatmap.png"),
-            )
-        else:
-            print(f"[WARN] Expected {colname} not found in delta_ctx columns: {list(delta_ctx.columns)}")
-
-    # Cross-model comparisons
-    all_models_label = "ALL_MODELS"
+    # Cross-config comparisons (use model name from filename)
+    all_models_label = model_label
 
     plot_model_metrics(
         eval_dfs=eval_results,
         metric="f1",
         style="heatmap",
         align="intersection",
-        title="Model F1 by AAE feature (heatmap, shared features only)",
+        title=f"{model_label}: F1 by AAE feature (heatmap, shared features only)",
         save_path=os.path.join(output_base, f"{all_models_label}_F1_heatmap_intersection.png"),
     )
 
@@ -2023,7 +1936,7 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
             err_counts=err_counts.reset_index().melt(id_vars="feature", var_name="model", value_name="errors"),
             metric="errors",
             style="heatmap",
-            title="Errors per Feature by Model",
+            title=f"{model_label}: Errors per Feature by Config",
             annotate_heatmap=True,
             figsize=(12, 8),
             save_path=os.path.join(output_base, f"{all_models_label}_Error_Heatmap.png"),
