@@ -662,8 +662,7 @@ class OpenAIReasoningBackend(OpenAIBackend):
             resp = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.1,
-                max_tokens=max_tokens,
+                max_completion_tokens=max_tokens,
                 logprobs=True,
                 top_logprobs=2,
                 reasoning_effort=self.reasoning_effort,
@@ -675,8 +674,7 @@ class OpenAIReasoningBackend(OpenAIBackend):
                 resp = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    temperature=0.1,
-                    max_tokens=max_tokens,
+                    max_completion_tokens=max_tokens,
                     reasoning_effort=self.reasoning_effort,
                 )
             else:
