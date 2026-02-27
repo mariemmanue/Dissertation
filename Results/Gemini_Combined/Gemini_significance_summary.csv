@@ -1,0 +1,9 @@
+factor,comparison,mean_delta,wilcoxon_p,ci_lo,ci_hi,cohens_d,significant,n_features,p_corrected
+ctx,noCTX_minus_CTX1t,0.0117,0.586174,-0.0064,0.0386,0.2035,False,22,
+instr,FScot_minus_FS,-0.0126,0.605095,-0.0421,0.01,-0.1979,False,22,1.0
+instr,ZS_minus_FS,-0.0046,0.64166,-0.0217,0.0114,-0.1148,False,22,1.0
+instr,ZScot_minus_FS,-0.0332,0.198123,-0.0732,-0.002,-0.3767,False,22,1.0
+instr,ZS_minus_FScot,0.0084,0.943392,-0.0212,0.0492,0.0992,False,21,1.0
+instr,ZScot_minus_FScot,-0.0216,0.306624,-0.0619,0.0036,-0.2541,False,21,1.0
+instr,ZScot_minus_ZS,-0.0287,0.301054,-0.0725,0.0043,-0.2966,False,22,1.0
+leg,Leg_minus_noLeg,-0.0157,0.522781,-0.0461,0.0023,-0.2465,False,21,

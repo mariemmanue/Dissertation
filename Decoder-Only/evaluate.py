@@ -279,7 +279,8 @@ def plot_delta_heatmap(
     )
 
     plt.figure(figsize=figsize)
-    sns.heatmap(pivot, annot=False, cmap="RdBu_r", center=0.0)
+    sns.heatmap(pivot, annot=True, fmt=".2f", cmap="RdBu_r", center=0.0,
+                annot_kws={"size": 7}, linewidths=0.3, linecolor="white")
     plt.title(title)
     plt.ylabel("feature")
     plt.tight_layout()
@@ -585,10 +586,14 @@ def plot_model_metrics(
             vmin=vmin,
             vmax=vmax,
             cbar_kws={"label": cbar_label},
+            annot_kws={"size": 7},
+            linewidths=0.3,
+            linecolor="white",
         )
         plt.title(title)
         plt.ylabel(ylab)
         plt.xlabel(xlab)
+        plt.xticks(rotation=90)
         plt.tight_layout()
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches="tight")
@@ -1531,7 +1536,7 @@ def compute_interrater_reliability(
     print(f"[INFO] Wrote summary to {summary_path}")
 
 
-def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] = None):
+def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] = None, exclude_ctx: Optional[List[str]] = None):
     print(f"\n===============================")
     print(f"=== Evaluating {file_path} ===")
     print(f"===============================\n")
@@ -1619,6 +1624,12 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         if "model_name" in df.columns:
             df = df.drop(columns=["model_name"])
         canonical_name = str(sheet_name)
+
+        if exclude_ctx:
+            _factors = parse_factors(canonical_name)
+            if _factors.get("ctx") in exclude_ctx:
+                print(f"[INFO] Skipping {canonical_name} (ctx={_factors.get('ctx')} excluded by --exclude-ctx)")
+                continue
 
         df = combine_wh_qu(df)
         df = df.drop_duplicates(subset="sentence")
@@ -1887,6 +1898,7 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         align="intersection",
         title=f"{model_label}: F1 by AAE feature (heatmap, shared features only)",
         save_path=os.path.join(output_base, f"{all_models_label}_F1_heatmap_intersection.png"),
+        figsize=(22, 12),
     )
 
     plot_overall_f1_scores(
@@ -2013,6 +2025,14 @@ def main():
         help="Base directory to save evaluation results"
     )
 
+    parser.add_argument(
+        "--exclude-ctx",
+        nargs="+",
+        default=None,
+        metavar="CTX_LEVEL",
+        help="Context levels to exclude (e.g. --exclude-ctx CTX2t). Sheets with these ctx values are skipped.",
+    )
+
     args = parser.parse_args()
 
     # 1. Update the global output directory variable used by evaluate_sheets
@@ -2058,7 +2078,7 @@ def main():
     # 4. Run evaluation for each file
     for filepath in filepaths:
         try:
-            evaluate_sheets(filepath, gold_dfs=gold_dfs)
+            evaluate_sheets(filepath, gold_dfs=gold_dfs, exclude_ctx=args.exclude_ctx)
         except Exception as e:
             print(f"\n[ERROR] Failed to evaluate {filepath}: {e}")
             import traceback
