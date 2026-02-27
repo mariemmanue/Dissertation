@@ -27,20 +27,26 @@ nlprun -q jag -p standard -r 40G -c 2 -n combine_phi4 \
   -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && conda activate cgedit && \
    python Decoder-Only/combine_predictions.py Decoder-Only/Phi-4/data/FullTest_Final/ Decoder-Only/Phi-4_Combined.xlsx"
-   
-
 
 # ── Qwen 2.5-7B ──
 nlprun -q jag -p standard -r 40G -c 2 -n combine_qwen25 \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && conda activate cgedit && \
    python Decoder-Only/combine_predictions.py Decoder-Only/Qwen2.5/data/FullTest_Final/ Decoder-Only/Qwen2.5_Combined.xlsx"
+   
+
 
 # ── Qwen3-32B (thinking) ──
 nlprun -q jag -p standard -r 40G -c 2 -n combine_qwen3t \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x-%j.out \
   "cd /nlp/scr/mtano/Dissertation && . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && conda activate cgedit && \
    python Decoder-Only/combine_predictions.py Decoder-Only/Qwen3-32B-Thinking/data/FullTest_Final/ Decoder-Only/Qwen3-32B-Thinking_Combined.xlsx"
+
+   # ── Qwen3-32B (non-thinking) ──
+nlprun -q jag -p standard -r 40G -c 2 -n combine_qwen3 \
+  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
+  "cd /nlp/scr/mtano/Dissertation && . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && conda activate cgedit && \
+   python Decoder-Only/combine_predictions.py Decoder-Only/Qwen3-32B/data/FullTest_Final/ Decoder-Only/Qwen3-32B_Combined.xlsx"
 
    
 
@@ -71,11 +77,6 @@ nlprun -q jag -p standard -r 40G -c 2 -n combine_gpt52th \
   "cd /nlp/scr/mtano/Dissertation && . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && conda activate cgedit && \
    python Decoder-Only/combine_predictions.py Decoder-Only/GPT52_Thinking_High/data/FullTest_Final/ Decoder-Only/GPT52_Thinking_High_Combined.xlsx"
 
-# ── Qwen3-32B (non-thinking) ──
-nlprun -q jag -p standard -r 40G -c 2 -n combine_qwen3 \
-  -o Decoder-Only/Qwen3-32B/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation && . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && conda activate cgedit && \
-   python Decoder-Only/combine_predictions.py Decoder-Only/Qwen3-32B/data/FullTest_Final/ Decoder-Only/Qwen3-32B_Combined.xlsx"
 
 # ── QwQ-32B ──
 nlprun -q jag -p standard -r 40G -c 2 -n combine_qwq \
