@@ -26,10 +26,16 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from scipy.stats import wilcoxon
 from itertools import combinations
 
-from multi_prompt_configs import (
-    EXTENDED_FEATURES,
-    MASIS_FEATURES,
-)
+# Feature lists inlined to avoid importing heavy model dependencies from multi_prompt_configs
+MASIS_FEATURES = [
+    "zero-poss", "zero-copula", "double-tense", "be-construction", "resultant-done",
+    "finna", "come", "double-modal", "multiple-neg", "neg-inversion", "n-inv-neg-concord",
+    "aint", "zero-3sg-pres-s", "is-was-gen", "zero-pl-s", "double-object", "wh-qu1", "wh-qu2",
+]
+EXTENDED_FEATURES = MASIS_FEATURES + [
+    "existential-it", "demonstrative-them", "appositive-pleonastic-pronoun",
+    "bin", "verb-stem", "past-tense-swap", "zero-rel-pronoun", "preterite-had", "bare-got",
+]
 
 """
 nlprun -q jag -p standard -r 40G -c 2 -t 4:00:00 \
@@ -293,6 +299,7 @@ def plot_overall_micro_f1_scores(
     save_path: Optional[str] = None,
     figsize: tuple = (10, 8),
     align: Literal["union", "intersection"] = "intersection",
+    title: Optional[str] = None,
 ):
     if align == "intersection":
         shared = None
@@ -319,11 +326,11 @@ def plot_overall_micro_f1_scores(
 
     ax = out.plot(kind="bar", figsize=figsize, legend=False)
     ax.set_ylabel("micro-F1")
-    ax.set_title(
+    ax.set_title(title or (
         "Overall micro-F1 by model (shared features only)"
         if align == "intersection"
         else "Overall micro-F1 by model (each model’s evaluated features; not strictly comparable)"
-    )
+    ))
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     if save_path:
@@ -336,6 +343,7 @@ def plot_overall_f1_scores(
     save_path: Optional[str] = None,
     figsize: tuple = (10, 8),
     align: Literal["union", "intersection"] = "intersection",
+    title: Optional[str] = None,
 ):
     overall_f1_scores = {}
 
@@ -365,11 +373,11 @@ def plot_overall_f1_scores(
 
     ax = overall_f1_df.plot(kind="bar", figsize=figsize, legend=False)
     ax.set_ylabel("F1 Score")
-    ax.set_title(
+    ax.set_title(title or (
         "Overall F1 Scores by Model (shared features only)"
         if align == "intersection"
         else "Overall F1 Scores by Model (each model’s evaluated features; not strictly comparable)"
-    )
+    ))
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     if save_path:
@@ -382,6 +390,7 @@ def plot_f1_scores_per_feature(
     save_path: Optional[str] = None,
     figsize: tuple = (14, 10),
     align: Literal["union", "intersection"] = "intersection",
+    title: Optional[str] = None,
 ):
     all_eval = pd.concat(eval_dfs, ignore_index=True)
     pivot = all_eval.pivot(index="feature", columns="model", values="f1")
@@ -395,7 +404,7 @@ def plot_f1_scores_per_feature(
 
     plt.figure(figsize=figsize)
     sns.heatmap(pivot, annot=True, fmt=".2f", cmap="RdYlGn", vmin=0.0, vmax=1.0, cbar_kws={"label": "F1 score"})
-    title = "F1 Scores per Feature by Model (Shared Features Only)" if align == "intersection" else "F1 Scores per Feature by Model"
+    title = title or ("F1 Scores per Feature by Model (Shared Features Only)" if align == "intersection" else "F1 Scores per Feature by Model")
     plt.title(title)
     plt.xlabel("Model")
     plt.ylabel("Feature")
@@ -785,6 +794,7 @@ def plot_config_leaderboard(
     all_eval: pd.DataFrame,
     save_path: str,
     figsize: tuple = (10, 8),
+    title: Optional[str] = None,
 ) -> None:
     """Horizontal bar chart of configs ranked by macro-F1."""
     macro = (
@@ -825,7 +835,7 @@ def plot_config_leaderboard(
                 )
 
     ax.set_xlabel("Macro F1")
-    ax.set_title("Configuration Leaderboard (ranked by macro-F1)")
+    ax.set_title(title or "Configuration Leaderboard (ranked by macro-F1)")
     ax.set_xlim(0, min(1.05, macro["macro_f1"].max() + 0.1))
 
     if palette:
@@ -843,6 +853,7 @@ def plot_variable_effects(
     summary_df: Optional[pd.DataFrame],
     save_path: str,
     figsize: tuple = (8, 6),
+    title: Optional[str] = None,
 ) -> None:
     """Forest plot: mean delta ± 95% CI per factor comparison."""
     if summary_df is None or summary_df.empty:
@@ -869,7 +880,7 @@ def plot_variable_effects(
     ax.set_yticks(range(len(df)))
     ax.set_yticklabels(df["label"].tolist(), fontsize=9)
     ax.set_xlabel("Mean ΔF1 (b − a)")
-    ax.set_title("Variable Effects on F1 (forest plot)")
+    ax.set_title(title or "Variable Effects on F1 (forest plot)")
 
     from matplotlib.lines import Line2D
     legend_elements = [
@@ -1835,12 +1846,14 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         plot_variable_effects(
             sig_df,
             save_path=os.path.join(output_base, f"{model_label}_variable_effects_forest.png"),
+            title=f"{model_label}: Variable Effects on F1 (forest plot)",
         )
 
     # Config leaderboard
     plot_config_leaderboard(
         all_eval,
         save_path=os.path.join(output_base, f"{model_label}_config_leaderboard.png"),
+        title=f"{model_label}: Configuration Leaderboard (ranked by macro-F1)",
     )
 
     # Summary table CSV
@@ -1905,30 +1918,35 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         eval_dfs=eval_results,
         align="intersection",
         save_path=os.path.join(output_base, f"{all_models_label}_Overall_F1_intersection.png"),
+        title=f"{model_label}: Overall F1 by Config (shared features only)",
     )
 
     plot_overall_f1_scores(
         eval_dfs=eval_results,
         align="union",
         save_path=os.path.join(output_base, f"{all_models_label}_Overall_F1_full_union.png"),
+        title=f"{model_label}: Overall F1 by Config (all features)",
     )
 
     plot_f1_scores_per_feature(
         eval_dfs=eval_results,
         align="intersection",
         save_path=os.path.join(output_base, f"{all_models_label}_Per_Feature_F1_intersection.png"),
+        title=f"{model_label}: F1 per Feature by Config (shared features only)",
     )
 
     plot_overall_micro_f1_scores(
         eval_dfs=eval_results,
         align="intersection",
         save_path=os.path.join(output_base, f"{all_models_label}_MicroF1_intersection.png"),
+        title=f"{model_label}: Micro-F1 by Config (shared features only)",
     )
 
     plot_overall_micro_f1_scores(
         eval_dfs=eval_results,
         align="union",
         save_path=os.path.join(output_base, f"{all_models_label}_MicroF1_full_union.png"),
+        title=f"{model_label}: Micro-F1 by Config (all features)",
     )
 
     # Error aggregation + Excel
