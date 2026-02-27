@@ -658,27 +658,13 @@ class OpenAIReasoningBackend(OpenAIBackend):
         else:
             max_tokens = 4000
 
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                max_completion_tokens=max_tokens,
-                logprobs=True,
-                top_logprobs=2,
-                reasoning_effort=self.reasoning_effort,
-            )
-        except Exception as e:
-            # Fallback: retry without logprobs if unsupported for reasoning models
-            if "logprobs" in str(e).lower():
-                print(f"WARNING: logprobs not supported for {self.model} with reasoning. Retrying without.")
-                resp = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    max_completion_tokens=max_tokens,
-                    reasoning_effort=self.reasoning_effort,
-                )
-            else:
-                raise
+        # Reasoning models do not support logprobs — call directly without it
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            max_completion_tokens=max_tokens,
+            reasoning_effort=self.reasoning_effort,
+        )
 
         if hasattr(resp.choices[0], 'logprobs') and resp.choices[0].logprobs:
             self._last_confidence_data = {
