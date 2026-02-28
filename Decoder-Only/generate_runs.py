@@ -137,7 +137,7 @@ INSTRUCTION_TYPES = ["zero_shot", "few_shot", "zero_shot_cot", "few_shot_cot"]
 CONTEXT_SETTINGS = [
     {"context": False, "context_mode": None},
     {"context": True,  "context_mode": "single_turn"},
-    {"context": True,  "context_mode": "two_turn"},
+    {"context": True,  "context_mode": "wide"},
 ]
 DIALECT_LEGITIMACY = [False, True]
 
@@ -162,7 +162,7 @@ def make_sheet_name(model_key, inst_type, ctx_setting, dialect_leg):
     elif ctx_setting["context_mode"] == "single_turn":
         parts.append("CTX1t")
     else:
-        parts.append("CTX2t")
+        parts.append("CTXwide")
 
     parts.append("Leg" if dialect_leg else "noLeg")
 

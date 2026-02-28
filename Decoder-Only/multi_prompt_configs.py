@@ -2020,9 +2020,14 @@ def format_context_block(left_context, right_context) -> str:
     right_context = _clean_ctx(right_context)
     lines = []
     if left_context:
-        lines.append(f"PREV SENTENCE (context): {left_context}")
+        sents = [s for s in left_context.split("\n") if s.strip()]
+        for i, s in enumerate(sents):
+            label = i - len(sents)  # -5, -4, ..., -1
+            lines.append(f"PREV [{label}]: {s}")
     if right_context:
-        lines.append(f"NEXT SENTENCE (context): {right_context}")
+        sents = [s for s in right_context.split("\n") if s.strip()]
+        for i, s in enumerate(sents, 1):
+            lines.append(f"NEXT [+{i}]: {s}")
     return "\n".join(lines)
 
 # ==================== PROMPT BUILDERS ====================
@@ -2268,12 +2273,11 @@ def build_messages(
     """
     Assembles the full messages list for a single sentence.
 
-    Returns (messages, arm_used) where arm_used is "single_turn" or "two_turn".
+    Returns (messages, arm_used) where arm_used is "single_turn" or "wide".
 
     Message structure:
         [system_msg]                           — always present
-        [context_msg]                          — only in two_turn mode
-        [user_msg]                             — always present
+        [user_msg]                             — always present (context embedded)
     """
 
     system_msg = build_system_msg(
@@ -2291,38 +2295,7 @@ def build_messages(
         if cb.strip():
             context_block = cb
 
-    # Two-turn mode: context in its own prior user message
-    if use_context and context_block and context_mode == "two_turn":
-        context_msg = {
-            "role": "user",
-            "content": (
-                "### CONTEXT ###\n"
-                "(Use ONLY to resolve subject reference and tense, NOT to infer events)\n\n"
-                "CONTEXT (do NOT analyze yet; this is NOT the target utterance).\n\n"
-                f"{context_block}"
-            ),
-        }
-        # Synthetic assistant ack so the conversation follows the standard
-        # user → assistant → user alternation that chat models expect.
-        ack_msg = {
-            "role": "assistant",
-            "content": (
-                "Understood. I have noted the surrounding context and will use it "
-                "only to resolve subject reference and tense when you provide the "
-                "target utterance. I will not analyze or label the context itself."
-            ),
-        }
-        user_content = build_user_msg(
-            utterance=utterance,
-            features=features,
-            output_format=output_format,
-            instruction_type=instruction_type,
-            context_block=None,
-        )
-        user_msg = {"role": "user", "content": user_content}
-        return [system_msg, context_msg, ack_msg, user_msg], "two_turn"
-
-    # Single-turn (default): context embedded in user message (reminder goes here)
+    # Single-turn: context embedded in user message (single_turn or wide)
     user_content = build_user_msg(
         utterance=utterance,
         features=features,
@@ -2331,7 +2304,7 @@ def build_messages(
         context_block=context_block,  # ← Reminder included via build_user_msg
     )
     user_msg = {"role": "user", "content": user_content}
-    return [system_msg, user_msg], "single_turn"
+    return [system_msg, user_msg], context_mode
 
 # ==================== USAGE SUMMARY ====================
 
@@ -2577,7 +2550,7 @@ def main():
     parser.add_argument("--dump_prompt_path", type=str, default=None,   help="Write prompt JSON to this path")
     parser.add_argument("--dump_first_n",     type=int, default=1,      help="Dump first N prompts (default: 1, use 0 for all)")
     parser.add_argument("--context_mode",     type=str, default="single_turn",
-                        choices=["single_turn", "two_turn"])
+                        choices=["single_turn", "wide"])
     parser.add_argument("--backend",          type=str, default="openai",
                         choices=["openai", "openai_reasoning", "gemini", "gemini3",
                                  "phi", "phi_reasoning", "llama",
@@ -2813,8 +2786,8 @@ def main():
         cache_end = time.time()
         print(f"Cache created in {cache_end - cache_start:.1f}s")
     # -------------------- COUNTERS --------------------
-    usable_ctx_count    = 0
-    used_two_turn_count = 0
+    usable_ctx_count       = 0
+    used_wide_count        = 0
     used_single_turn_count = 0
     dump_counter = 0  # Track number of prompts dumped
 
@@ -2830,10 +2803,16 @@ def main():
         usable = False
 
         if args.context:
-            if idx > 0:
-                left = golddf.loc[idx - 1, "sentence"]
-            if idx < len(golddf) - 1:
-                right = golddf.loc[idx + 1, "sentence"]
+            if args.context_mode == "wide":
+                left_sents  = [golddf.loc[i, "sentence"] for i in range(max(0, idx - 5), idx)]
+                right_sents = [golddf.loc[i, "sentence"] for i in range(idx + 1, min(len(golddf), idx + 6))]
+                left  = "\n".join(left_sents)  if left_sents  else None
+                right = "\n".join(right_sents) if right_sents else None
+            else:
+                if idx > 0:
+                    left = golddf.loc[idx - 1, "sentence"]
+                if idx < len(golddf) - 1:
+                    right = golddf.loc[idx + 1, "sentence"]
             usable = has_usable_context(left, right)
             if usable:
                 usable_ctx_count += 1
@@ -2870,8 +2849,8 @@ def main():
         if args.backend in ("openai", "openai_reasoning", "gemini", "gemini3") and args.rate_limit_delay > 0:
             time.sleep(args.rate_limit_delay)
 
-        if arm_used == "two_turn":
-            used_two_turn_count += 1
+        if arm_used == "wide":
+            used_wide_count += 1
         elif arm_used == "single_turn":
             used_single_turn_count += 1
 
