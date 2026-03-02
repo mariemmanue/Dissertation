@@ -407,6 +407,197 @@ nlprun -q jag -p standard -r 40G -c 2 \
 fi
 
 # ============================================================
+# GEMINI3_PRO — gemini-3-pro-preview
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_pro" ]]; then
+
+mkdir -p Decoder-Only/Gemini3_Pro/slurm_logs
+mkdir -p Decoder-Only/Gemini3_Pro/data
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_zs_ctxwide_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_CTXwide_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_zs_ctxwide_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZS_CTXwide_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_fs_ctxwide_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_CTXwide_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_fs_ctxwide_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FS_CTXwide_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_zscot_ctxwide_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_CTXwide_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_zscot_ctxwide_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_ZScot_CTXwide_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_fscot_ctxwide_noleg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_CTXwide_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_gemini3_pro_fscot_ctxwide_leg \
+  -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model gemini-3-pro-preview \
+    --backend gemini3 \
+    --sheet GEMINI3_PRO_FScot_CTXwide_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Gemini3_Pro/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
 # QWEN25_7B — Qwen/Qwen2.5-7B-Instruct
 # ============================================================
 
