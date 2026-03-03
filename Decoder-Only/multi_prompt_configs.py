@@ -474,7 +474,9 @@ class Gemini3Backend(LLMBackend):
     Google Gemini 3 Pro API backend (uses the new google.genai library).
 
     Gemini 3 Pro is a reasoning model with thinking enabled by default.
-    thinking_level controls depth: "none" (thinking disabled), "low" (minimal reasoning) or "high" (deep reasoning, default).
+    thinking_level controls depth: "minimal" (default for Flash, closest to off but not guaranteed),
+    "low", "medium", or "high" (deep reasoning, default for Pro).
+    Note: thinking cannot be fully disabled on Gemini 3 models; use "minimal" for lowest thinking.
 
     CONFIDENCE SUPPORT: Not supported (API doesn't expose logprobs)
     """
@@ -510,10 +512,7 @@ class Gemini3Backend(LLMBackend):
         system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
         user_turns = [m for m in messages if m["role"] == "user"]
 
-        if self.thinking_level == "none":
-            thinking_cfg = genai_types.ThinkingConfig(thinking_budget=0)
-        else:
-            thinking_cfg = genai_types.ThinkingConfig(thinking_level=self.thinking_level)
+        thinking_cfg = genai_types.ThinkingConfig(thinking_level=self.thinking_level)
 
         config = genai_types.GenerateContentConfig(
             temperature=0.1,
@@ -2565,8 +2564,10 @@ def main():
                         choices=["low", "medium", "high", "xhigh"],
                         help="Reasoning effort for OpenAI reasoning models (default: medium)")
     parser.add_argument("--thinking_level",  type=str, default="high",
-                        choices=["none", "low", "high"],
-                        help="Thinking level for Gemini 3 models: 'none' disables thinking, 'low' minimal, 'high' deep (default: high)")
+                        choices=["minimal", "low", "medium", "high"],
+                        help="Thinking level for Gemini 3 models: 'minimal' (Flash default, lowest thinking), "
+                             "'low', 'medium', 'high' (deep, default for Pro). "
+                             "Cannot be fully disabled on Gemini 3 models.")
     parser.add_argument("--output_format",    type=str, default="markdown",
                         choices=["json", "markdown"],
                         help="'markdown' (Analysis + Results list) or 'json' (Analysis + JSON labels)")

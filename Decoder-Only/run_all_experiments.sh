@@ -6776,7 +6776,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
           --gold Datasets/FullTest_Final.xlsx \
           --model gemini-3-flash-preview \
           --backend gemini3 \
-          --thinking_level none \
+          --thinking_level minimal \
           --sheet ${SHEET} \
           --instruction_type ${INSTR} \
           --extended \
