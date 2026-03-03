@@ -1,15 +1,16 @@
 #!/bin/bash
 # Re-run all CTXwide (wide context) experiments after the assistant-ack fix.
 #
-# Models: gemini, phi4, qwen25_7b, gpt41, qwen3_32b
+# Models: gemini, phi4, qwen25_7b, gpt41, qwen3_32b, qwen3_32bthinking
 # Grid:   4 instruction_types × 1 context(wide) × 2 legitimacy = 8 per model
-# Total:  40 jobs
+# Total:  48 jobs
 #
 # Usage:
 #   chmod +x Decoder-Only/rerun_ctxwide.sh
-#   ./Decoder-Only/rerun_ctxwide.sh              # launch all 40 jobs
-#   ./Decoder-Only/rerun_ctxwide.sh phi4         # launch only phi4 CTXwide jobs (8)
-#   ./Decoder-Only/rerun_ctxwide.sh gemini       # launch only gemini CTXwide jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh                    # launch all 48 jobs
+#   ./Decoder-Only/rerun_ctxwide.sh phi4               # launch only phi4 CTXwide jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh gemini             # launch only gemini CTXwide jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh qwen3_32bthinking  # launch only qwen3_32b thinking jobs (8)
 
 set -e
 
@@ -1163,6 +1164,197 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
     --output_dir Decoder-Only/Qwen3-32B/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# QWEN3_32B_THINKING — Qwen/Qwen3-32B (thinking/reasoning mode)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "qwen3_32bthinking" ]]; then
+
+mkdir -p Decoder-Only/Qwen3-32B-Thinking/slurm_logs
+mkdir -p Decoder-Only/Qwen3-32B-Thinking/data
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZS_CTXwide_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_zs_ctxwide_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_ZS_CTXwide_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZS_CTXwide_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_zs_ctxwide_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_ZS_CTXwide_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FS_CTXwide_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_fs_ctxwide_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_FS_CTXwide_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FS_CTXwide_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_fs_ctxwide_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_FS_CTXwide_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZScot_CTXwide_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_zscot_ctxwide_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_ZScot_CTXwide_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZScot_CTXwide_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_zscot_ctxwide_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_ZScot_CTXwide_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FScot_CTXwide_noLeg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_fscot_ctxwide_noleg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_FScot_CTXwide_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FScot_CTXwide_Leg"
+nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
+  -n ${JOB}_qwen3_32bt_fscot_ctxwide_leg \
+  -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model Qwen/Qwen3-32B \
+    --backend qwen3_thinking \
+    --sheet QWEN3_32BT_FScot_CTXwide_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
     --context_mode wide \
