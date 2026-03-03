@@ -1,10 +1,10 @@
 #!/bin/bash
 # Auto-generated experimental run script
-# Total jobs: 312
+# Total jobs: 336
 #
 # Grid per model:
 #   instruction_type:   zero_shot, few_shot, zero_shot_cot, few_shot_cot  (4)
-#   context:            off, single_turn, two_turn                        (3)
+#   context:            off, single_turn, wide                            (3)
 #   dialect_legitimacy: off, on                                           (2)
 #   output_format:      markdown (all models)                             (1)
 #   ──────────────────────────────────────────────────────────────────────
@@ -12,12 +12,13 @@
 #
 # Usage:
 #   chmod +x run_all_experiments.sh
-#   ./run_all_experiments.sh              # launch all 312 jobs
-#   ./run_all_experiments.sh phi4           # launch only phi4 jobs (24)
-#   ./run_all_experiments.sh gemini         # launch only gemini jobs (24)
-#   ./run_all_experiments.sh gpt52_instant  # launch only GPT-5.2 Instant jobs (24)
+#   ./run_all_experiments.sh                    # launch all 336 jobs
+#   ./run_all_experiments.sh phi4               # launch only phi4 jobs (24)
+#   ./run_all_experiments.sh gemini             # launch only gemini jobs (24)
+#   ./run_all_experiments.sh gpt52_instant      # launch only GPT-5.2 Instant jobs (24)
+#   ./run_all_experiments.sh gemini3_flash_nothink  # launch only Gemini 3 Flash no-thinking jobs (24)
 #
-# Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt41, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b
+# Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt41, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b, gemini3_flash_nothink
 
 set -e
 
@@ -133,7 +134,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[006] Launching: PHI4_ZS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -154,7 +155,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[007] Launching: PHI4_FS_noCTX_noLeg"
@@ -258,7 +259,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[012] Launching: PHI4_FS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -279,7 +280,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[013] Launching: PHI4_ZScot_noCTX_noLeg"
@@ -383,7 +384,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[018] Launching: PHI4_ZScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -404,7 +405,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[019] Launching: PHI4_FScot_noCTX_noLeg"
@@ -508,7 +509,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[024] Launching: PHI4_FScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -529,7 +530,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -644,7 +645,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[030] Launching: GEMINI_ZS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -665,7 +666,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[031] Launching: GEMINI_FS_noCTX_noLeg"
@@ -769,7 +770,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[036] Launching: GEMINI_FS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -790,7 +791,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[037] Launching: GEMINI_ZScot_noCTX_noLeg"
@@ -894,7 +895,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[042] Launching: GEMINI_ZScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -915,7 +916,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[043] Launching: GEMINI_FScot_noCTX_noLeg"
@@ -1019,7 +1020,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[048] Launching: GEMINI_FScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -1040,7 +1041,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -1155,7 +1156,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[054] Launching: QWEN25_7B_ZS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -1176,7 +1177,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[055] Launching: QWEN25_7B_FS_noCTX_noLeg"
@@ -1280,7 +1281,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[060] Launching: QWEN25_7B_FS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -1301,7 +1302,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[061] Launching: QWEN25_7B_ZScot_noCTX_noLeg"
@@ -1405,7 +1406,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[066] Launching: QWEN25_7B_ZScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -1426,7 +1427,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[067] Launching: QWEN25_7B_FScot_noCTX_noLeg"
@@ -1530,7 +1531,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[072] Launching: QWEN25_7B_FScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -1551,7 +1552,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Qwen2.5/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -1670,7 +1671,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --thinking_level high"
 
 echo "[078] Launching: GEMINI3_PRO_ZS_CTX2t_Leg"
@@ -1692,7 +1693,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --thinking_level high"
 
@@ -1801,7 +1802,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --thinking_level high"
 
 echo "[084] Launching: GEMINI3_PRO_FS_CTX2t_Leg"
@@ -1823,7 +1824,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --thinking_level high"
 
@@ -1932,7 +1933,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --thinking_level high"
 
 echo "[090] Launching: GEMINI3_PRO_ZScot_CTX2t_Leg"
@@ -1954,7 +1955,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --thinking_level high"
 
@@ -2063,7 +2064,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --thinking_level high"
 
 echo "[096] Launching: GEMINI3_PRO_FScot_CTX2t_Leg"
@@ -2085,7 +2086,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/Gemini3_Pro/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --thinking_level high"
 
@@ -2201,7 +2202,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[102] Launching: GPT41_ZS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -2222,7 +2223,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[103] Launching: GPT41_FS_noCTX_noLeg"
@@ -2326,7 +2327,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[108] Launching: GPT41_FS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -2347,7 +2348,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[109] Launching: GPT41_ZScot_noCTX_noLeg"
@@ -2451,7 +2452,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[114] Launching: GPT41_ZScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -2472,7 +2473,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[115] Launching: GPT41_FScot_noCTX_noLeg"
@@ -2576,7 +2577,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[120] Launching: GPT41_FScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -2597,7 +2598,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT41/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -2712,7 +2713,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[126] Launching: GPT52_INSTANT_ZS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -2733,7 +2734,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[127] Launching: GPT52_INSTANT_FS_noCTX_noLeg"
@@ -2837,7 +2838,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[132] Launching: GPT52_INSTANT_FS_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -2858,7 +2859,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[133] Launching: GPT52_INSTANT_ZScot_noCTX_noLeg"
@@ -2962,7 +2963,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[138] Launching: GPT52_INSTANT_ZScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -2983,7 +2984,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[139] Launching: GPT52_INSTANT_FScot_noCTX_noLeg"
@@ -3087,7 +3088,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[144] Launching: GPT52_INSTANT_FScot_CTX2t_Leg"
 nlprun -q jag -p standard -r 40G -c 2 \
@@ -3108,7 +3109,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Instant/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -3227,7 +3228,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort medium"
 
 echo "[150] Launching: GPT52_THINK_MED_ZS_CTX2t_Leg"
@@ -3249,7 +3250,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
@@ -3358,7 +3359,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort medium"
 
 echo "[156] Launching: GPT52_THINK_MED_FS_CTX2t_Leg"
@@ -3380,7 +3381,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
@@ -3489,7 +3490,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort medium"
 
 echo "[162] Launching: GPT52_THINK_MED_ZScot_CTX2t_Leg"
@@ -3511,7 +3512,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
@@ -3620,7 +3621,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort medium"
 
 echo "[168] Launching: GPT52_THINK_MED_FScot_CTX2t_Leg"
@@ -3642,7 +3643,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_Med/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
@@ -3762,7 +3763,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort high"
 
 echo "[174] Launching: GPT52_THINK_HIGH_ZS_CTX2t_Leg"
@@ -3784,7 +3785,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort high"
 
@@ -3893,7 +3894,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort high"
 
 echo "[180] Launching: GPT52_THINK_HIGH_FS_CTX2t_Leg"
@@ -3915,7 +3916,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort high"
 
@@ -4024,7 +4025,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort high"
 
 echo "[186] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_Leg"
@@ -4046,7 +4047,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort high"
 
@@ -4155,7 +4156,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --reasoning_effort high"
 
 echo "[192] Launching: GPT52_THINK_HIGH_FScot_CTX2t_Leg"
@@ -4177,7 +4178,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --output_dir Decoder-Only/GPT52_Thinking_High/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy \
     --reasoning_effort high"
 
@@ -4293,7 +4294,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[198] Launching: PHI4_REASONING_ZS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -4314,7 +4315,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[199] Launching: PHI4_REASONING_FS_noCTX_noLeg"
@@ -4418,7 +4419,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[204] Launching: PHI4_REASONING_FS_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -4439,7 +4440,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[205] Launching: PHI4_REASONING_ZScot_noCTX_noLeg"
@@ -4543,7 +4544,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[210] Launching: PHI4_REASONING_ZScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -4564,7 +4565,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[211] Launching: PHI4_REASONING_FScot_noCTX_noLeg"
@@ -4668,7 +4669,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[216] Launching: PHI4_REASONING_FScot_CTX2t_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
@@ -4689,7 +4690,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --output_dir Decoder-Only/Phi-4-reasoning/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -4804,7 +4805,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[222] Launching: LLAMA70B_ZS_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
@@ -4825,7 +4826,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[223] Launching: LLAMA70B_FS_noCTX_noLeg"
@@ -4929,7 +4930,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[228] Launching: LLAMA70B_FS_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
@@ -4950,7 +4951,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[229] Launching: LLAMA70B_ZScot_noCTX_noLeg"
@@ -5054,7 +5055,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[234] Launching: LLAMA70B_ZScot_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
@@ -5075,7 +5076,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[235] Launching: LLAMA70B_FScot_noCTX_noLeg"
@@ -5179,7 +5180,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[240] Launching: LLAMA70B_FScot_CTX2t_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
@@ -5200,7 +5201,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --output_dir Decoder-Only/Llama-3.1-70B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -5315,7 +5316,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[246] Launching: QWEN3_32B_ZS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -5336,7 +5337,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[247] Launching: QWEN3_32B_FS_noCTX_noLeg"
@@ -5440,7 +5441,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[252] Launching: QWEN3_32B_FS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -5461,7 +5462,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[253] Launching: QWEN3_32B_ZScot_noCTX_noLeg"
@@ -5565,7 +5566,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[258] Launching: QWEN3_32B_ZScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -5586,7 +5587,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[259] Launching: QWEN3_32B_FScot_noCTX_noLeg"
@@ -5690,7 +5691,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[264] Launching: QWEN3_32B_FScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -5711,7 +5712,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -5826,7 +5827,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[270] Launching: QWEN3_32B_THINK_ZS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -5847,7 +5848,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[271] Launching: QWEN3_32B_THINK_FS_noCTX_noLeg"
@@ -5951,7 +5952,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[276] Launching: QWEN3_32B_THINK_FS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -5972,7 +5973,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[277] Launching: QWEN3_32B_THINK_ZScot_noCTX_noLeg"
@@ -6076,7 +6077,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[282] Launching: QWEN3_32B_THINK_ZScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -6097,7 +6098,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[283] Launching: QWEN3_32B_THINK_FScot_noCTX_noLeg"
@@ -6201,7 +6202,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[288] Launching: QWEN3_32B_THINK_FScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -6222,7 +6223,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/Qwen3-32B-Thinking/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 fi
@@ -6337,7 +6338,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[294] Launching: QWQ_32B_ZS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -6358,7 +6359,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[295] Launching: QWQ_32B_FS_noCTX_noLeg"
@@ -6462,7 +6463,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[300] Launching: QWQ_32B_FS_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -6483,7 +6484,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[301] Launching: QWQ_32B_ZScot_noCTX_noLeg"
@@ -6587,7 +6588,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[306] Launching: QWQ_32B_ZScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -6608,7 +6609,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
 
 echo "[307] Launching: QWQ_32B_FScot_noCTX_noLeg"
@@ -6712,7 +6713,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn"
+    --context_mode wide"
 
 echo "[312] Launching: QWQ_32B_FScot_CTX2t_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
@@ -6733,8 +6734,59 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --output_dir Decoder-Only/QwQ-32B/data \
     --dump_prompt \
     --context \
-    --context_mode two_turn \
+    --context_mode wide \
     --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# GEMINI3_FLASH_NOTHINK — gemini-3-flash, thinking disabled
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_flash_nothink" ]]; then
+
+mkdir -p Decoder-Only/Gemini3-Flash/slurm_logs
+mkdir -p Decoder-Only/Gemini3-Flash/data
+
+JOB=0
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  case $INSTR in
+    zero_shot)     ITAG="ZS"    ;;
+    few_shot)      ITAG="FS"    ;;
+    zero_shot_cot) ITAG="ZScot" ;;
+    few_shot_cot)  ITAG="FScot" ;;
+  esac
+  for CTX in "noCTX||" "CTX1t|--context|single_turn" "CTX2t|--context|wide"; do
+    IFS='|' read -r CTAG CFLAG CMODE <<< "$CTX"
+    [[ -n "$CMODE" ]] && CARGS="${CFLAG} --context_mode ${CMODE}" || CARGS=""
+    for LEG in "" "--dialect_legitimacy"; do
+      [[ -n "$LEG" ]] && LTAG="Leg" || LTAG="noLeg"
+      JOB=$((JOB+1))
+      GNUM=$((312+JOB))
+      SHEET="G3FLASH_${ITAG}_${CTAG}_${LTAG}"
+      echo "[$(printf '%03d' $GNUM)] Launching: ${SHEET}"
+      nlprun -q jag -p standard -r 40G -c 2 \
+        -n $(printf '%02d' $JOB)_g3flash_${ITAG,,}_${CTAG,,}_${LTAG,,} \
+        -o Decoder-Only/Gemini3-Flash/slurm_logs/%x.out \
+        "cd /nlp/scr/mtano/Dissertation && \
+         . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+         conda activate cgedit && \
+         python Decoder-Only/multi_prompt_configs.py \
+          --file Datasets/FullTest_Final.xlsx \
+          --gold Datasets/FullTest_Final.xlsx \
+          --model gemini-3-flash \
+          --backend gemini3 \
+          --thinking_level none \
+          --sheet ${SHEET} \
+          --instruction_type ${INSTR} \
+          --extended \
+          --output_format markdown \
+          --output_dir Decoder-Only/Gemini3-Flash/data \
+          --dump_prompt \
+          ${CARGS} ${LEG}"
+    done
+  done
+done
 
 fi
 
