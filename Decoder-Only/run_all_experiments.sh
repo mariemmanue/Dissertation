@@ -12,17 +12,20 @@
 #
 # Usage:
 #   chmod +x run_all_experiments.sh
-#   ./run_all_experiments.sh                    # launch all 336 jobs
-#   ./run_all_experiments.sh phi4               # launch only phi4 jobs (24)
-#   ./run_all_experiments.sh gemini             # launch only gemini jobs (24)
-#   ./run_all_experiments.sh gpt52_instant      # launch only GPT-5.2 Instant jobs (24)
-#   ./run_all_experiments.sh gemini3_flash_nothink  # launch only Gemini 3 Flash no-thinking jobs (24)
+#   ./run_all_experiments.sh                         # all 336 jobs on jag (default)
+#   ./run_all_experiments.sh all john                # all API-model jobs on john (CPU nodes)
+#   ./run_all_experiments.sh phi4                    # only phi4 jobs (24) — uses sphinx (GPU)
+#   ./run_all_experiments.sh gemini john             # only gemini jobs on john
+#   ./run_all_experiments.sh gpt52_instant john      # only GPT-5.2 Instant on john
+#   ./run_all_experiments.sh gemini3_flash_nothink john  # only Gemini 3 Flash NT on john
+# Note: local GPU models (phi4, qwen*, llama, phi4_reasoning) ignore QUEUE — always use sphinx/jag.
 #
 # Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt41, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b, gemini3_flash_nothink
 
 set -e
 
 MODEL_FILTER="${1:-all}"
+API_QUEUE="${2:-jag}"     # override: pass "john" for CPU-only nodes (API models only)
 
 # ============================================================
 # PHI4 — microsoft/phi-4
@@ -545,7 +548,7 @@ mkdir -p Decoder-Only/Gemini/slurm_logs
 mkdir -p Decoder-Only/Gemini/data
 
 echo "[025] Launching: GEMINI_ZS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 01_gemini_zs_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -564,7 +567,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[026] Launching: GEMINI_ZS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 02_gemini_zs_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -584,7 +587,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[027] Launching: GEMINI_ZS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 03_gemini_zs_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -605,7 +608,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[028] Launching: GEMINI_ZS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 04_gemini_zs_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -627,7 +630,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[029] Launching: GEMINI_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gemini_zs_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -648,7 +651,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[030] Launching: GEMINI_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gemini_zs_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -670,7 +673,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[031] Launching: GEMINI_FS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 07_gemini_fs_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -689,7 +692,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[032] Launching: GEMINI_FS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 08_gemini_fs_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -709,7 +712,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[033] Launching: GEMINI_FS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 09_gemini_fs_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -730,7 +733,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[034] Launching: GEMINI_FS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 10_gemini_fs_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -752,7 +755,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[035] Launching: GEMINI_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gemini_fs_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -773,7 +776,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[036] Launching: GEMINI_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gemini_fs_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -795,7 +798,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[037] Launching: GEMINI_ZScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 13_gemini_zscot_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -814,7 +817,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[038] Launching: GEMINI_ZScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 14_gemini_zscot_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -834,7 +837,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[039] Launching: GEMINI_ZScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 15_gemini_zscot_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -855,7 +858,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[040] Launching: GEMINI_ZScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 16_gemini_zscot_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -877,7 +880,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[041] Launching: GEMINI_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gemini_zscot_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -898,7 +901,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[042] Launching: GEMINI_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gemini_zscot_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -920,7 +923,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[043] Launching: GEMINI_FScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 19_gemini_fscot_noctx_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -939,7 +942,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[044] Launching: GEMINI_FScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 20_gemini_fscot_noctx_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -959,7 +962,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[045] Launching: GEMINI_FScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 21_gemini_fscot_ctx1t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -980,7 +983,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[046] Launching: GEMINI_FScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 22_gemini_fscot_ctx1t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1002,7 +1005,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[047] Launching: GEMINI_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gemini_fscot_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1023,7 +1026,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[048] Launching: GEMINI_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gemini_fscot_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1567,7 +1570,7 @@ mkdir -p Decoder-Only/Gemini3_Pro/slurm_logs
 mkdir -p Decoder-Only/Gemini3_Pro/data
 
 echo "[073] Launching: GEMINI3_PRO_ZS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 01_gemini3_pro_zs_noctx_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1587,7 +1590,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[074] Launching: GEMINI3_PRO_ZS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 02_gemini3_pro_zs_noctx_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1608,7 +1611,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[075] Launching: GEMINI3_PRO_ZS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 03_gemini3_pro_zs_ctx1t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1630,7 +1633,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[076] Launching: GEMINI3_PRO_ZS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 04_gemini3_pro_zs_ctx1t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1653,7 +1656,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[077] Launching: GEMINI3_PRO_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gemini3_pro_zs_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1675,7 +1678,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[078] Launching: GEMINI3_PRO_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gemini3_pro_zs_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1698,7 +1701,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[079] Launching: GEMINI3_PRO_FS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 07_gemini3_pro_fs_noctx_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1718,7 +1721,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[080] Launching: GEMINI3_PRO_FS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 08_gemini3_pro_fs_noctx_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1739,7 +1742,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[081] Launching: GEMINI3_PRO_FS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 09_gemini3_pro_fs_ctx1t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1761,7 +1764,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[082] Launching: GEMINI3_PRO_FS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 10_gemini3_pro_fs_ctx1t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1784,7 +1787,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[083] Launching: GEMINI3_PRO_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gemini3_pro_fs_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1806,7 +1809,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[084] Launching: GEMINI3_PRO_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gemini3_pro_fs_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1829,7 +1832,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[085] Launching: GEMINI3_PRO_ZScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 13_gemini3_pro_zscot_noctx_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1849,7 +1852,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[086] Launching: GEMINI3_PRO_ZScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 14_gemini3_pro_zscot_noctx_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1870,7 +1873,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[087] Launching: GEMINI3_PRO_ZScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 15_gemini3_pro_zscot_ctx1t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1892,7 +1895,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[088] Launching: GEMINI3_PRO_ZScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 16_gemini3_pro_zscot_ctx1t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1915,7 +1918,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[089] Launching: GEMINI3_PRO_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gemini3_pro_zscot_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1937,7 +1940,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[090] Launching: GEMINI3_PRO_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gemini3_pro_zscot_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1960,7 +1963,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[091] Launching: GEMINI3_PRO_FScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 19_gemini3_pro_fscot_noctx_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -1980,7 +1983,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[092] Launching: GEMINI3_PRO_FScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 20_gemini3_pro_fscot_noctx_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2001,7 +2004,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[093] Launching: GEMINI3_PRO_FScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 21_gemini3_pro_fscot_ctx1t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2023,7 +2026,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[094] Launching: GEMINI3_PRO_FScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 22_gemini3_pro_fscot_ctx1t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2046,7 +2049,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[095] Launching: GEMINI3_PRO_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gemini3_pro_fscot_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2068,7 +2071,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --thinking_level high"
 
 echo "[096] Launching: GEMINI3_PRO_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gemini3_pro_fscot_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2102,7 +2105,7 @@ mkdir -p Decoder-Only/GPT41/slurm_logs
 mkdir -p Decoder-Only/GPT41/data
 
 echo "[097] Launching: GPT41_ZS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 01_gpt41_zs_noctx_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2121,7 +2124,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[098] Launching: GPT41_ZS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 02_gpt41_zs_noctx_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2141,7 +2144,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[099] Launching: GPT41_ZS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 03_gpt41_zs_ctx1t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2162,7 +2165,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[100] Launching: GPT41_ZS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 04_gpt41_zs_ctx1t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2184,7 +2187,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[101] Launching: GPT41_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt41_zs_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2205,7 +2208,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[102] Launching: GPT41_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt41_zs_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2227,7 +2230,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[103] Launching: GPT41_FS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 07_gpt41_fs_noctx_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2246,7 +2249,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[104] Launching: GPT41_FS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 08_gpt41_fs_noctx_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2266,7 +2269,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[105] Launching: GPT41_FS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 09_gpt41_fs_ctx1t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2287,7 +2290,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[106] Launching: GPT41_FS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 10_gpt41_fs_ctx1t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2309,7 +2312,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[107] Launching: GPT41_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt41_fs_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2330,7 +2333,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[108] Launching: GPT41_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt41_fs_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2352,7 +2355,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[109] Launching: GPT41_ZScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 13_gpt41_zscot_noctx_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2371,7 +2374,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[110] Launching: GPT41_ZScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 14_gpt41_zscot_noctx_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2391,7 +2394,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[111] Launching: GPT41_ZScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 15_gpt41_zscot_ctx1t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2412,7 +2415,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[112] Launching: GPT41_ZScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 16_gpt41_zscot_ctx1t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2434,7 +2437,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[113] Launching: GPT41_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt41_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2455,7 +2458,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[114] Launching: GPT41_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt41_zscot_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2477,7 +2480,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[115] Launching: GPT41_FScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 19_gpt41_fscot_noctx_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2496,7 +2499,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[116] Launching: GPT41_FScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 20_gpt41_fscot_noctx_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2516,7 +2519,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[117] Launching: GPT41_FScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 21_gpt41_fscot_ctx1t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2537,7 +2540,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[118] Launching: GPT41_FScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 22_gpt41_fscot_ctx1t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2559,7 +2562,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[119] Launching: GPT41_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt41_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2580,7 +2583,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[120] Launching: GPT41_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt41_fscot_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2613,7 +2616,7 @@ mkdir -p Decoder-Only/GPT52_Instant/slurm_logs
 mkdir -p Decoder-Only/GPT52_Instant/data
 
 echo "[121] Launching: GPT52_INSTANT_ZS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 01_gpt52_instant_zs_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2632,7 +2635,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[122] Launching: GPT52_INSTANT_ZS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 02_gpt52_instant_zs_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2652,7 +2655,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[123] Launching: GPT52_INSTANT_ZS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 03_gpt52_instant_zs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2673,7 +2676,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[124] Launching: GPT52_INSTANT_ZS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 04_gpt52_instant_zs_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2695,7 +2698,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[125] Launching: GPT52_INSTANT_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt52_instant_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2716,7 +2719,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[126] Launching: GPT52_INSTANT_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt52_instant_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2738,7 +2741,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[127] Launching: GPT52_INSTANT_FS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 07_gpt52_instant_fs_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2757,7 +2760,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[128] Launching: GPT52_INSTANT_FS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 08_gpt52_instant_fs_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2777,7 +2780,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[129] Launching: GPT52_INSTANT_FS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 09_gpt52_instant_fs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2798,7 +2801,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[130] Launching: GPT52_INSTANT_FS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 10_gpt52_instant_fs_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2820,7 +2823,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[131] Launching: GPT52_INSTANT_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt52_instant_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2841,7 +2844,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[132] Launching: GPT52_INSTANT_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt52_instant_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2863,7 +2866,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[133] Launching: GPT52_INSTANT_ZScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 13_gpt52_instant_zscot_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2882,7 +2885,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[134] Launching: GPT52_INSTANT_ZScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 14_gpt52_instant_zscot_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2902,7 +2905,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[135] Launching: GPT52_INSTANT_ZScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 15_gpt52_instant_zscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2923,7 +2926,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[136] Launching: GPT52_INSTANT_ZScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 16_gpt52_instant_zscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2945,7 +2948,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[137] Launching: GPT52_INSTANT_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt52_instant_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2966,7 +2969,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[138] Launching: GPT52_INSTANT_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt52_instant_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -2988,7 +2991,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[139] Launching: GPT52_INSTANT_FScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 19_gpt52_instant_fscot_noctx_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3007,7 +3010,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dump_prompt"
 
 echo "[140] Launching: GPT52_INSTANT_FScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 20_gpt52_instant_fscot_noctx_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3027,7 +3030,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[141] Launching: GPT52_INSTANT_FScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 21_gpt52_instant_fscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3048,7 +3051,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode single_turn"
 
 echo "[142] Launching: GPT52_INSTANT_FScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 22_gpt52_instant_fscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3070,7 +3073,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 echo "[143] Launching: GPT52_INSTANT_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt52_instant_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3091,7 +3094,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --context_mode wide"
 
 echo "[144] Launching: GPT52_INSTANT_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt52_instant_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3124,7 +3127,7 @@ mkdir -p Decoder-Only/GPT52_Thinking_Med/slurm_logs
 mkdir -p Decoder-Only/GPT52_Thinking_Med/data
 
 echo "[145] Launching: GPT52_THINK_MED_ZS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 01_gpt52_think_med_zs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3144,7 +3147,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[146] Launching: GPT52_THINK_MED_ZS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 02_gpt52_think_med_zs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3165,7 +3168,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[147] Launching: GPT52_THINK_MED_ZS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 03_gpt52_think_med_zs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3187,7 +3190,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[148] Launching: GPT52_THINK_MED_ZS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 04_gpt52_think_med_zs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3210,7 +3213,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[149] Launching: GPT52_THINK_MED_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt52_think_med_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3232,7 +3235,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[150] Launching: GPT52_THINK_MED_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt52_think_med_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3255,7 +3258,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[151] Launching: GPT52_THINK_MED_FS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 07_gpt52_think_med_fs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3275,7 +3278,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[152] Launching: GPT52_THINK_MED_FS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 08_gpt52_think_med_fs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3296,7 +3299,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[153] Launching: GPT52_THINK_MED_FS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 09_gpt52_think_med_fs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3318,7 +3321,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[154] Launching: GPT52_THINK_MED_FS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 10_gpt52_think_med_fs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3341,7 +3344,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[155] Launching: GPT52_THINK_MED_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt52_think_med_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3363,7 +3366,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[156] Launching: GPT52_THINK_MED_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt52_think_med_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3386,7 +3389,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[157] Launching: GPT52_THINK_MED_ZScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 13_gpt52_think_med_zscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3406,7 +3409,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[158] Launching: GPT52_THINK_MED_ZScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 14_gpt52_think_med_zscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3427,7 +3430,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[159] Launching: GPT52_THINK_MED_ZScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 15_gpt52_think_med_zscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3449,7 +3452,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[160] Launching: GPT52_THINK_MED_ZScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 16_gpt52_think_med_zscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3472,7 +3475,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[161] Launching: GPT52_THINK_MED_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt52_think_med_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3494,7 +3497,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[162] Launching: GPT52_THINK_MED_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt52_think_med_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3517,7 +3520,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[163] Launching: GPT52_THINK_MED_FScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 19_gpt52_think_med_fscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3537,7 +3540,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[164] Launching: GPT52_THINK_MED_FScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 20_gpt52_think_med_fscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3558,7 +3561,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[165] Launching: GPT52_THINK_MED_FScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 21_gpt52_think_med_fscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3580,7 +3583,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[166] Launching: GPT52_THINK_MED_FScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 22_gpt52_think_med_fscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3603,7 +3606,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[167] Launching: GPT52_THINK_MED_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt52_think_med_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3625,7 +3628,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort medium"
 
 echo "[168] Launching: GPT52_THINK_MED_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt52_think_med_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3659,7 +3662,7 @@ mkdir -p Decoder-Only/GPT52_Thinking_High/slurm_logs
 mkdir -p Decoder-Only/GPT52_Thinking_High/data
 
 echo "[169] Launching: GPT52_THINK_HIGH_ZS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 01_gpt52_think_high_zs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3679,7 +3682,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[170] Launching: GPT52_THINK_HIGH_ZS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 02_gpt52_think_high_zs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3700,7 +3703,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[171] Launching: GPT52_THINK_HIGH_ZS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 03_gpt52_think_high_zs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3722,7 +3725,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[172] Launching: GPT52_THINK_HIGH_ZS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 04_gpt52_think_high_zs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3745,7 +3748,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[173] Launching: GPT52_THINK_HIGH_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt52_think_high_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3767,7 +3770,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[174] Launching: GPT52_THINK_HIGH_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt52_think_high_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3790,7 +3793,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[175] Launching: GPT52_THINK_HIGH_FS_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 07_gpt52_think_high_fs_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3810,7 +3813,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[176] Launching: GPT52_THINK_HIGH_FS_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 08_gpt52_think_high_fs_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3831,7 +3834,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[177] Launching: GPT52_THINK_HIGH_FS_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 09_gpt52_think_high_fs_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3853,7 +3856,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[178] Launching: GPT52_THINK_HIGH_FS_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 10_gpt52_think_high_fs_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3876,7 +3879,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[179] Launching: GPT52_THINK_HIGH_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt52_think_high_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3898,7 +3901,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[180] Launching: GPT52_THINK_HIGH_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt52_think_high_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3921,7 +3924,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[181] Launching: GPT52_THINK_HIGH_ZScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 13_gpt52_think_high_zscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3941,7 +3944,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[182] Launching: GPT52_THINK_HIGH_ZScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 14_gpt52_think_high_zscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3962,7 +3965,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[183] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 15_gpt52_think_high_zscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -3984,7 +3987,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[184] Launching: GPT52_THINK_HIGH_ZScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 16_gpt52_think_high_zscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4007,7 +4010,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[185] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt52_think_high_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4029,7 +4032,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[186] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt52_think_high_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4052,7 +4055,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[187] Launching: GPT52_THINK_HIGH_FScot_noCTX_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 19_gpt52_think_high_fscot_noctx_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4072,7 +4075,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[188] Launching: GPT52_THINK_HIGH_FScot_noCTX_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 20_gpt52_think_high_fscot_noctx_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4093,7 +4096,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[189] Launching: GPT52_THINK_HIGH_FScot_CTX1t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 21_gpt52_think_high_fscot_ctx1t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4115,7 +4118,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[190] Launching: GPT52_THINK_HIGH_FScot_CTX1t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 22_gpt52_think_high_fscot_ctx1t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4138,7 +4141,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[191] Launching: GPT52_THINK_HIGH_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt52_think_high_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -4160,7 +4163,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --reasoning_effort high"
 
 echo "[192] Launching: GPT52_THINK_HIGH_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt52_think_high_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
   "cd /nlp/scr/mtano/Dissertation && \
@@ -6765,7 +6768,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       GNUM=$((312+JOB))
       SHEET="G3FLASH_${ITAG}_${CTAG}_${LTAG}"
       echo "[$(printf '%03d' $GNUM)] Launching: ${SHEET}"
-      nlprun -q jag -p standard -r 40G -c 2 \
+      nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
         -n $(printf '%02d' $JOB)_g3flashNT_${ITAG,,}_${CTAG,,}_${LTAG,,} \
         -o Decoder-Only/Gemini3-Flash/slurm_logs/%x.out \
         "cd /nlp/scr/mtano/Dissertation && \

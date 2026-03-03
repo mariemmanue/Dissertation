@@ -8,8 +8,9 @@
 # Total:  136 jobs
 #
 # Usage:
-#   chmod +x Decoder-Only/rerun_ctxwide.sh
-#   ./Decoder-Only/rerun_ctxwide.sh                       # launch all 136 jobs
+#   chmod +x Decoder-Only/rerun_ctx2t.sh
+#   ./Decoder-Only/rerun_ctx2t.sh                         # all 136 jobs on jag (default)
+#   ./Decoder-Only/rerun_ctx2t.sh all john                # all API-model jobs on john (CPU nodes)
 #   ./Decoder-Only/rerun_ctxwide.sh phi4                  # launch only phi4 CTX2t jobs (8)
 #   ./Decoder-Only/rerun_ctxwide.sh gemini                # launch only Gemini 2.5 Flash jobs (8)
 #   ./Decoder-Only/rerun_ctxwide.sh qwen3_32bthinking     # launch only Qwen3-32B thinking jobs (8)
@@ -27,6 +28,7 @@
 set -e
 
 MODEL_FILTER="${1:-all}"
+API_QUEUE="${2:-jag}"     # override: pass "john" for CPU-only nodes (API models only)
 
 BASE_DIR="/nlp/scr/mtano/Dissertation"
 CONDA_INIT=". /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh"
@@ -239,7 +241,7 @@ mkdir -p Decoder-Only/Gemini/data
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zs_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -261,7 +263,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zs_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -284,7 +286,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fs_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -306,7 +308,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fs_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -329,7 +331,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zscot_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -351,7 +353,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zscot_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -374,7 +376,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fscot_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -396,7 +398,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fscot_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -430,7 +432,7 @@ mkdir -p Decoder-Only/Gemini3_Pro/data
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zs_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -453,7 +455,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zs_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -477,7 +479,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fs_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -500,7 +502,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fs_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -524,7 +526,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zscot_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -547,7 +549,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zscot_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -571,7 +573,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fscot_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -594,7 +596,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fscot_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -820,7 +822,7 @@ mkdir -p Decoder-Only/GPT41/data
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zs_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -842,7 +844,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zs_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -865,7 +867,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fs_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -887,7 +889,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fs_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -910,7 +912,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zscot_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -932,7 +934,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zscot_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -955,7 +957,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fscot_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -977,7 +979,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: GPT41_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fscot_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1393,7 +1395,7 @@ mkdir -p Decoder-Only/O4-Mini/data
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zs_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1416,7 +1418,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zs_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1440,7 +1442,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fs_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1463,7 +1465,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fs_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1487,7 +1489,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zscot_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1510,7 +1512,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zscot_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1534,7 +1536,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fscot_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1557,7 +1559,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fscot_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1592,7 +1594,7 @@ mkdir -p Decoder-Only/O3/data
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zs_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1615,7 +1617,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zs_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1639,7 +1641,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fs_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1662,7 +1664,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fs_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1686,7 +1688,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zscot_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1709,7 +1711,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zscot_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1733,7 +1735,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fscot_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1756,7 +1758,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fscot_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1791,7 +1793,7 @@ mkdir -p Decoder-Only/O3-Mini/data
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zs_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1814,7 +1816,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zs_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1838,7 +1840,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fs_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1861,7 +1863,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fs_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1885,7 +1887,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zscot_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1908,7 +1910,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zscot_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1932,7 +1934,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTX2t_noLeg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fscot_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -1955,7 +1957,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 
 JOB=$((JOB+1))
 echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTX2t_Leg"
-nlprun -q jag -p standard -r 40G -c 2 \
+nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fscot_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
   "cd ${BASE_DIR} && \
@@ -2000,7 +2002,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     SHEET="GPT52_${TAG}_CTX2t_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
-    nlprun -q jag -p standard -r 40G -c 2 \
+    nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
       -n ${JOB}_gpt52_${TAG,,}_ctxwide_${LEG_TAG,,} \
       -o Decoder-Only/GPT52/slurm_logs/%x.out \
       "cd ${BASE_DIR} && \
@@ -2045,7 +2047,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     SHEET="G3FLASH_${TAG}_CTX2t_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
-    nlprun -q jag -p standard -r 40G -c 2 \
+    nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
       -n ${JOB}_g3flash_${TAG,,}_ctxwide_${LEG_TAG,,} \
       -o Decoder-Only/Gemini3-Flash/slurm_logs/%x.out \
       "cd ${BASE_DIR} && \
@@ -2091,7 +2093,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     SHEET="G3FLASHT_${TAG}_CTX2t_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
-    nlprun -q jag -p standard -r 40G -c 2 \
+    nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
       -n ${JOB}_g3flasht_${TAG,,}_ctxwide_${LEG_TAG,,} \
       -o Decoder-Only/Gemini3-Flash-Thinking/slurm_logs/%x.out \
       "cd ${BASE_DIR} && \
@@ -2137,7 +2139,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     SHEET="GEMINI25P_${TAG}_CTX2t_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
-    nlprun -q jag -p standard -r 40G -c 2 \
+    nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
       -n ${JOB}_gemini25p_${TAG,,}_ctxwide_${LEG_TAG,,} \
       -o Decoder-Only/Gemini25-Pro/slurm_logs/%x.out \
       "cd ${BASE_DIR} && \
@@ -2183,7 +2185,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     SHEET="GPT5_${TAG}_CTX2t_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
-    nlprun -q jag -p standard -r 40G -c 2 \
+    nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
       -n ${JOB}_gpt5_${TAG,,}_ctxwide_${LEG_TAG,,} \
       -o Decoder-Only/GPT5/slurm_logs/%x.out \
       "cd ${BASE_DIR} && \
@@ -2229,7 +2231,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     SHEET="O3DEEP_${TAG}_CTX2t_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
-    nlprun -q jag -p standard -r 40G -c 2 \
+    nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
       -n ${JOB}_o3deep_${TAG,,}_ctxwide_${LEG_TAG,,} \
       -o Decoder-Only/O3-Deep/slurm_logs/%x.out \
       "cd ${BASE_DIR} && \
@@ -2275,7 +2277,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     SHEET="O4MINID_${TAG}_CTX2t_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
-    nlprun -q jag -p standard -r 40G -c 2 \
+    nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
       -n ${JOB}_o4minid_${TAG,,}_ctxwide_${LEG_TAG,,} \
       -o Decoder-Only/O4-Mini-Deep/slurm_logs/%x.out \
       "cd ${BASE_DIR} && \
