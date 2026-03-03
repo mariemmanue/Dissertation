@@ -420,7 +420,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
 fi
 
 # ============================================================
-# GEMINI3_PRO — gemini-3-pro-preview
+# GEMINI3_PRO — gemini-3.1-pro-preview
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_pro" ]]; then
@@ -439,7 +439,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_ZS_CTXwide_noLeg \
@@ -462,7 +462,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_ZS_CTXwide_Leg \
@@ -486,7 +486,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_FS_CTXwide_noLeg \
@@ -509,7 +509,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_FS_CTXwide_Leg \
@@ -533,7 +533,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_ZScot_CTXwide_noLeg \
@@ -556,7 +556,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_ZScot_CTXwide_Leg \
@@ -580,7 +580,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_FScot_CTXwide_noLeg \
@@ -603,7 +603,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file ${INPUT_FILE} \
     --gold ${GOLD_FILE} \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
     --sheet GEMINI3_PRO_FScot_CTXwide_Leg \
@@ -2054,7 +2054,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
        python Decoder-Only/multi_prompt_configs.py \
         --file ${INPUT_FILE} \
         --gold ${GOLD_FILE} \
-        --model gemini-3-flash \
+        --model gemini-3-flash-preview \
         --backend gemini3 \
         --thinking_level none \
         --sheet ${SHEET} \
@@ -2100,7 +2100,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
        python Decoder-Only/multi_prompt_configs.py \
         --file ${INPUT_FILE} \
         --gold ${GOLD_FILE} \
-        --model gemini-3-flash \
+        --model gemini-3-flash-preview \
         --backend gemini3 \
         --thinking_level high \
         --sheet ${SHEET} \
@@ -2117,7 +2117,7 @@ done
 fi
 
 # ============================================================
-# GEMINI25_PRO — gemini-2.5-pro-preview (reasoning/thinking)
+# GEMINI25_PRO — gemini-2.5-pro (reasoning/thinking)
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini25_pro" ]]; then
@@ -2146,7 +2146,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
        python Decoder-Only/multi_prompt_configs.py \
         --file ${INPUT_FILE} \
         --gold ${GOLD_FILE} \
-        --model gemini-2.5-pro-preview \
+        --model gemini-2.5-pro \
         --backend gemini3 \
         --thinking_level high \
         --sheet ${SHEET} \

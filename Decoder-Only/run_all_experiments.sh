@@ -1558,7 +1558,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
 fi
 
 # ============================================================
-# GEMINI3_PRO — gemini-3-pro-preview
+# GEMINI3_PRO — gemini-3.1-pro-preview
 # ============================================================
 
 if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_pro" ]]; then
@@ -1576,7 +1576,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZS_noCTX_noLeg \
     --instruction_type zero_shot \
@@ -1596,7 +1596,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZS_noCTX_Leg \
     --instruction_type zero_shot \
@@ -1617,7 +1617,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZS_CTX1t_noLeg \
     --instruction_type zero_shot \
@@ -1639,7 +1639,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZS_CTX1t_Leg \
     --instruction_type zero_shot \
@@ -1662,7 +1662,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZS_CTX2t_noLeg \
     --instruction_type zero_shot \
@@ -1684,7 +1684,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZS_CTX2t_Leg \
     --instruction_type zero_shot \
@@ -1707,7 +1707,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FS_noCTX_noLeg \
     --instruction_type few_shot \
@@ -1727,7 +1727,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FS_noCTX_Leg \
     --instruction_type few_shot \
@@ -1748,7 +1748,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FS_CTX1t_noLeg \
     --instruction_type few_shot \
@@ -1770,7 +1770,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FS_CTX1t_Leg \
     --instruction_type few_shot \
@@ -1793,7 +1793,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FS_CTX2t_noLeg \
     --instruction_type few_shot \
@@ -1815,7 +1815,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FS_CTX2t_Leg \
     --instruction_type few_shot \
@@ -1838,7 +1838,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZScot_noCTX_noLeg \
     --instruction_type zero_shot_cot \
@@ -1858,7 +1858,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZScot_noCTX_Leg \
     --instruction_type zero_shot_cot \
@@ -1879,7 +1879,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZScot_CTX1t_noLeg \
     --instruction_type zero_shot_cot \
@@ -1901,7 +1901,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZScot_CTX1t_Leg \
     --instruction_type zero_shot_cot \
@@ -1924,7 +1924,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZScot_CTX2t_noLeg \
     --instruction_type zero_shot_cot \
@@ -1946,7 +1946,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_ZScot_CTX2t_Leg \
     --instruction_type zero_shot_cot \
@@ -1969,7 +1969,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FScot_noCTX_noLeg \
     --instruction_type few_shot_cot \
@@ -1989,7 +1989,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FScot_noCTX_Leg \
     --instruction_type few_shot_cot \
@@ -2010,7 +2010,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FScot_CTX1t_noLeg \
     --instruction_type few_shot_cot \
@@ -2032,7 +2032,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FScot_CTX1t_Leg \
     --instruction_type few_shot_cot \
@@ -2055,7 +2055,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FScot_CTX2t_noLeg \
     --instruction_type few_shot_cot \
@@ -2077,7 +2077,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
    python Decoder-Only/multi_prompt_configs.py \
     --file Datasets/FullTest_Final.xlsx \
     --gold Datasets/FullTest_Final.xlsx \
-    --model gemini-3-pro-preview \
+    --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --sheet GEMINI3_PRO_FScot_CTX2t_Leg \
     --instruction_type few_shot_cot \
@@ -6774,7 +6774,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
          python Decoder-Only/multi_prompt_configs.py \
           --file Datasets/FullTest_Final.xlsx \
           --gold Datasets/FullTest_Final.xlsx \
-          --model gemini-3-flash \
+          --model gemini-3-flash-preview \
           --backend gemini3 \
           --thinking_level none \
           --sheet ${SHEET} \
