@@ -6766,7 +6766,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       SHEET="G3FLASH_${ITAG}_${CTAG}_${LTAG}"
       echo "[$(printf '%03d' $GNUM)] Launching: ${SHEET}"
       nlprun -q jag -p standard -r 40G -c 2 \
-        -n $(printf '%02d' $JOB)_g3flash_${ITAG,,}_${CTAG,,}_${LTAG,,} \
+        -n $(printf '%02d' $JOB)_g3flashNT_${ITAG,,}_${CTAG,,}_${LTAG,,} \
         -o Decoder-Only/Gemini3-Flash/slurm_logs/%x.out \
         "cd /nlp/scr/mtano/Dissertation && \
          . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \

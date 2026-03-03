@@ -15,6 +15,7 @@
 #   ./Decoder-Only/run_reasoning_zs.sh                # launch all 60 jobs
 #   ./Decoder-Only/run_reasoning_zs.sh o3             # launch only o3 ZS jobs (6)
 #   ./Decoder-Only/run_reasoning_zs.sh gemini3_pro    # launch only Gemini 3 Pro ZS jobs (6)
+#   ./Decoder-Only/run_reasoning_zs.sh g3flashT       # launch only Gemini 3 Flash thinking ZS jobs (6)
 
 set -e
 
@@ -99,7 +100,7 @@ launch_zs() {
 # -------            ---------                  -------            ------------  ----------                           ---------                                ----------
 launch_zs qwen3_32bthinking  Qwen/Qwen3-32B              qwen3_thinking   QWEN3_32BT   Decoder-Only/Qwen3-32B-Thinking      "-g 2 -q sphinx -p standard -r 200G -c 4"  ""
 launch_zs gemini3_pro        gemini-3.1-pro-preview        gemini3          GEMINI3_PRO  Decoder-Only/Gemini3_Pro             "-q jag -p standard -r 40G -c 2"           "--thinking_level high"
-launch_zs gemini3_flash      gemini-3-flash-preview              gemini3          G3FLASHT     Decoder-Only/Gemini3-Flash-Thinking  "-q jag -p standard -r 40G -c 2"           "--thinking_level high"
+launch_zs g3flashT           gemini-3-flash-preview              gemini3          G3FLASHT     Decoder-Only/Gemini3-Flash-Thinking  "-q jag -p standard -r 40G -c 2"           "--thinking_level high"
 launch_zs gemini25_pro       gemini-2.5-pro      gemini3          GEMINI25P    Decoder-Only/Gemini25-Pro            "-q jag -p standard -r 40G -c 2"           "--thinking_level high"
 launch_zs gpt5               gpt-5                       openai_reasoning GPT5         Decoder-Only/GPT5                    "-q jag -p standard -r 40G -c 2"           "--reasoning_effort high"
 launch_zs o4mini             o4-mini                     openai_reasoning O4MINI       Decoder-Only/O4-Mini                 "-q jag -p standard -r 40G -c 2"           "--reasoning_effort medium"
