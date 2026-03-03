@@ -1,16 +1,28 @@
 #!/bin/bash
 # Re-run all CTXwide (wide context) experiments after the assistant-ack fix.
 #
-# Models: gemini, phi4, qwen25_7b, gpt41, qwen3_32b, qwen3_32bthinking
+# Non-reasoning models:  phi4, qwen25_7b, qwen3_32b, gpt41, gpt52, gemini, gemini25_pro, g3flash_nothink
+# Reasoning models:      qwen3_32bthinking, gemini3_pro, g3flash, gemini25_pro_think,
+#                        gpt5, o4mini, o3, o3mini, o3deep, o4miniDeep
 # Grid:   4 instruction_types × 1 context(wide) × 2 legitimacy = 8 per model
-# Total:  48 jobs
+# Total:  136 jobs
 #
 # Usage:
 #   chmod +x Decoder-Only/rerun_ctxwide.sh
-#   ./Decoder-Only/rerun_ctxwide.sh                    # launch all 48 jobs
-#   ./Decoder-Only/rerun_ctxwide.sh phi4               # launch only phi4 CTXwide jobs (8)
-#   ./Decoder-Only/rerun_ctxwide.sh gemini             # launch only gemini CTXwide jobs (8)
-#   ./Decoder-Only/rerun_ctxwide.sh qwen3_32bthinking  # launch only qwen3_32b thinking jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh                       # launch all 136 jobs
+#   ./Decoder-Only/rerun_ctxwide.sh phi4                  # launch only phi4 CTXwide jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh gemini                # launch only Gemini 2.5 Flash jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh qwen3_32bthinking     # launch only Qwen3-32B thinking jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh o4mini                # launch only o4-mini reasoning jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh o3                    # launch only o3 reasoning jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh o3mini                # launch only o3-mini reasoning jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh gpt52                 # launch only GPT-5.2 non-reasoning jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh gemini3_flash_nothink # launch only Gemini 3 Flash no-thinking jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh gemini3_flash         # launch only Gemini 3 Flash thinking jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh gemini25_pro          # launch only Gemini 2.5 Pro reasoning jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh gpt5                  # launch only GPT-5 reasoning jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh o3deep                # launch only o3-deep-research jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh o4miniDeep            # launch only o4-mini-deep-research jobs (8)
 
 set -e
 
@@ -429,6 +441,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_ZS_CTXwide_noLeg \
     --instruction_type zero_shot \
     --extended \
@@ -451,6 +464,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_ZS_CTXwide_Leg \
     --instruction_type zero_shot \
     --extended \
@@ -474,6 +488,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_FS_CTXwide_noLeg \
     --instruction_type few_shot \
     --extended \
@@ -496,6 +511,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_FS_CTXwide_Leg \
     --instruction_type few_shot \
     --extended \
@@ -519,6 +535,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_ZScot_CTXwide_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
@@ -541,6 +558,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_ZScot_CTXwide_Leg \
     --instruction_type zero_shot_cot \
     --extended \
@@ -564,6 +582,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_FScot_CTXwide_noLeg \
     --instruction_type few_shot_cot \
     --extended \
@@ -586,6 +605,7 @@ nlprun -q jag -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-3-pro-preview \
     --backend gemini3 \
+    --thinking_level high \
     --sheet GEMINI3_PRO_FScot_CTXwide_Leg \
     --instruction_type few_shot_cot \
     --extended \
@@ -1359,6 +1379,924 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide \
     --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# O4MINI — o4-mini (OpenAI reasoning model)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "o4mini" ]]; then
+
+mkdir -p Decoder-Only/O4-Mini/slurm_logs
+mkdir -p Decoder-Only/O4-Mini/data
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_zs_ctxwide_noleg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_ZS_CTXwide_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_zs_ctxwide_leg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_ZS_CTXwide_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_fs_ctxwide_noleg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_FS_CTXwide_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_fs_ctxwide_leg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_FS_CTXwide_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_zscot_ctxwide_noleg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_ZScot_CTXwide_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_zscot_ctxwide_leg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_ZScot_CTXwide_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_fscot_ctxwide_noleg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_FScot_CTXwide_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o4mini_fscot_ctxwide_leg \
+  -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o4-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O4MINI_FScot_CTXwide_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O4-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# O3 — o3 (OpenAI flagship reasoning model)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "o3" ]]; then
+
+mkdir -p Decoder-Only/O3/slurm_logs
+mkdir -p Decoder-Only/O3/data
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_zs_ctxwide_noleg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_ZS_CTXwide_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_zs_ctxwide_leg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_ZS_CTXwide_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_fs_ctxwide_noleg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_FS_CTXwide_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_fs_ctxwide_leg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_FS_CTXwide_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_zscot_ctxwide_noleg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_ZScot_CTXwide_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_zscot_ctxwide_leg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_ZScot_CTXwide_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_fscot_ctxwide_noleg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_FScot_CTXwide_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3_fscot_ctxwide_leg \
+  -o Decoder-Only/O3/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3 \
+    --backend openai_reasoning \
+    --reasoning_effort high \
+    --sheet O3_FScot_CTXwide_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# O3MINI — o3-mini (OpenAI compact reasoning model)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "o3mini" ]]; then
+
+mkdir -p Decoder-Only/O3-Mini/slurm_logs
+mkdir -p Decoder-Only/O3-Mini/data
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_zs_ctxwide_noleg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_ZS_CTXwide_noLeg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_zs_ctxwide_leg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_ZS_CTXwide_Leg \
+    --instruction_type zero_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_fs_ctxwide_noleg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_FS_CTXwide_noLeg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_fs_ctxwide_leg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_FS_CTXwide_Leg \
+    --instruction_type few_shot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_zscot_ctxwide_noleg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_ZScot_CTXwide_noLeg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_zscot_ctxwide_leg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_ZScot_CTXwide_Leg \
+    --instruction_type zero_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTXwide_noLeg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_fscot_ctxwide_noleg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_FScot_CTXwide_noLeg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide"
+
+JOB=$((JOB+1))
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTXwide_Leg"
+nlprun -q jag -p standard -r 40G -c 2 \
+  -n ${JOB}_o3mini_fscot_ctxwide_leg \
+  -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
+  "cd ${BASE_DIR} && \
+   ${CONDA_INIT} && \
+   conda activate ${CONDA_ENV} && \
+   python Decoder-Only/multi_prompt_configs.py \
+    --file ${INPUT_FILE} \
+    --gold ${GOLD_FILE} \
+    --model o3-mini \
+    --backend openai_reasoning \
+    --reasoning_effort medium \
+    --sheet O3MINI_FScot_CTXwide_Leg \
+    --instruction_type few_shot_cot \
+    --extended \
+    --output_format ${OUTPUT_FORMAT} \
+    --output_dir Decoder-Only/O3-Mini/data \
+    --dump_prompt \
+    --context \
+    --context_mode wide \
+    --dialect_legitimacy"
+
+fi
+
+# ============================================================
+# GPT52 — gpt-5.2 (OpenAI non-reasoning, chat model)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt52" ]]; then
+
+mkdir -p Decoder-Only/GPT52/slurm_logs
+mkdir -p Decoder-Only/GPT52/data
+
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  for LEG in "" "--dialect_legitimacy"; do
+    [[ -n "$LEG" ]] && LEG_TAG="Leg" || LEG_TAG="noLeg"
+    case $INSTR in
+      zero_shot)     TAG="ZS"    ;;
+      few_shot)      TAG="FS"    ;;
+      zero_shot_cot) TAG="ZScot" ;;
+      few_shot_cot)  TAG="FScot" ;;
+    esac
+    SHEET="GPT52_${TAG}_CTXwide_${LEG_TAG}"
+    JOB=$((JOB+1))
+    echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
+    nlprun -q jag -p standard -r 40G -c 2 \
+      -n ${JOB}_gpt52_${TAG,,}_ctxwide_${LEG_TAG,,} \
+      -o Decoder-Only/GPT52/slurm_logs/%x.out \
+      "cd ${BASE_DIR} && \
+       ${CONDA_INIT} && \
+       conda activate ${CONDA_ENV} && \
+       python Decoder-Only/multi_prompt_configs.py \
+        --file ${INPUT_FILE} \
+        --gold ${GOLD_FILE} \
+        --model gpt-5.2 \
+        --backend openai \
+        --sheet ${SHEET} \
+        --instruction_type ${INSTR} \
+        --extended \
+        --output_format ${OUTPUT_FORMAT} \
+        --output_dir Decoder-Only/GPT52/data \
+        --dump_prompt \
+        --context \
+        --context_mode wide ${LEG}"
+  done
+done
+
+fi
+
+# ============================================================
+# GEMINI3_FLASH_NOTHINK — gemini-3-flash, thinking disabled
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_flash_nothink" ]]; then
+
+mkdir -p Decoder-Only/Gemini3-Flash/slurm_logs
+mkdir -p Decoder-Only/Gemini3-Flash/data
+
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  for LEG in "" "--dialect_legitimacy"; do
+    [[ -n "$LEG" ]] && LEG_TAG="Leg" || LEG_TAG="noLeg"
+    case $INSTR in
+      zero_shot)     TAG="ZS"    ;;
+      few_shot)      TAG="FS"    ;;
+      zero_shot_cot) TAG="ZScot" ;;
+      few_shot_cot)  TAG="FScot" ;;
+    esac
+    SHEET="G3FLASH_${TAG}_CTXwide_${LEG_TAG}"
+    JOB=$((JOB+1))
+    echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
+    nlprun -q jag -p standard -r 40G -c 2 \
+      -n ${JOB}_g3flash_${TAG,,}_ctxwide_${LEG_TAG,,} \
+      -o Decoder-Only/Gemini3-Flash/slurm_logs/%x.out \
+      "cd ${BASE_DIR} && \
+       ${CONDA_INIT} && \
+       conda activate ${CONDA_ENV} && \
+       python Decoder-Only/multi_prompt_configs.py \
+        --file ${INPUT_FILE} \
+        --gold ${GOLD_FILE} \
+        --model gemini-3-flash \
+        --backend gemini3 \
+        --thinking_level none \
+        --sheet ${SHEET} \
+        --instruction_type ${INSTR} \
+        --extended \
+        --output_format ${OUTPUT_FORMAT} \
+        --output_dir Decoder-Only/Gemini3-Flash/data \
+        --dump_prompt \
+        --context \
+        --context_mode wide ${LEG}"
+  done
+done
+
+fi
+
+# ============================================================
+# GEMINI3_FLASH — gemini-3-flash, thinking enabled (high)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_flash" ]]; then
+
+mkdir -p Decoder-Only/Gemini3-Flash-Thinking/slurm_logs
+mkdir -p Decoder-Only/Gemini3-Flash-Thinking/data
+
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  for LEG in "" "--dialect_legitimacy"; do
+    [[ -n "$LEG" ]] && LEG_TAG="Leg" || LEG_TAG="noLeg"
+    case $INSTR in
+      zero_shot)     TAG="ZS"    ;;
+      few_shot)      TAG="FS"    ;;
+      zero_shot_cot) TAG="ZScot" ;;
+      few_shot_cot)  TAG="FScot" ;;
+    esac
+    SHEET="G3FLASHT_${TAG}_CTXwide_${LEG_TAG}"
+    JOB=$((JOB+1))
+    echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
+    nlprun -q jag -p standard -r 40G -c 2 \
+      -n ${JOB}_g3flasht_${TAG,,}_ctxwide_${LEG_TAG,,} \
+      -o Decoder-Only/Gemini3-Flash-Thinking/slurm_logs/%x.out \
+      "cd ${BASE_DIR} && \
+       ${CONDA_INIT} && \
+       conda activate ${CONDA_ENV} && \
+       python Decoder-Only/multi_prompt_configs.py \
+        --file ${INPUT_FILE} \
+        --gold ${GOLD_FILE} \
+        --model gemini-3-flash \
+        --backend gemini3 \
+        --thinking_level high \
+        --sheet ${SHEET} \
+        --instruction_type ${INSTR} \
+        --extended \
+        --output_format ${OUTPUT_FORMAT} \
+        --output_dir Decoder-Only/Gemini3-Flash-Thinking/data \
+        --dump_prompt \
+        --context \
+        --context_mode wide ${LEG}"
+  done
+done
+
+fi
+
+# ============================================================
+# GEMINI25_PRO — gemini-2.5-pro-preview (reasoning/thinking)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini25_pro" ]]; then
+
+mkdir -p Decoder-Only/Gemini25-Pro/slurm_logs
+mkdir -p Decoder-Only/Gemini25-Pro/data
+
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  for LEG in "" "--dialect_legitimacy"; do
+    [[ -n "$LEG" ]] && LEG_TAG="Leg" || LEG_TAG="noLeg"
+    case $INSTR in
+      zero_shot)     TAG="ZS"    ;;
+      few_shot)      TAG="FS"    ;;
+      zero_shot_cot) TAG="ZScot" ;;
+      few_shot_cot)  TAG="FScot" ;;
+    esac
+    SHEET="GEMINI25P_${TAG}_CTXwide_${LEG_TAG}"
+    JOB=$((JOB+1))
+    echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
+    nlprun -q jag -p standard -r 40G -c 2 \
+      -n ${JOB}_gemini25p_${TAG,,}_ctxwide_${LEG_TAG,,} \
+      -o Decoder-Only/Gemini25-Pro/slurm_logs/%x.out \
+      "cd ${BASE_DIR} && \
+       ${CONDA_INIT} && \
+       conda activate ${CONDA_ENV} && \
+       python Decoder-Only/multi_prompt_configs.py \
+        --file ${INPUT_FILE} \
+        --gold ${GOLD_FILE} \
+        --model gemini-2.5-pro-preview \
+        --backend gemini3 \
+        --thinking_level high \
+        --sheet ${SHEET} \
+        --instruction_type ${INSTR} \
+        --extended \
+        --output_format ${OUTPUT_FORMAT} \
+        --output_dir Decoder-Only/Gemini25-Pro/data \
+        --dump_prompt \
+        --context \
+        --context_mode wide ${LEG}"
+  done
+done
+
+fi
+
+# ============================================================
+# GPT5 — gpt-5 (OpenAI reasoning)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gpt5" ]]; then
+
+mkdir -p Decoder-Only/GPT5/slurm_logs
+mkdir -p Decoder-Only/GPT5/data
+
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  for LEG in "" "--dialect_legitimacy"; do
+    [[ -n "$LEG" ]] && LEG_TAG="Leg" || LEG_TAG="noLeg"
+    case $INSTR in
+      zero_shot)     TAG="ZS"    ;;
+      few_shot)      TAG="FS"    ;;
+      zero_shot_cot) TAG="ZScot" ;;
+      few_shot_cot)  TAG="FScot" ;;
+    esac
+    SHEET="GPT5_${TAG}_CTXwide_${LEG_TAG}"
+    JOB=$((JOB+1))
+    echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
+    nlprun -q jag -p standard -r 40G -c 2 \
+      -n ${JOB}_gpt5_${TAG,,}_ctxwide_${LEG_TAG,,} \
+      -o Decoder-Only/GPT5/slurm_logs/%x.out \
+      "cd ${BASE_DIR} && \
+       ${CONDA_INIT} && \
+       conda activate ${CONDA_ENV} && \
+       python Decoder-Only/multi_prompt_configs.py \
+        --file ${INPUT_FILE} \
+        --gold ${GOLD_FILE} \
+        --model gpt-5 \
+        --backend openai_reasoning \
+        --reasoning_effort high \
+        --sheet ${SHEET} \
+        --instruction_type ${INSTR} \
+        --extended \
+        --output_format ${OUTPUT_FORMAT} \
+        --output_dir Decoder-Only/GPT5/data \
+        --dump_prompt \
+        --context \
+        --context_mode wide ${LEG}"
+  done
+done
+
+fi
+
+# ============================================================
+# O3DEEP — o3-deep-research (OpenAI, high reasoning effort)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "o3deep" ]]; then
+
+mkdir -p Decoder-Only/O3-Deep/slurm_logs
+mkdir -p Decoder-Only/O3-Deep/data
+
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  for LEG in "" "--dialect_legitimacy"; do
+    [[ -n "$LEG" ]] && LEG_TAG="Leg" || LEG_TAG="noLeg"
+    case $INSTR in
+      zero_shot)     TAG="ZS"    ;;
+      few_shot)      TAG="FS"    ;;
+      zero_shot_cot) TAG="ZScot" ;;
+      few_shot_cot)  TAG="FScot" ;;
+    esac
+    SHEET="O3DEEP_${TAG}_CTXwide_${LEG_TAG}"
+    JOB=$((JOB+1))
+    echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
+    nlprun -q jag -p standard -r 40G -c 2 \
+      -n ${JOB}_o3deep_${TAG,,}_ctxwide_${LEG_TAG,,} \
+      -o Decoder-Only/O3-Deep/slurm_logs/%x.out \
+      "cd ${BASE_DIR} && \
+       ${CONDA_INIT} && \
+       conda activate ${CONDA_ENV} && \
+       python Decoder-Only/multi_prompt_configs.py \
+        --file ${INPUT_FILE} \
+        --gold ${GOLD_FILE} \
+        --model o3-deep-research \
+        --backend openai_reasoning \
+        --reasoning_effort high \
+        --sheet ${SHEET} \
+        --instruction_type ${INSTR} \
+        --extended \
+        --output_format ${OUTPUT_FORMAT} \
+        --output_dir Decoder-Only/O3-Deep/data \
+        --dump_prompt \
+        --context \
+        --context_mode wide ${LEG}"
+  done
+done
+
+fi
+
+# ============================================================
+# O4MINIDEEP — o4-mini-deep-research (OpenAI, high reasoning effort)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "o4miniDeep" ]]; then
+
+mkdir -p Decoder-Only/O4-Mini-Deep/slurm_logs
+mkdir -p Decoder-Only/O4-Mini-Deep/data
+
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  for LEG in "" "--dialect_legitimacy"; do
+    [[ -n "$LEG" ]] && LEG_TAG="Leg" || LEG_TAG="noLeg"
+    case $INSTR in
+      zero_shot)     TAG="ZS"    ;;
+      few_shot)      TAG="FS"    ;;
+      zero_shot_cot) TAG="ZScot" ;;
+      few_shot_cot)  TAG="FScot" ;;
+    esac
+    SHEET="O4MINID_${TAG}_CTXwide_${LEG_TAG}"
+    JOB=$((JOB+1))
+    echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
+    nlprun -q jag -p standard -r 40G -c 2 \
+      -n ${JOB}_o4minid_${TAG,,}_ctxwide_${LEG_TAG,,} \
+      -o Decoder-Only/O4-Mini-Deep/slurm_logs/%x.out \
+      "cd ${BASE_DIR} && \
+       ${CONDA_INIT} && \
+       conda activate ${CONDA_ENV} && \
+       python Decoder-Only/multi_prompt_configs.py \
+        --file ${INPUT_FILE} \
+        --gold ${GOLD_FILE} \
+        --model o4-mini-deep-research \
+        --backend openai_reasoning \
+        --reasoning_effort high \
+        --sheet ${SHEET} \
+        --instruction_type ${INSTR} \
+        --extended \
+        --output_format ${OUTPUT_FORMAT} \
+        --output_dir Decoder-Only/O4-Mini-Deep/data \
+        --dump_prompt \
+        --context \
+        --context_mode wide ${LEG}"
+  done
+done
 
 fi
 
