@@ -5,7 +5,7 @@
 # Reasoning models: qwen3_32bthinking, gemini3_pro, gemini3_flash, gemini25_pro,
 #                   gpt5, o4mini, o3, o3mini, o3deep, o4miniDeep
 # Grid:  1 instruction_type (zero_shot)
-#       × 3 context conditions (noCtx, CTXsingle, CTXwide)
+#       × 3 context conditions (noCTX, CTX1t, CTX2t)
 #       × 2 legitimacy (noLeg, Leg)
 #       = 6 jobs per model
 # Total: 60 jobs
@@ -54,10 +54,10 @@ launch_zs() {
 
   # Context conditions: tag, --context flag, --context_mode value
   # Format: "CTX_TAG|CTX_FLAG|CTX_MODE"
-  #   noCtx     → no --context flag, no --context_mode
-  #   CTXsingle → --context --context_mode single_turn
-  #   CTXwide   → --context --context_mode wide
-  local -a CTX_CONDITIONS=("noCtx||" "CTXsingle|--context|single_turn" "CTXwide|--context|wide")
+  #   noCTX  → no --context flag, no --context_mode
+  #   CTX1t  → --context --context_mode single_turn
+  #   CTX2t  → --context --context_mode wide
+  local -a CTX_CONDITIONS=("noCTX||" "CTX1t|--context|single_turn" "CTX2t|--context|wide")
 
   for CTX_DEF in "${CTX_CONDITIONS[@]}"; do
     IFS='|' read -r CTX_TAG CTX_FLAG CTX_MODE <<< "$CTX_DEF"
