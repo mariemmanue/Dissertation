@@ -1,6 +1,6 @@
 #!/bin/bash
 # Auto-generated experimental run script
-# Total jobs: 336
+# Total jobs: 360
 #
 # Grid per model:
 #   instruction_type:   zero_shot, few_shot, zero_shot_cot, few_shot_cot  (4)
@@ -18,9 +18,10 @@
 #   ./run_all_experiments.sh gemini john             # only gemini jobs on john
 #   ./run_all_experiments.sh gpt52_instant john      # only GPT-5.2 Instant on john
 #   ./run_all_experiments.sh gemini3_flash_nothink john  # only Gemini 3 Flash NT on john
+#   ./run_all_experiments.sh gemini3_flash_think john    # only Gemini 3 Flash T on john
 # Note: local GPU models (phi4, qwen*, llama, phi4_reasoning) ignore QUEUE — always use sphinx/jag.
 #
-# Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt41, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b, gemini3_flash_nothink
+# Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt41, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b, gemini3_flash_nothink, gemini3_flash_think
 
 set -e
 
@@ -6785,6 +6786,57 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
           --extended \
           --output_format markdown \
           --output_dir Decoder-Only/Gemini3-Flash/data \
+          --dump_prompt \
+          ${CARGS} ${LEG}"
+    done
+  done
+done
+
+fi
+
+# ============================================================
+# GEMINI3_FLASH_THINK — gemini-3-flash-preview, thinking enabled (high)
+# ============================================================
+
+if [[ "$MODEL_FILTER" == "all" || "$MODEL_FILTER" == "gemini3_flash_think" ]]; then
+
+mkdir -p Decoder-Only/Gemini3-Flash-Thinking/slurm_logs
+mkdir -p Decoder-Only/Gemini3-Flash-Thinking/data
+
+JOB=0
+for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
+  case $INSTR in
+    zero_shot)     ITAG="ZS"    ;;
+    few_shot)      ITAG="FS"    ;;
+    zero_shot_cot) ITAG="ZScot" ;;
+    few_shot_cot)  ITAG="FScot" ;;
+  esac
+  for CTX in "noCTX||" "CTX1t|--context|single_turn" "CTX2t|--context|wide"; do
+    IFS='|' read -r CTAG CFLAG CMODE <<< "$CTX"
+    [[ -n "$CMODE" ]] && CARGS="${CFLAG} --context_mode ${CMODE}" || CARGS=""
+    for LEG in "" "--dialect_legitimacy"; do
+      [[ -n "$LEG" ]] && LTAG="Leg" || LTAG="noLeg"
+      JOB=$((JOB+1))
+      GNUM=$((336+JOB))
+      SHEET="G3FLASHT_${ITAG}_${CTAG}_${LTAG}"
+      echo "[$(printf '%03d' $GNUM)] Launching: ${SHEET}"
+      nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
+        -n $(printf '%02d' $JOB)_g3flashT_${ITAG,,}_${CTAG,,}_${LTAG,,} \
+        -o Decoder-Only/Gemini3-Flash-Thinking/slurm_logs/%x.out \
+        "cd /nlp/scr/mtano/Dissertation && \
+         . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
+         conda activate cgedit && \
+         python Decoder-Only/multi_prompt_configs.py \
+          --file Datasets/FullTest_Final.xlsx \
+          --gold Datasets/FullTest_Final.xlsx \
+          --model gemini-3-flash-preview \
+          --backend gemini3 \
+          --thinking_level high \
+          --sheet ${SHEET} \
+          --instruction_type ${INSTR} \
+          --extended \
+          --output_format markdown \
+          --output_dir Decoder-Only/Gemini3-Flash-Thinking/data \
           --dump_prompt \
           ${CARGS} ${LEG}"
     done

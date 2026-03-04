@@ -103,14 +103,14 @@ launch_zs() {
 #  Name               Model ID                  Backend            Sheet prefix  Output dir                           Resources                                Extra args
 # -------            ---------                  -------            ------------  ----------                           ---------                                ----------
 launch_zs qwen3_32bthinking  Qwen/Qwen3-32B              qwen3_thinking   QWEN3_32BT   Decoder-Only/Qwen3-32B-Thinking      "-g 2 -q sphinx -p standard -r 200G -c 4"  ""
-launch_zs gemini3_pro        gemini-3.1-pro-preview        gemini3          GEMINI3_PRO  Decoder-Only/Gemini3_Pro             "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--thinking_level high"
-launch_zs g3flashT           gemini-3-flash-preview              gemini3          G3FLASHT     Decoder-Only/Gemini3-Flash-Thinking  "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--thinking_level high"
-launch_zs gemini25_pro       gemini-2.5-pro      gemini3          GEMINI25P    Decoder-Only/Gemini25-Pro            "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--thinking_level high"
-launch_zs gpt5               gpt-5                       openai_reasoning GPT5         Decoder-Only/GPT5                    "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--reasoning_effort high"
-launch_zs o4mini             o4-mini                     openai_reasoning O4MINI       Decoder-Only/O4-Mini                 "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--reasoning_effort medium"
-launch_zs o3                 o3                          openai_reasoning O3           Decoder-Only/O3                      "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--reasoning_effort high"
-launch_zs o3mini             o3-mini                     openai_reasoning O3MINI       Decoder-Only/O3-Mini                 "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--reasoning_effort medium"
-launch_zs o3deep             o3-deep-research            openai_reasoning O3DEEP       Decoder-Only/O3-Deep                 "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--reasoning_effort high"
-launch_zs o4miniDeep         o4-mini-deep-research       openai_reasoning O4MINID      Decoder-Only/O4-Mini-Deep            "-q ${API_QUEUE} -p standard -r 40G -c 2"           "--reasoning_effort high"
+launch_zs gemini3_pro        gemini-3.1-pro-preview        gemini3          GEMINI3_PRO  Decoder-Only/Gemini3_Pro             "-q jag -p standard -r 40G -c 2"           "--thinking_level high"
+launch_zs g3flashT           gemini-3-flash-preview              gemini3          G3FLASHT     Decoder-Only/Gemini3-Flash-Thinking  "-q jag -p standard -r 40G -c 2"           "--thinking_level high"
+launch_zs gemini25_pro       gemini-2.5-pro      gemini3          GEMINI25P    Decoder-Only/Gemini25-Pro            "-q jag -p standard -r 40G -c 2"           "--thinking_level high"
+launch_zs gpt5               gpt-5                       openai_reasoning GPT5         Decoder-Only/GPT5                    "-q jag -p standard -r 40G -c 2"           "--reasoning_effort high"
+launch_zs o4mini             o4-mini                     openai_reasoning O4MINI       Decoder-Only/O4-Mini                 "-q jag -p standard -r 40G -c 2"           "--reasoning_effort medium"
+launch_zs o3                 o3                          openai_reasoning O3           Decoder-Only/O3                      "-q jag -p standard -r 40G -c 2"           "--reasoning_effort high"
+launch_zs o3mini             o3-mini                     openai_reasoning O3MINI       Decoder-Only/O3-Mini                 "-q jag -p standard -r 40G -c 2"           "--reasoning_effort medium"
+launch_zs o3deep             o3-deep-research            openai_reasoning O3DEEP       Decoder-Only/O3-Deep                 "-q jag -p standard -r 40G -c 2"           "--reasoning_effort high"
+launch_zs o4miniDeep         o4-mini-deep-research       openai_reasoning O4MINID      Decoder-Only/O4-Mini-Deep            "-q jag -p standard -r 40G -c 2"           "--reasoning_effort high"
 
 echo "Done. Submitted ${JOB} reasoning ZS jobs for ${MODEL_FILTER}."
