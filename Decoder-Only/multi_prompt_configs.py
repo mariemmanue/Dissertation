@@ -222,7 +222,7 @@ class OpenAIBackend(LLMBackend):
             model=self.model,
             messages=messages,
             temperature=0.1,  # Add explicit temperature
-            max_tokens=max_tokens,  # Add explicit max_tokens
+            max_completion_tokens=max_tokens,  # use max_completion_tokens (supported by all Azure models)
             logprobs=True,  # ← Add this
             top_logprobs=2,  # ← Add this (returns top 2 token probabilities)
         )
