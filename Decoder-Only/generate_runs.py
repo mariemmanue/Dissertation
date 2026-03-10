@@ -66,6 +66,40 @@ MODELS = {
         "log_dir": "Decoder-Only/GPT41/slurm_logs",
         "nlprun_flags": "-q jag -p standard -r 40G -c 2",
     },
+    # ── Azure: GPT-4o ──
+    "gpt4o": {
+        "backend": "openai",
+        "model": "gpt-4o",
+        "output_dir": "Decoder-Only/GPT4o/data",
+        "log_dir": "Decoder-Only/GPT4o/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+    },
+    # ── Azure: GPT-5 Mini ──
+    "gpt5_mini": {
+        "backend": "openai",
+        "model": "gpt-5-mini",
+        "output_dir": "Decoder-Only/GPT5_Mini/data",
+        "log_dir": "Decoder-Only/GPT5_Mini/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+    },
+    # ── Azure: o3-mini (reasoning) ──
+    "o3_mini": {
+        "backend": "openai_reasoning",
+        "model": "o3-mini",
+        "output_dir": "Decoder-Only/O3_Mini/data",
+        "log_dir": "Decoder-Only/O3_Mini/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--reasoning_effort medium",
+    },
+    # ── Azure: o4-mini (reasoning) ──
+    "o4_mini": {
+        "backend": "openai_reasoning",
+        "model": "o4-mini",
+        "output_dir": "Decoder-Only/O4_Mini/data",
+        "log_dir": "Decoder-Only/O4_Mini/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--reasoning_effort medium",
+    },
     # ── New: GPT-5.2 family ──
     "gpt52_instant": {
         "backend": "openai",
