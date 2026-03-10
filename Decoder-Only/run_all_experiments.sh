@@ -20,7 +20,7 @@
 #   ./run_all_experiments.sh gemini3_flash_nothink john  # only Gemini 3 Flash NT on john
 #   ./run_all_experiments.sh gemini3_flash_think john    # only Gemini 3 Flash T on john
 # Note: local GPU models (phi4, qwen*, llama, phi4_reasoning) ignore QUEUE — always use sphinx/jag.
-#
+#f
 # Available model keys: phi4, gemini, qwen25_7b, gemini3_pro, gpt41, gpt52_instant, gpt52_think_med, gpt52_think_high, phi4_reasoning, llama70b, qwen3_32b, qwen3_32b_think, qwq_32b, gemini3_flash_nothink, gemini3_flash_think
 
 set -e
