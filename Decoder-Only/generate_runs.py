@@ -208,6 +208,16 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg, job_num=0):
 
     py_args_str = " \\\n    ".join(py_args)
 
+    # For Azure OpenAI backends, pass credentials into the job environment
+    azure_env = ""
+    if m["backend"] in ("openai", "openai_reasoning"):
+        azure_env = (
+            'export AZURE_OPENAI_API_KEY="$AZURE_OPENAI_API_KEY" && \\\n'
+            '   export AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT" && \\\n'
+            '   export AZURE_OPENAI_API_VERSION="${AZURE_OPENAI_API_VERSION:-2025-01-01-preview}" && \\\n'
+            '   '
+        )
+
     cmd = (
         f'nlprun {m["nlprun_flags"]} \\\n'
         f'  -n {job} \\\n'
@@ -215,7 +225,8 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg, job_num=0):
         f'  "cd {BASE_DIR} && \\\n'
         f'   {CONDA_INIT} && \\\n'
         f'   conda activate {CONDA_ENV} && \\\n'
-        f'   python Decoder-Only/multi_prompt_configs.py \\\n'
+        f'   {azure_env}'
+        f'python Decoder-Only/multi_prompt_configs.py \\\n'
         f'    {py_args_str}"'
     )
     return cmd, sheet, job
