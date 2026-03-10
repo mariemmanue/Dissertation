@@ -7,7 +7,7 @@ import re
 import time
 from tqdm import tqdm
 import datetime
-from openai import OpenAI
+from openai import AzureOpenAI
 import tiktoken
 import argparse
 import math
@@ -192,10 +192,12 @@ class OpenAIBackend(LLMBackend):
     """
     def __init__(self, model: str):
         super().__init__(name="openai", model=model)
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("Set OPENAI_API_KEY environment variable.")
-        self.client = OpenAI(api_key=api_key)
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
+        if not api_key or not endpoint:
+            raise ValueError("Set AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT environment variables.")
+        self.client = AzureOpenAI(api_key=api_key, azure_endpoint=endpoint, api_version=api_version)
         try:
             self._enc = tiktoken.encoding_for_model(model)
         except Exception:

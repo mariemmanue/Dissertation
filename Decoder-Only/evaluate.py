@@ -60,11 +60,22 @@ PREFERRED_LEVEL_ORDER = {
     "leg": ("noLeg", "Leg"),          # Leg - noLeg
     "feature_set": ("17", "25"),      # 25 - 17
     "trial": ("A", "B"),              # B - A
+    "cot": ("noCoT", "CoT"),          # CoT - noCoT
 }
 
 # one definition only
 feat_thresholds = {
     "multiple-neg": 0.5,
+}
+
+# Maps lowercase model name prefixes (from sheet/filename) → display names for plots
+# More specific prefixes must come first (dict iteration order = insertion order)
+MODEL_DISPLAY_NAMES: Dict[str, str] = {
+    "gemini3-flash-thinking": "Gemini 3 Flash Thinking",
+    "gemini3-flash": "Gemini 3 Flash",
+    "gemini3_pro": "Gemini 3 Pro",
+    "gemini": "Gemini 2.5 Flash",
+    "gem": "Gemini 2.5 Flash",
 }
 
 output_dir = "Results"
@@ -176,6 +187,20 @@ def parse_factors(sheet_name: str) -> dict:
         trial = toks[-1]
 
     return {"feature_set": feature_set, "instr": instr, "ctx": ctx, "leg": leg, "trial": trial}
+
+def prettify_model_label(name: str) -> str:
+    """
+    Replace raw model name prefix with a display-friendly label using MODEL_DISPLAY_NAMES.
+    E.g. "GEMINI_ZS_noCTX_noLeg" → "Gemini 2.5 Flash_ZS_noCTX_noLeg"
+         "Gemini"                 → "Gemini 2.5 Flash"
+    """
+    lower = str(name).lower()
+    for raw, display in MODEL_DISPLAY_NAMES.items():
+        if lower.startswith(raw):
+            suffix = name[len(raw):]
+            return display + suffix
+    return name
+
 
 def safe_strip_sentence_col(df: pd.DataFrame) -> pd.DataFrame:
     if "sentence" in df.columns:
@@ -895,6 +920,273 @@ def plot_variable_effects(
     print(f"[INFO] Saved variable effects forest plot to {save_path}")
 
 
+def plot_config_impact_panel(
+    all_eval: pd.DataFrame,
+    output_base: str,
+    prefix: str,
+    factors: Optional[List[str]] = None,
+    metric: str = "f1",
+    model_label: Optional[str] = None,
+    figsize_per_factor: tuple = (3.5, 4.0),
+) -> None:
+    """
+    Pairwise config-effect panel: for each config dimension (ctx, instr, leg,
+    feature_set), show mean ΔF1 (b − a) for every model as a horizontal bar.
+    Green = helps, red = hurts.  One subplot per factor, models on Y-axis.
+
+    Direction follows PREFERRED_LEVEL_ORDER (e.g. CTX − noCTX, FScot − ZS).
+    Saves: {prefix}config_impact_panel.png
+    """
+    if factors is None:
+        factors = ["ctx", "instr", "cot", "leg", "feature_set"]
+
+    df = all_eval.copy().dropna(subset=["feature", metric])
+
+    # Derive CoT column BEFORE collapsing instr, so CoT info isn't lost.
+    # ZScot / FScot → "CoT";  ZS / FS → "noCoT"
+    if "instr" in df.columns:
+        df["cot"] = df["instr"].map(
+            lambda x: "CoT" if str(x) in ("ZScot", "FScot") else ("noCoT" if pd.notna(x) else None)
+        )
+
+    # Filter factors to those present in df (after deriving cot above)
+    factors = [f for f in factors if f in df.columns]
+    if not factors:
+        print("[INFO] plot_config_impact_panel: no factor columns found; skipping.")
+        return
+
+    # Collapse multi-level factors to binary so all can be plotted:
+    #   ctx:   CTX1t / CTX2t  → CTX  (any context vs none)
+    #   instr: ZScot → ZS,  FScot → FS  (examples vs no-examples)
+    if "ctx" in df.columns:
+        df["ctx"] = df["ctx"].replace({"CTX1t": "CTX", "CTX2t": "CTX"})
+    if "instr" in df.columns:
+        df["instr"] = df["instr"].replace({"ZScot": "ZS", "FScot": "FS"})
+
+    # Extract base model for grouping. For single-model workbooks the sheet names
+    # don't contain the model name (e.g. "FS_CTX1t_Leg"), so parse_model_config
+    # misidentifies them. Use model_label override when provided.
+    if model_label:
+        df["_base"] = model_label
+    else:
+        df["_base"] = df["model"].apply(lambda x: parse_model_config(x)[0])
+    base_models = sorted(df["_base"].unique())
+
+    factor_labels = {
+        "ctx":         "Context\n(CTX − noCTX)",
+        "instr":       "Examples\n(FS − ZS)",
+        "cot":         "Chain-of-Thought\n(CoT − noCoT)",
+        "leg":         "Legitimacy\n(Leg − noLeg)",
+        "feature_set": "Feature Set\n(25 − 17)",
+        "trial":       "Trial\n(B − A)",
+    }
+
+    # Local override: after collapsing FScot→FS / ZScot→ZS, instr levels are ZS/FS
+    _panel_level_order = {**PREFERRED_LEVEL_ORDER, "instr": ("ZS", "FS")}
+
+    n = len(factors)
+    fig_w = figsize_per_factor[0] * n
+    fig_h = figsize_per_factor[1] + max(0, len(base_models) - 4) * 0.35
+    fig, axes = plt.subplots(1, n, figsize=(fig_w, fig_h), sharey=False)
+    if n == 1:
+        axes = [axes]
+
+    for ax, fac in zip(axes, factors):
+        levels = sorted(df[fac].dropna().unique().tolist())
+        if len(levels) != 2:
+            ax.axis("off")
+            ax.set_title(factor_labels.get(fac, fac), fontsize=9)
+            continue
+
+        if fac in _panel_level_order:
+            pa, pb = _panel_level_order[fac]
+            a_level, b_level = (pa, pb) if set(levels) == {pa, pb} else (levels[0], levels[1])
+        else:
+            a_level, b_level = levels[0], levels[1]
+
+        other_facs = [f for f in factors if f != fac]
+        rows = []
+        for model in base_models:
+            sub = df[df["_base"] == model].dropna(subset=[fac]).copy()
+            if sub.empty:
+                continue
+            for f in other_facs:
+                if f in sub.columns:
+                    sub[f] = sub[f].fillna("NA")
+            idx_cols = ["feature"] + [f for f in other_facs if f in sub.columns]
+            deltas = compute_pairwise_deltas(
+                sub,
+                index_cols=idx_cols,
+                factor_col=fac,
+                a_level=a_level,
+                b_level=b_level,
+                metrics=(metric,),
+                require_metric=metric,
+                aggfunc="mean",
+            )
+            col = f"d_{metric}_{b_level}_minus_{a_level}"
+            if col not in deltas.columns or deltas.empty:
+                continue
+            rows.append({"model": model, "delta": float(deltas[col].mean())})
+
+        if not rows:
+            ax.axis("off")
+            ax.set_title(factor_labels.get(fac, fac), fontsize=9)
+            continue
+
+        plot_df = pd.DataFrame(rows).sort_values("delta").reset_index(drop=True)
+        colors = ["#2ca02c" if d >= 0 else "#d62728" for d in plot_df["delta"]]
+        y_pos = list(range(len(plot_df)))
+
+        ax.barh(y_pos, plot_df["delta"], color=colors, edgecolor="white", height=0.6, zorder=2)
+        ax.axvline(0, color="black", linewidth=0.9, linestyle="--", alpha=0.6, zorder=1)
+        ax.axvspan(-0.002, 0.002, color="black", alpha=0.07, zorder=0)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(plot_df["model"].tolist(), fontsize=8)
+        ax.set_xlabel(f"Mean Δ{metric.upper()}", fontsize=10)
+        ax.set_title(
+            f"{factor_labels.get(fac, fac)}\n({b_level} − {a_level})",
+            fontsize=10, fontweight="bold",
+        )
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.tick_params(axis="x", labelsize=9, rotation=0)
+        ax.xaxis.set_major_locator(plt.MaxNLocator(5, symmetric=True))
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:+.2f}"))
+        ax.grid(axis="x", alpha=0.2, zorder=0)
+
+        # Annotate bar ends with delta value
+        x_range = plot_df["delta"].abs().max() or 0.01
+        pad = x_range * 0.05
+        for i, row in plot_df.iterrows():
+            ha = "left" if row["delta"] >= 0 else "right"
+            x = row["delta"] + (pad if row["delta"] >= 0 else -pad)
+            ax.text(x, i, f"{row['delta']:+.3f}", va="center", ha=ha, fontsize=9)
+
+    fig.suptitle(
+        f"{prefix.rstrip('_')}: Config Effects on F1  (green = helps ▲, red = hurts ▼)",
+        fontsize=11, fontweight="bold",
+    )
+    plt.tight_layout()
+    save_path = os.path.join(output_base, f"{prefix}config_impact_panel.png")
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[INFO] Saved config impact panel to {save_path}")
+
+
+def plot_ctx_breakdown(
+    all_eval: pd.DataFrame,
+    output_base: str,
+    prefix: str,
+    metric: str = "f1",
+    model_label: Optional[str] = None,
+    figsize: tuple = (12, 4),
+) -> None:
+    """
+    Compares all three ctx level pairs side-by-side:
+      CTX1t − noCTX  : does 1-turn context help vs none?
+      CTX2t − noCTX  : does 2-turn context help vs none?
+      CTX2t − CTX1t  : is 2-turn better than 1-turn?
+
+    One subplot per comparison, bars per model.
+    Green = helps, red = hurts.
+    Saves: {prefix}ctx_breakdown.png
+    """
+    if "ctx" not in all_eval.columns:
+        print("[INFO] plot_ctx_breakdown: no ctx column; skipping.")
+        return
+
+    ctx_levels = all_eval["ctx"].dropna().unique()
+    # Need all three levels present to make all comparisons meaningful
+    have = set(ctx_levels)
+    comparisons = [
+        ("noCTX", "CTX1t", "CTX1t − noCTX\n(1-turn vs none)"),
+        ("noCTX", "CTX2t", "CTX2t − noCTX\n(2-turn vs none)"),
+        ("CTX1t", "CTX2t", "CTX2t − CTX1t\n(2-turn vs 1-turn)"),
+    ]
+    comparisons = [(a, b, lbl) for a, b, lbl in comparisons if a in have and b in have]
+    if not comparisons:
+        print("[INFO] plot_ctx_breakdown: insufficient ctx levels; skipping.")
+        return
+
+    df = all_eval.copy().dropna(subset=["feature", metric])
+
+    if model_label:
+        df["_base"] = model_label
+    else:
+        df["_base"] = df["model"].apply(lambda x: parse_model_config(x)[0])
+    base_models = sorted(df["_base"].unique())
+
+    other_factors = [f for f in ["instr", "leg", "feature_set"] if f in df.columns]
+
+    n = len(comparisons)
+    fig, axes = plt.subplots(1, n, figsize=figsize, sharey=False)
+    if n == 1:
+        axes = [axes]
+
+    for ax, (a_level, b_level, label) in zip(axes, comparisons):
+        rows = []
+        for model in base_models:
+            sub = df[df["_base"] == model].dropna(subset=["ctx"]).copy()
+            if sub.empty:
+                continue
+            for f in other_factors:
+                sub[f] = sub[f].fillna("NA")
+            idx_cols = ["feature"] + other_factors
+            deltas = compute_pairwise_deltas(
+                sub,
+                index_cols=idx_cols,
+                factor_col="ctx",
+                a_level=a_level,
+                b_level=b_level,
+                metrics=(metric,),
+                require_metric=metric,
+                aggfunc="mean",
+            )
+            col = f"d_{metric}_{b_level}_minus_{a_level}"
+            if col not in deltas.columns or deltas.empty:
+                continue
+            rows.append({"model": model, "delta": float(deltas[col].mean())})
+
+        if not rows:
+            ax.axis("off")
+            ax.set_title(label, fontsize=10)
+            continue
+
+        plot_df = pd.DataFrame(rows).sort_values("delta").reset_index(drop=True)
+        colors = ["#2ca02c" if d >= 0 else "#d62728" for d in plot_df["delta"]]
+        y_pos = list(range(len(plot_df)))
+
+        ax.barh(y_pos, plot_df["delta"], color=colors, edgecolor="white", height=0.6, zorder=2)
+        ax.axvline(0, color="black", linewidth=0.9, linestyle="--", alpha=0.6, zorder=1)
+        ax.axvspan(-0.002, 0.002, color="black", alpha=0.07, zorder=0)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(plot_df["model"].tolist(), fontsize=9)
+        ax.set_xlabel(f"Mean Δ{metric.upper()}", fontsize=10)
+        ax.set_title(label, fontsize=10, fontweight="bold")
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.tick_params(axis="x", labelsize=9, rotation=0)
+        ax.xaxis.set_major_locator(plt.MaxNLocator(5, symmetric=True))
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:+.2f}"))
+        ax.grid(axis="x", alpha=0.2, zorder=0)
+
+        x_range = plot_df["delta"].abs().max() or 0.01
+        pad = x_range * 0.05
+        for i, row in plot_df.iterrows():
+            ha = "left" if row["delta"] >= 0 else "right"
+            x = row["delta"] + (pad if row["delta"] >= 0 else -pad)
+            ax.text(x, i, f"{row['delta']:+.3f}", va="center", ha=ha, fontsize=9)
+
+    fig.suptitle(
+        f"{prefix.rstrip('_')}: Context Depth Breakdown  (green = helps ▲, red = hurts ▼)",
+        fontsize=11, fontweight="bold",
+    )
+    plt.tight_layout()
+    save_path = os.path.join(output_base, f"{prefix}ctx_breakdown.png")
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[INFO] Saved ctx breakdown to {save_path}")
+
+
 def generate_summary_table(
     all_eval: pd.DataFrame,
     save_path: str,
@@ -985,7 +1277,7 @@ def safe_pivot_get(pivot: pd.DataFrame, metric: str, level: str) -> pd.Series:
     key = (metric, level)
     if key in pivot.columns:
         return pivot[key]
-    return pd.Series(index=pivot.index, data=pd.NA, dtype="float64")
+    return pd.Series(index=pivot.index, data=np.nan, dtype="float64")
 
 
 def compute_pairwise_deltas(
@@ -1547,7 +1839,7 @@ def compute_interrater_reliability(
     print(f"[INFO] Wrote summary to {summary_path}")
 
 
-def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] = None, exclude_ctx: Optional[List[str]] = None):
+def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] = None, exclude_ctx: Optional[List[str]] = None, exclude_instr: Optional[List[str]] = None, cot_only: bool = False):
     print(f"\n===============================")
     print(f"=== Evaluating {file_path} ===")
     print(f"===============================\n")
@@ -1640,6 +1932,16 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
             _factors = parse_factors(canonical_name)
             if _factors.get("ctx") in exclude_ctx:
                 print(f"[INFO] Skipping {canonical_name} (ctx={_factors.get('ctx')} excluded by --exclude-ctx)")
+                continue
+
+        if exclude_instr or cot_only:
+            _factors = parse_factors(canonical_name)
+            _instr = _factors.get("instr")
+            if cot_only and _instr not in ("ZScot", "FScot"):
+                print(f"[INFO] Skipping {canonical_name} (instr={_instr}, not a COT condition; --cot-only active)")
+                continue
+            if exclude_instr and _instr in exclude_instr:
+                print(f"[INFO] Skipping {canonical_name} (instr={_instr} excluded by --exclude-instr)")
                 continue
 
         df = combine_wh_qu(df)
@@ -1818,8 +2120,12 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
 
     all_eval = pd.concat([all_eval, factors_df], axis=1)
 
+    # Apply display-name substitutions (e.g. GEMINI → "Gemini 2.5 Flash") for all plots
+    all_eval["model"] = all_eval["model"].apply(prettify_model_label)
+    eval_results = [df.assign(model=df["model"].apply(prettify_model_label)) for df in eval_results]
+
     # Derive model label from workbook filename (e.g. "GPT41_Combined" → "GPT41")
-    model_label = file_basename.replace("_Combined", "").replace("_combined", "")
+    model_label = prettify_model_label(file_basename.replace("_Combined", "").replace("_combined", ""))
 
     # Pairwise deltas across all configs in this workbook
     work_eval = all_eval.dropna(subset=["ctx"]).copy() if "ctx" in all_eval.columns else all_eval.copy()
@@ -1848,6 +2154,23 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
             save_path=os.path.join(output_base, f"{model_label}_variable_effects_forest.png"),
             title=f"{model_label}: Variable Effects on F1 (forest plot)",
         )
+
+    # Pairwise config-impact panel: one subplot per factor, bars per model
+    plot_config_impact_panel(
+        work_eval,
+        output_base=output_base,
+        prefix=f"{model_label}_",
+        factors=["ctx", "instr", "cot", "leg", "feature_set"],
+        model_label=model_label,
+    )
+
+    # Context depth breakdown: CTX1t vs CTX2t vs noCTX pairwise
+    plot_ctx_breakdown(
+        work_eval,
+        output_base=output_base,
+        prefix=f"{model_label}_",
+        model_label=model_label,
+    )
 
     # Config leaderboard
     plot_config_leaderboard(
@@ -2051,6 +2374,22 @@ def main():
         help="Context levels to exclude (e.g. --exclude-ctx CTX2t). Sheets with these ctx values are skipped.",
     )
 
+    parser.add_argument(
+        "--exclude-instr",
+        nargs="+",
+        default=None,
+        metavar="INSTR_LEVEL",
+        help="Instruction types to exclude (e.g. --exclude-instr ZScot FScot). "
+             "Valid values: ZS, FS, ZScot, FScot.",
+    )
+
+    parser.add_argument(
+        "--cot-only",
+        action="store_true",
+        default=False,
+        help="Only evaluate COT conditions (ZScot / FScot); skip all non-COT sheets.",
+    )
+
     args = parser.parse_args()
 
     # 1. Update the global output directory variable used by evaluate_sheets
@@ -2096,7 +2435,7 @@ def main():
     # 4. Run evaluation for each file
     for filepath in filepaths:
         try:
-            evaluate_sheets(filepath, gold_dfs=gold_dfs, exclude_ctx=args.exclude_ctx)
+            evaluate_sheets(filepath, gold_dfs=gold_dfs, exclude_ctx=args.exclude_ctx, exclude_instr=args.exclude_instr, cot_only=args.cot_only)
         except Exception as e:
             print(f"\n[ERROR] Failed to evaluate {filepath}: {e}")
             import traceback
