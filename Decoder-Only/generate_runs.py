@@ -49,12 +49,12 @@ MODELS = {
         "log_dir": "Decoder-Only/Qwen2.5/slurm_logs",
         "nlprun_flags": "-g 1 -q sphinx -p standard -r 100G -c 4",
     },
-    # ── New: Gemini 3 Pro (reasoning, thinking=high) ──
-    "gemini3_pro": {
+    # ── New: Gemini 3.1 Pro Preview (reasoning, thinking=high) ──
+    "gemini31_pro": {
         "backend": "gemini3",
-        "model": "gemini-3-pro-preview",
-        "output_dir": "Decoder-Only/Gemini3_Pro/data",
-        "log_dir": "Decoder-Only/Gemini3_Pro/slurm_logs",
+        "model": "gemini-3.1-pro-preview",
+        "output_dir": "Decoder-Only/Gemini31_Pro/data",
+        "log_dir": "Decoder-Only/Gemini31_Pro/slurm_logs",
         "nlprun_flags": "-q jag -p standard -r 40G -c 2",
         "extra_args": "--thinking_level high",
     },
@@ -100,10 +100,51 @@ MODELS = {
         "nlprun_flags": "-q jag -p standard -r 40G -c 2",
         "extra_args": "--reasoning_effort medium",
     },
+    # ── Azure (mtano-mmk5bpbs-eastus2): gpt-5.4-pro ──
+    "gpt54_pro": {
+        "backend": "openai",
+        "model": "gpt-5.4-pro",
+        "output_dir": "Decoder-Only/GPT54_Pro/data",
+        "log_dir": "Decoder-Only/GPT54_Pro/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "api_key_env": "AZURE_EASTUS2_API_KEY",
+        "endpoint_env": "AZURE_EASTUS2_ENDPOINT",
+    },
+    # ── Azure (mtano-mmk5bpbs-eastus2): o3-pro (reasoning) ──
+    "o3_pro": {
+        "backend": "openai_reasoning",
+        "model": "o3-pro",
+        "output_dir": "Decoder-Only/O3_Pro/data",
+        "log_dir": "Decoder-Only/O3_Pro/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--reasoning_effort medium",
+        "api_key_env": "AZURE_EASTUS2_API_KEY",
+        "endpoint_env": "AZURE_EASTUS2_ENDPOINT",
+    },
+    # ── Azure (mtano-mmk5cynq-norwayeast): o3-deep-research (reasoning) ──
+    "o3_deep": {
+        "backend": "openai_reasoning",
+        "model": "o3-deep-research",
+        "output_dir": "Decoder-Only/O3_Deep/data",
+        "log_dir": "Decoder-Only/O3_Deep/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--reasoning_effort medium",
+        "api_key_env": "AZURE_NORWAY_API_KEY",
+        "endpoint_env": "AZURE_NORWAY_ENDPOINT",
+    },
+    # ── Azure: o3 (reasoning) ──
+    "o3": {
+        "backend": "openai_reasoning",
+        "model": "o3",
+        "output_dir": "Decoder-Only/O3/data",
+        "log_dir": "Decoder-Only/O3/slurm_logs",
+        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
+        "extra_args": "--reasoning_effort medium",
+    },
     # ── New: GPT-5.2 family ──
     "gpt52_instant": {
         "backend": "openai",
-        "model": "gpt-5.2-chat-latest",
+        "model": "gpt-5.2",
         "output_dir": "Decoder-Only/GPT52_Instant/data",
         "log_dir": "Decoder-Only/GPT52_Instant/slurm_logs",
         "nlprun_flags": "-q jag -p standard -r 40G -c 2",
@@ -243,11 +284,14 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg, job_num=0):
     py_args_str = " \\\n    ".join(py_args)
 
     # For Azure OpenAI backends, pass credentials into the job environment
+    # Models can specify api_key_env/endpoint_env to pull from a different source var
     azure_env = ""
     if m["backend"] in ("openai", "openai_reasoning"):
+        key_src = m.get("api_key_env", "AZURE_OPENAI_API_KEY")
+        ep_src  = m.get("endpoint_env", "AZURE_OPENAI_ENDPOINT")
         azure_env = (
-            'export AZURE_OPENAI_API_KEY="$AZURE_OPENAI_API_KEY" && \\\n'
-            '   export AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT" && \\\n'
+            f'export AZURE_OPENAI_API_KEY="${key_src}" && \\\n'
+            f'   export AZURE_OPENAI_ENDPOINT="${ep_src}" && \\\n'
             '   export AZURE_OPENAI_API_VERSION="${AZURE_OPENAI_API_VERSION:-2025-01-01-preview}" && \\\n'
             '   '
         )
