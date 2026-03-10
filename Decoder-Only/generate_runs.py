@@ -296,8 +296,13 @@ def generate_command(model_key, inst_type, ctx_setting, dialect_leg, job_num=0):
             '   '
         )
 
+    # For API models, substitute $QUEUE so the queue can be overridden at runtime
+    nlprun_flags = m["nlprun_flags"]
+    if m["backend"] in ("openai", "openai_reasoning", "gemini", "gemini3"):
+        nlprun_flags = nlprun_flags.replace("-q jag", "-q $QUEUE")
+
     cmd = (
-        f'nlprun {m["nlprun_flags"]} \\\n'
+        f'nlprun {nlprun_flags} \\\n'
         f'  -n {job} \\\n'
         f'  -o {m["log_dir"]}/%x.out \\\n'
         f'  "cd {BASE_DIR} && \\\n'
@@ -339,6 +344,7 @@ def main():
         "set -e",
         "",
         'MODEL_FILTER="${1:-all}"',
+        'QUEUE="${QUEUE:-jag}"   # override with: QUEUE=john ./run_all_experiments.sh <model>',
         "",
     ]
 
