@@ -121,17 +121,6 @@ MODELS = {
         "api_key_env": "AZURE_EASTUS2_API_KEY",
         "endpoint_env": "AZURE_EASTUS2_ENDPOINT",
     },
-    # ── Azure (mtano-mmk5cynq-norwayeast): o3-deep-research (reasoning) ──
-    "o3_deep": {
-        "backend": "openai_reasoning",
-        "model": "o3-deep-research",
-        "output_dir": "Decoder-Only/O3_Deep/data",
-        "log_dir": "Decoder-Only/O3_Deep/slurm_logs",
-        "nlprun_flags": "-q jag -p standard -r 40G -c 2",
-        "extra_args": "--reasoning_effort medium",
-        "api_key_env": "AZURE_NORWAY_API_KEY",
-        "endpoint_env": "AZURE_NORWAY_ENDPOINT",
-    },
     # ── Azure: o3 (reasoning) ──
     "o3": {
         "backend": "openai_reasoning",

@@ -1750,10 +1750,13 @@ def compute_interrater_reliability(
     gold_dfs: Dict[str, pd.DataFrame],
     features: List[str],
     output_path: str,
-):
+    avg_human_df: Optional[pd.DataFrame] = None,
+) -> pd.DataFrame:
     """
     Compute pairwise interrater reliability (Cohen's kappa + % agreement)
     between all gold raters for each feature.
+    If avg_human_df is provided, also computes each rater vs average human.
+    Returns a DataFrame of each rater's kappa vs average human (empty if not provided).
     """
     rater_names = list(gold_dfs.keys())
     if len(rater_names) < 2:
@@ -1838,8 +1841,158 @@ def compute_interrater_reliability(
     summary.to_csv(summary_path, index=False)
     print(f"[INFO] Wrote summary to {summary_path}")
 
+    # Compute each rater vs average human
+    human_vs_avg_rows = []
+    if avg_human_df is not None:
+        feat_cols = [f for f in features if f in avg_human_df.columns]
+        avg_sub = avg_human_df[["sentence"] + feat_cols].rename(
+            columns={f: f"{f}__avg" for f in feat_cols}
+        )
+        for rater, df in gold_dfs.items():
+            rater_sub = df[["sentence"] + [f for f in feat_cols if f in df.columns]].rename(
+                columns={f: f"{f}__rater" for f in feat_cols if f in df.columns}
+            )
+            merged = rater_sub.merge(avg_sub, on="sentence", how="inner")
+            if merged.empty:
+                continue
+            for feat in feat_cols:
+                col_r, col_a = f"{feat}__rater", f"{feat}__avg"
+                if col_r not in merged.columns or col_a not in merged.columns:
+                    continue
+                y_r = merged[col_r].dropna().astype(int)
+                y_a = merged[col_a].dropna().astype(int)
+                common = y_r.index.intersection(y_a.index)
+                y_r, y_a = y_r.loc[common], y_a.loc[common]
+                if len(y_r) == 0:
+                    continue
+                pct = (y_r == y_a).mean()
+                try:
+                    kappa = cohen_kappa_score(y_r, y_a)
+                except Exception:
+                    kappa = float("nan")
+                human_vs_avg_rows.append({
+                    "entity": rater,
+                    "entity_type": "human",
+                    "feature": feat,
+                    "n_sentences": len(y_r),
+                    "pct_agreement": round(pct, 4),
+                    "cohens_kappa": round(kappa, 4) if not np.isnan(kappa) else None,
+                })
 
-def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] = None, exclude_ctx: Optional[List[str]] = None, exclude_instr: Optional[List[str]] = None, cot_only: bool = False):
+    return pd.DataFrame(human_vs_avg_rows)
+
+
+def compute_average_human_labels(
+    gold_dfs: Dict[str, pd.DataFrame],
+    features: List[str],
+) -> pd.DataFrame:
+    """
+    Compute majority-vote average label across all human raters per sentence per feature.
+    With an odd number of raters, majority = round(mean >= 0.5).
+    """
+    rater_names = list(gold_dfs.keys())
+    feat_cols = [f for f in features if any(f in df.columns for df in gold_dfs.values())]
+
+    base = None
+    for rater, df in gold_dfs.items():
+        sub = df[["sentence"] + [f for f in feat_cols if f in df.columns]].copy()
+        sub = sub.rename(columns={f: f"{f}__{rater}" for f in feat_cols if f in df.columns})
+        base = sub if base is None else base.merge(sub, on="sentence", how="inner")
+
+    if base is None or base.empty:
+        return pd.DataFrame(columns=["sentence"] + feat_cols)
+
+    result = base[["sentence"]].copy()
+    for feat in feat_cols:
+        rater_cols = [f"{feat}__{r}" for r in rater_names if f"{feat}__{r}" in base.columns]
+        if not rater_cols:
+            continue
+        result[feat] = (base[rater_cols].mean(axis=1) >= 0.5).astype(int)
+    return result
+
+
+def compute_model_kappas_vs_average(
+    model_sheets: Dict[str, pd.DataFrame],
+    avg_human_df: pd.DataFrame,
+    features: List[str],
+) -> pd.DataFrame:
+    """
+    For each model sheet, compute Cohen's kappa and % agreement vs average human labels.
+    """
+    rows = []
+    feat_cols = [f for f in features if f in avg_human_df.columns]
+    avg_sub = avg_human_df[["sentence"] + feat_cols].rename(
+        columns={f: f"{f}__avg" for f in feat_cols}
+    )
+    for model_name, model_df in model_sheets.items():
+        model_sub = model_df[["sentence"] + [f for f in feat_cols if f in model_df.columns]].rename(
+            columns={f: f"{f}__model" for f in feat_cols if f in model_df.columns}
+        )
+        merged = model_sub.merge(avg_sub, on="sentence", how="inner")
+        if merged.empty:
+            continue
+        for feat in feat_cols:
+            col_m, col_a = f"{feat}__model", f"{feat}__avg"
+            if col_m not in merged.columns or col_a not in merged.columns:
+                continue
+            y_m = merged[col_m].dropna().astype(int)
+            y_a = merged[col_a].dropna().astype(int)
+            common = y_m.index.intersection(y_a.index)
+            y_m, y_a = y_m.loc[common], y_a.loc[common]
+            if len(y_m) == 0:
+                continue
+            pct = (y_m == y_a).mean()
+            try:
+                kappa = cohen_kappa_score(y_m, y_a)
+            except Exception:
+                kappa = float("nan")
+            rows.append({
+                "entity": model_name,
+                "entity_type": "model",
+                "feature": feat,
+                "n_sentences": len(y_m),
+                "pct_agreement": round(pct, 4),
+                "cohens_kappa": round(kappa, 4) if not np.isnan(kappa) else None,
+            })
+    return pd.DataFrame(rows)
+
+
+def write_irr_model_comparison(
+    human_kappas: pd.DataFrame,
+    model_kappas: pd.DataFrame,
+    output_path: str,
+):
+    """
+    Write a combined comparison: each human rater vs average human,
+    alongside each model configuration vs average human.
+    """
+    combined = pd.concat([human_kappas, model_kappas], ignore_index=True)
+    if combined.empty:
+        print("[INFO] No IRR vs average human data to write.")
+        return
+
+    summary = (
+        combined.groupby(["entity", "entity_type"])
+        .agg(
+            mean_kappa_vs_avg_human=("cohens_kappa", "mean"),
+            mean_pct_agreement_vs_avg_human=("pct_agreement", "mean"),
+            n_features=("feature", "count"),
+        )
+        .reset_index()
+        .sort_values(["entity_type", "mean_kappa_vs_avg_human"], ascending=[True, False])
+    )
+
+    print(f"\n{'='*70}")
+    print("=== Agreement with Average Human: Raters vs Models ===")
+    print(f"{'='*70}")
+    print(summary.to_string(index=False))
+
+    combined.to_csv(os.path.join(output_path, "irr_vs_avg_human_detail.csv"), index=False)
+    summary.to_csv(os.path.join(output_path, "irr_vs_avg_human_summary.csv"), index=False)
+    print(f"\n[INFO] Wrote IRR comparison to {output_path}/irr_vs_avg_human_*.csv")
+
+
+def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] = None, exclude_ctx: Optional[List[str]] = None, exclude_instr: Optional[List[str]] = None, cot_only: bool = False, avg_human_df: Optional[pd.DataFrame] = None, model_kappa_collector: Optional[list] = None):
     print(f"\n===============================")
     print(f"=== Evaluating {file_path} ===")
     print(f"===============================\n")
@@ -2308,13 +2461,14 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
 
         print(f"[INFO] Wrote error breakdown to {errors_xlsx}")
 
-    # Interrater reliability (if multiple gold raters provided)
-    if gold_dfs and len(gold_dfs) >= 2:
-        # Determine features from the first model sheet
-        irr_features = list(EXTENDED_FEATURES) if any(
-            f in gold_df.columns for f in EXTENDED_FEATURES if f not in MASIS17_FEATURES
+    # Collect model kappas vs average human (if avg_human_df provided)
+    if avg_human_df is not None and model_kappa_collector is not None and model_sheets:
+        kappa_features = list(EXTENDED_FEATURES) if any(
+            f in avg_human_df.columns for f in EXTENDED_FEATURES if f not in MASIS17_FEATURES
         ) else list(MASIS17_FEATURES)
-        compute_interrater_reliability(gold_dfs, irr_features, output_base)
+        model_kappas = compute_model_kappas_vs_average(model_sheets, avg_human_df, kappa_features)
+        if not model_kappas.empty:
+            model_kappa_collector.append(model_kappas)
 
 
 def load_gold_file(path: str) -> pd.DataFrame:
@@ -2341,6 +2495,30 @@ def load_gold_file(path: str) -> pd.DataFrame:
     return df
 
 
+def load_rater_sheets(path: str) -> Dict[str, pd.DataFrame]:
+    """
+    Load each sheet from an Excel file as a separate human rater.
+    Sheet name becomes the rater name. Skips sheets with no sentence column.
+    """
+    sheets = pd.read_excel(path, sheet_name=None, engine="openpyxl")
+    gold_dfs: Dict[str, pd.DataFrame] = {}
+    for sheet_name, df in sheets.items():
+        if str(sheet_name).startswith("~$"):
+            continue
+        df = drop_features_column(df)
+        df = normalize_sentence_column(df, str(sheet_name))
+        if df is None:
+            print(f"[WARN] Rater sheet '{sheet_name}' missing sentence column — skipping.")
+            continue
+        df = df.dropna(subset=["sentence"])
+        df = safe_strip_sentence_col(df)
+        df = combine_wh_qu(df)
+        df = df.drop_duplicates(subset="sentence")
+        gold_dfs[str(sheet_name)] = df
+        print(f"[INIT] Loaded rater sheet: '{sheet_name}' ({len(df)} sentences)")
+    return gold_dfs
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Evaluate AAE Model Predictions against Gold Standard."
@@ -2358,6 +2536,13 @@ def main():
         help="Gold label file(s) as CSV or Excel. First file is primary gold. "
              "Additional files are secondary raters for interrater reliability. "
              "If omitted, reads 'Gold' sheet from each input workbook."
+    )
+
+    parser.add_argument(
+        "--rater-file", default=None,
+        help="Excel file where each sheet is a human rater's labels. "
+             "Loads all sheets as raters, computes pairwise IRR, average human labels, "
+             "and a model-vs-human comparison report."
     )
 
     parser.add_argument(
@@ -2403,13 +2588,28 @@ def main():
 
     # 2. Load gold files if provided via CLI
     gold_dfs = None
-    if args.gold:
+    if args.rater_file:
+        print(f"[INIT] Loading rater sheets from: {args.rater_file}")
+        gold_dfs = load_rater_sheets(args.rater_file)
+        print(f"[INIT] Loaded {len(gold_dfs)} rater(s): {list(gold_dfs.keys())}")
+    elif args.gold:
         gold_dfs = {}
         for gpath in args.gold:
             rater_name = os.path.splitext(os.path.basename(gpath))[0]
             print(f"[INIT] Loading gold file: {gpath} (rater: {rater_name})")
             gold_dfs[rater_name] = load_gold_file(gpath)
         print(f"[INIT] Loaded {len(gold_dfs)} gold rater(s): {list(gold_dfs.keys())}")
+
+    # Compute average human labels and run IRR if 2+ raters
+    avg_human_df = None
+    human_kappas = pd.DataFrame()
+    if gold_dfs and len(gold_dfs) >= 2:
+        irr_features = list(EXTENDED_FEATURES) if any(
+            f in list(gold_dfs.values())[0].columns for f in EXTENDED_FEATURES if f not in MASIS17_FEATURES
+        ) else list(MASIS17_FEATURES)
+        avg_human_df = compute_average_human_labels(gold_dfs, irr_features)
+        print(f"[INIT] Computed average human labels ({len(avg_human_df)} sentences, {len(irr_features)} features)")
+        human_kappas = compute_interrater_reliability(gold_dfs, irr_features, output_dir, avg_human_df=avg_human_df)
 
     # 3. Resolve input paths (handle files, directories, and glob patterns)
     filepaths = []
@@ -2433,13 +2633,27 @@ def main():
         print(f" - {fp}")
 
     # 4. Run evaluation for each file
+    model_kappa_collector: list = []
     for filepath in filepaths:
         try:
-            evaluate_sheets(filepath, gold_dfs=gold_dfs, exclude_ctx=args.exclude_ctx, exclude_instr=args.exclude_instr, cot_only=args.cot_only)
+            evaluate_sheets(
+                filepath,
+                gold_dfs=gold_dfs,
+                exclude_ctx=args.exclude_ctx,
+                exclude_instr=args.exclude_instr,
+                cot_only=args.cot_only,
+                avg_human_df=avg_human_df,
+                model_kappa_collector=model_kappa_collector,
+            )
         except Exception as e:
             print(f"\n[ERROR] Failed to evaluate {filepath}: {e}")
             import traceback
             traceback.print_exc()
+
+    # 5. Write model vs human comparison report
+    if avg_human_df is not None and (not human_kappas.empty or model_kappa_collector):
+        all_model_kappas = pd.concat(model_kappa_collector, ignore_index=True) if model_kappa_collector else pd.DataFrame()
+        write_irr_model_comparison(human_kappas, all_model_kappas, output_dir)
 
 
 if __name__ == "__main__":
