@@ -1,5 +1,5 @@
 #!/bin/bash
-# Re-run all CTX2t (wide context) experiments after the assistant-ack fix.
+# Re-run all CTX5 (wide context) experiments after the assistant-ack fix.
 #
 # Non-reasoning models:  phi4, qwen25_7b, qwen3_32b, gpt41, gpt52, gemini, gemini25_pro, g3flash_nothink
 # Reasoning models:      qwen3_32bthinking, gemini3_pro, g3flash, gemini25_pro_think,
@@ -11,7 +11,7 @@
 #   chmod +x Decoder-Only/rerun_ctx2t.sh
 #   ./Decoder-Only/rerun_ctx2t.sh                         # all 136 jobs on jag (default)
 #   ./Decoder-Only/rerun_ctx2t.sh all john                # all API-model jobs on john (CPU nodes)
-#   ./Decoder-Only/rerun_ctxwide.sh phi4                  # launch only phi4 CTX2t jobs (8)
+#   ./Decoder-Only/rerun_ctxwide.sh phi4                  # launch only phi4 CTX5 jobs (8)
 #   ./Decoder-Only/rerun_ctxwide.sh gemini                # launch only Gemini 2.5 Flash jobs (8)
 #   ./Decoder-Only/rerun_ctxwide.sh qwen3_32bthinking     # launch only Qwen3-32B thinking jobs (8)
 #   ./Decoder-Only/rerun_ctxwide.sh o4mini                # launch only o4-mini reasoning jobs (8)
@@ -49,7 +49,7 @@ mkdir -p Decoder-Only/Phi-4/slurm_logs
 mkdir -p Decoder-Only/Phi-4/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_zs_ctxwide_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -61,7 +61,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZS_CTX2t_noLeg \
+    --sheet PHI4_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -71,7 +71,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_zs_ctxwide_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -83,7 +83,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZS_CTX2t_Leg \
+    --sheet PHI4_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -94,7 +94,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_FS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_fs_ctxwide_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -106,7 +106,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FS_CTX2t_noLeg \
+    --sheet PHI4_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -116,7 +116,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_FS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_fs_ctxwide_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -128,7 +128,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FS_CTX2t_Leg \
+    --sheet PHI4_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -139,7 +139,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_zscot_ctxwide_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -151,7 +151,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZScot_CTX2t_noLeg \
+    --sheet PHI4_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -161,7 +161,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_ZScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_zscot_ctxwide_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -173,7 +173,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZScot_CTX2t_Leg \
+    --sheet PHI4_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -184,7 +184,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_FScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_fscot_ctxwide_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -196,7 +196,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FScot_CTX2t_noLeg \
+    --sheet PHI4_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -206,7 +206,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: PHI4_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: PHI4_FScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_phi4_fscot_ctxwide_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -218,7 +218,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FScot_CTX2t_Leg \
+    --sheet PHI4_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -240,7 +240,7 @@ mkdir -p Decoder-Only/Gemini/slurm_logs
 mkdir -p Decoder-Only/Gemini/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zs_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -252,7 +252,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZS_CTX2t_noLeg \
+    --sheet GEMINI_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -262,7 +262,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zs_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -274,7 +274,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZS_CTX2t_Leg \
+    --sheet GEMINI_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -285,7 +285,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fs_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -297,7 +297,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FS_CTX2t_noLeg \
+    --sheet GEMINI_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -307,7 +307,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fs_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -319,7 +319,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FS_CTX2t_Leg \
+    --sheet GEMINI_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -330,7 +330,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zscot_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -342,7 +342,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZScot_CTX2t_noLeg \
+    --sheet GEMINI_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -352,7 +352,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_zscot_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -364,7 +364,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZScot_CTX2t_Leg \
+    --sheet GEMINI_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -375,7 +375,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fscot_ctxwide_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -387,7 +387,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FScot_CTX2t_noLeg \
+    --sheet GEMINI_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -397,7 +397,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini_fscot_ctxwide_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -409,7 +409,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FScot_CTX2t_Leg \
+    --sheet GEMINI_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -431,7 +431,7 @@ mkdir -p Decoder-Only/Gemini3_Pro/slurm_logs
 mkdir -p Decoder-Only/Gemini3_Pro/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zs_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -444,7 +444,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_ZS_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -454,7 +454,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zs_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -467,7 +467,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_ZS_CTX2t_Leg \
+    --sheet GEMINI3_PRO_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -478,7 +478,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fs_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -491,7 +491,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_FS_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -501,7 +501,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fs_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -514,7 +514,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_FS_CTX2t_Leg \
+    --sheet GEMINI3_PRO_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -525,7 +525,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zscot_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -538,7 +538,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_ZScot_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -548,7 +548,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_zscot_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -561,7 +561,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_ZScot_CTX2t_Leg \
+    --sheet GEMINI3_PRO_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -572,7 +572,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fscot_ctxwide_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -585,7 +585,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_FScot_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -595,7 +595,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GEMINI3_PRO_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gemini3_pro_fscot_ctxwide_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -608,7 +608,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
     --thinking_level high \
-    --sheet GEMINI3_PRO_FScot_CTX2t_Leg \
+    --sheet GEMINI3_PRO_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -630,7 +630,7 @@ mkdir -p Decoder-Only/Qwen2.5/slurm_logs
 mkdir -p Decoder-Only/Qwen2.5/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_zs_ctxwide_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -642,7 +642,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZS_CTX2t_noLeg \
+    --sheet QWEN25_7B_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -652,7 +652,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_zs_ctxwide_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -664,7 +664,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZS_CTX2t_Leg \
+    --sheet QWEN25_7B_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -675,7 +675,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_fs_ctxwide_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -687,7 +687,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FS_CTX2t_noLeg \
+    --sheet QWEN25_7B_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -697,7 +697,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_fs_ctxwide_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -709,7 +709,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FS_CTX2t_Leg \
+    --sheet QWEN25_7B_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -720,7 +720,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_zscot_ctxwide_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -732,7 +732,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZScot_CTX2t_noLeg \
+    --sheet QWEN25_7B_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -742,7 +742,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_ZScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_zscot_ctxwide_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -754,7 +754,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZScot_CTX2t_Leg \
+    --sheet QWEN25_7B_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -765,7 +765,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_fscot_ctxwide_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -777,7 +777,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FScot_CTX2t_noLeg \
+    --sheet QWEN25_7B_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -787,7 +787,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN25_7B_FScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n ${JOB}_qwen25_7b_fscot_ctxwide_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -799,7 +799,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FScot_CTX2t_Leg \
+    --sheet QWEN25_7B_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -821,7 +821,7 @@ mkdir -p Decoder-Only/GPT41/slurm_logs
 mkdir -p Decoder-Only/GPT41/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zs_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -833,7 +833,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZS_CTX2t_noLeg \
+    --sheet GPT41_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -843,7 +843,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zs_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -855,7 +855,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZS_CTX2t_Leg \
+    --sheet GPT41_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -866,7 +866,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fs_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -878,7 +878,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FS_CTX2t_noLeg \
+    --sheet GPT41_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -888,7 +888,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fs_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -900,7 +900,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FS_CTX2t_Leg \
+    --sheet GPT41_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -911,7 +911,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zscot_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -923,7 +923,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZScot_CTX2t_noLeg \
+    --sheet GPT41_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -933,7 +933,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_zscot_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -945,7 +945,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZScot_CTX2t_Leg \
+    --sheet GPT41_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -956,7 +956,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fscot_ctxwide_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -968,7 +968,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FScot_CTX2t_noLeg \
+    --sheet GPT41_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -978,7 +978,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: GPT41_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: GPT41_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_gpt41_fscot_ctxwide_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -990,7 +990,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold ${GOLD_FILE} \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FScot_CTX2t_Leg \
+    --sheet GPT41_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1012,7 +1012,7 @@ mkdir -p Decoder-Only/Qwen3-32B/slurm_logs
 mkdir -p Decoder-Only/Qwen3-32B/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_zs_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1024,7 +1024,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZS_CTX2t_noLeg \
+    --sheet QWEN3_32B_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1034,7 +1034,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_zs_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1046,7 +1046,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZS_CTX2t_Leg \
+    --sheet QWEN3_32B_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1057,7 +1057,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_fs_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1069,7 +1069,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FS_CTX2t_noLeg \
+    --sheet QWEN3_32B_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1079,7 +1079,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_fs_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1091,7 +1091,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FS_CTX2t_Leg \
+    --sheet QWEN3_32B_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1102,7 +1102,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_zscot_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1114,7 +1114,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZScot_CTX2t_noLeg \
+    --sheet QWEN3_32B_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1124,7 +1124,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_ZScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_zscot_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1136,7 +1136,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZScot_CTX2t_Leg \
+    --sheet QWEN3_32B_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1147,7 +1147,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_fscot_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1159,7 +1159,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FScot_CTX2t_noLeg \
+    --sheet QWEN3_32B_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1169,7 +1169,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32B_FScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32b_fscot_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -1181,7 +1181,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FScot_CTX2t_Leg \
+    --sheet QWEN3_32B_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1203,7 +1203,7 @@ mkdir -p Decoder-Only/Qwen3-32B-Thinking/slurm_logs
 mkdir -p Decoder-Only/Qwen3-32B-Thinking/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_zs_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1215,7 +1215,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_ZS_CTX2t_noLeg \
+    --sheet QWEN3_32BT_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1225,7 +1225,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_zs_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1237,7 +1237,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_ZS_CTX2t_Leg \
+    --sheet QWEN3_32BT_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1248,7 +1248,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_fs_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1260,7 +1260,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_FS_CTX2t_noLeg \
+    --sheet QWEN3_32BT_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1270,7 +1270,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_fs_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1282,7 +1282,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_FS_CTX2t_Leg \
+    --sheet QWEN3_32BT_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1293,7 +1293,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_zscot_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1305,7 +1305,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_ZScot_CTX2t_noLeg \
+    --sheet QWEN3_32BT_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1315,7 +1315,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_ZScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_zscot_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1327,7 +1327,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_ZScot_CTX2t_Leg \
+    --sheet QWEN3_32BT_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1338,7 +1338,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_fscot_ctxwide_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1350,7 +1350,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_FScot_CTX2t_noLeg \
+    --sheet QWEN3_32BT_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1360,7 +1360,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: QWEN3_32BT_FScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n ${JOB}_qwen3_32bt_fscot_ctxwide_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -1372,7 +1372,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold ${GOLD_FILE} \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32BT_FScot_CTX2t_Leg \
+    --sheet QWEN3_32BT_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1394,7 +1394,7 @@ mkdir -p Decoder-Only/O4-Mini/slurm_logs
 mkdir -p Decoder-Only/O4-Mini/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zs_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1407,7 +1407,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_ZS_CTX2t_noLeg \
+    --sheet O4MINI_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1417,7 +1417,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zs_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1430,7 +1430,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_ZS_CTX2t_Leg \
+    --sheet O4MINI_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1441,7 +1441,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fs_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1454,7 +1454,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_FS_CTX2t_noLeg \
+    --sheet O4MINI_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1464,7 +1464,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fs_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1477,7 +1477,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_FS_CTX2t_Leg \
+    --sheet O4MINI_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1488,7 +1488,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zscot_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1501,7 +1501,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_ZScot_CTX2t_noLeg \
+    --sheet O4MINI_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1511,7 +1511,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_zscot_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1524,7 +1524,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_ZScot_CTX2t_Leg \
+    --sheet O4MINI_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1535,7 +1535,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fscot_ctxwide_noleg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1548,7 +1548,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_FScot_CTX2t_noLeg \
+    --sheet O4MINI_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1558,7 +1558,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O4MINI_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o4mini_fscot_ctxwide_leg \
   -o Decoder-Only/O4-Mini/slurm_logs/%x.out \
@@ -1571,7 +1571,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o4-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O4MINI_FScot_CTX2t_Leg \
+    --sheet O4MINI_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1593,7 +1593,7 @@ mkdir -p Decoder-Only/O3/slurm_logs
 mkdir -p Decoder-Only/O3/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zs_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1606,7 +1606,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_ZS_CTX2t_noLeg \
+    --sheet O3_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1616,7 +1616,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zs_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1629,7 +1629,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_ZS_CTX2t_Leg \
+    --sheet O3_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1640,7 +1640,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fs_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1653,7 +1653,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_FS_CTX2t_noLeg \
+    --sheet O3_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1663,7 +1663,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fs_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1676,7 +1676,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_FS_CTX2t_Leg \
+    --sheet O3_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1687,7 +1687,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zscot_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1700,7 +1700,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_ZScot_CTX2t_noLeg \
+    --sheet O3_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1710,7 +1710,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_zscot_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1723,7 +1723,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_ZScot_CTX2t_Leg \
+    --sheet O3_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1734,7 +1734,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fscot_ctxwide_noleg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1747,7 +1747,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_FScot_CTX2t_noLeg \
+    --sheet O3_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1757,7 +1757,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3_fscot_ctxwide_leg \
   -o Decoder-Only/O3/slurm_logs/%x.out \
@@ -1770,7 +1770,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3 \
     --backend openai_reasoning \
     --reasoning_effort high \
-    --sheet O3_FScot_CTX2t_Leg \
+    --sheet O3_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1792,7 +1792,7 @@ mkdir -p Decoder-Only/O3-Mini/slurm_logs
 mkdir -p Decoder-Only/O3-Mini/data
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zs_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1805,7 +1805,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_ZS_CTX2t_noLeg \
+    --sheet O3MINI_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1815,7 +1815,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zs_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1828,7 +1828,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_ZS_CTX2t_Leg \
+    --sheet O3MINI_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1839,7 +1839,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fs_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1852,7 +1852,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_FS_CTX2t_noLeg \
+    --sheet O3MINI_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1862,7 +1862,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fs_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1875,7 +1875,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_FS_CTX2t_Leg \
+    --sheet O3MINI_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1886,7 +1886,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zscot_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1899,7 +1899,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_ZScot_CTX2t_noLeg \
+    --sheet O3MINI_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1909,7 +1909,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_zscot_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1922,7 +1922,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_ZScot_CTX2t_Leg \
+    --sheet O3MINI_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1933,7 +1933,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTX2t_noLeg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fscot_ctxwide_noleg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1946,7 +1946,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_FScot_CTX2t_noLeg \
+    --sheet O3MINI_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1956,7 +1956,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide"
 
 JOB=$((JOB+1))
-echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTX2t_Leg"
+echo "[$(printf '%03d' $JOB)] Launching: O3MINI_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n ${JOB}_o3mini_fscot_ctxwide_leg \
   -o Decoder-Only/O3-Mini/slurm_logs/%x.out \
@@ -1969,7 +1969,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --model o3-mini \
     --backend openai_reasoning \
     --reasoning_effort medium \
-    --sheet O3MINI_FScot_CTX2t_Leg \
+    --sheet O3MINI_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format ${OUTPUT_FORMAT} \
@@ -1999,7 +1999,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       zero_shot_cot) TAG="ZScot" ;;
       few_shot_cot)  TAG="FScot" ;;
     esac
-    SHEET="GPT52_${TAG}_CTX2t_${LEG_TAG}"
+    SHEET="GPT52_${TAG}_CTX5_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
     nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
@@ -2044,7 +2044,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       zero_shot_cot) TAG="ZScot" ;;
       few_shot_cot)  TAG="FScot" ;;
     esac
-    SHEET="G3FLASH_${TAG}_CTX2t_${LEG_TAG}"
+    SHEET="G3FLASH_${TAG}_CTX5_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
     nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
@@ -2090,7 +2090,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       zero_shot_cot) TAG="ZScot" ;;
       few_shot_cot)  TAG="FScot" ;;
     esac
-    SHEET="G3FLASHT_${TAG}_CTX2t_${LEG_TAG}"
+    SHEET="G3FLASHT_${TAG}_CTX5_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
     nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
@@ -2136,7 +2136,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       zero_shot_cot) TAG="ZScot" ;;
       few_shot_cot)  TAG="FScot" ;;
     esac
-    SHEET="GEMINI25P_${TAG}_CTX2t_${LEG_TAG}"
+    SHEET="GEMINI25P_${TAG}_CTX5_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
     nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
@@ -2182,7 +2182,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       zero_shot_cot) TAG="ZScot" ;;
       few_shot_cot)  TAG="FScot" ;;
     esac
-    SHEET="GPT5_${TAG}_CTX2t_${LEG_TAG}"
+    SHEET="GPT5_${TAG}_CTX5_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
     nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
@@ -2228,7 +2228,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       zero_shot_cot) TAG="ZScot" ;;
       few_shot_cot)  TAG="FScot" ;;
     esac
-    SHEET="O3DEEP_${TAG}_CTX2t_${LEG_TAG}"
+    SHEET="O3DEEP_${TAG}_CTX5_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
     nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
@@ -2274,7 +2274,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
       zero_shot_cot) TAG="ZScot" ;;
       few_shot_cot)  TAG="FScot" ;;
     esac
-    SHEET="O4MINID_${TAG}_CTX2t_${LEG_TAG}"
+    SHEET="O4MINID_${TAG}_CTX5_${LEG_TAG}"
     JOB=$((JOB+1))
     echo "[$(printf '%03d' $JOB)] Launching: ${SHEET}"
     nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
@@ -2302,4 +2302,4 @@ done
 
 fi
 
-echo "Done. Submitted ${JOB} CTX2t re-run jobs for $MODEL_FILTER."
+echo "Done. Submitted ${JOB} CTX5 re-run jobs for $MODEL_FILTER."

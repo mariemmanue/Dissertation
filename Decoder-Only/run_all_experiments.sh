@@ -119,7 +119,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[005] Launching: PHI4_ZS_CTX2t_noLeg"
+echo "[005] Launching: PHI4_ZS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 05_phi4_zs_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -131,7 +131,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZS_CTX2t_noLeg \
+    --sheet PHI4_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -140,7 +140,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[006] Launching: PHI4_ZS_CTX2t_Leg"
+echo "[006] Launching: PHI4_ZS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 06_phi4_zs_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -152,7 +152,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZS_CTX2t_Leg \
+    --sheet PHI4_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -244,7 +244,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[011] Launching: PHI4_FS_CTX2t_noLeg"
+echo "[011] Launching: PHI4_FS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 11_phi4_fs_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -256,7 +256,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FS_CTX2t_noLeg \
+    --sheet PHI4_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -265,7 +265,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[012] Launching: PHI4_FS_CTX2t_Leg"
+echo "[012] Launching: PHI4_FS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 12_phi4_fs_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -277,7 +277,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FS_CTX2t_Leg \
+    --sheet PHI4_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -369,7 +369,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[017] Launching: PHI4_ZScot_CTX2t_noLeg"
+echo "[017] Launching: PHI4_ZScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 17_phi4_zscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -381,7 +381,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZScot_CTX2t_noLeg \
+    --sheet PHI4_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -390,7 +390,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[018] Launching: PHI4_ZScot_CTX2t_Leg"
+echo "[018] Launching: PHI4_ZScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 18_phi4_zscot_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -402,7 +402,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_ZScot_CTX2t_Leg \
+    --sheet PHI4_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -494,7 +494,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[023] Launching: PHI4_FScot_CTX2t_noLeg"
+echo "[023] Launching: PHI4_FScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 23_phi4_fscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -506,7 +506,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FScot_CTX2t_noLeg \
+    --sheet PHI4_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -515,7 +515,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[024] Launching: PHI4_FScot_CTX2t_Leg"
+echo "[024] Launching: PHI4_FScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 24_phi4_fscot_ctx2t_leg \
   -o Decoder-Only/Phi-4/slurm_logs/%x.out \
@@ -527,7 +527,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/phi-4 \
     --backend phi \
-    --sheet PHI4_FScot_CTX2t_Leg \
+    --sheet PHI4_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -630,7 +630,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[029] Launching: GEMINI_ZS_CTX2t_noLeg"
+echo "[029] Launching: GEMINI_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gemini_zs_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -642,7 +642,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZS_CTX2t_noLeg \
+    --sheet GEMINI_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -651,7 +651,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[030] Launching: GEMINI_ZS_CTX2t_Leg"
+echo "[030] Launching: GEMINI_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gemini_zs_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -663,7 +663,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZS_CTX2t_Leg \
+    --sheet GEMINI_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -755,7 +755,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[035] Launching: GEMINI_FS_CTX2t_noLeg"
+echo "[035] Launching: GEMINI_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gemini_fs_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -767,7 +767,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FS_CTX2t_noLeg \
+    --sheet GEMINI_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -776,7 +776,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[036] Launching: GEMINI_FS_CTX2t_Leg"
+echo "[036] Launching: GEMINI_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gemini_fs_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -788,7 +788,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FS_CTX2t_Leg \
+    --sheet GEMINI_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -880,7 +880,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[041] Launching: GEMINI_ZScot_CTX2t_noLeg"
+echo "[041] Launching: GEMINI_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gemini_zscot_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -892,7 +892,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZScot_CTX2t_noLeg \
+    --sheet GEMINI_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -901,7 +901,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[042] Launching: GEMINI_ZScot_CTX2t_Leg"
+echo "[042] Launching: GEMINI_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gemini_zscot_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -913,7 +913,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_ZScot_CTX2t_Leg \
+    --sheet GEMINI_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -1005,7 +1005,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[047] Launching: GEMINI_FScot_CTX2t_noLeg"
+echo "[047] Launching: GEMINI_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gemini_fscot_ctx2t_noleg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -1017,7 +1017,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FScot_CTX2t_noLeg \
+    --sheet GEMINI_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -1026,7 +1026,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[048] Launching: GEMINI_FScot_CTX2t_Leg"
+echo "[048] Launching: GEMINI_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gemini_fscot_ctx2t_leg \
   -o Decoder-Only/Gemini/slurm_logs/%x.out \
@@ -1038,7 +1038,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-2.5-flash \
     --backend gemini \
-    --sheet GEMINI_FScot_CTX2t_Leg \
+    --sheet GEMINI_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -1141,7 +1141,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[053] Launching: QWEN25_7B_ZS_CTX2t_noLeg"
+echo "[053] Launching: QWEN25_7B_ZS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 05_qwen25_7b_zs_ctx2t_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1153,7 +1153,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZS_CTX2t_noLeg \
+    --sheet QWEN25_7B_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -1162,7 +1162,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[054] Launching: QWEN25_7B_ZS_CTX2t_Leg"
+echo "[054] Launching: QWEN25_7B_ZS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 06_qwen25_7b_zs_ctx2t_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1174,7 +1174,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZS_CTX2t_Leg \
+    --sheet QWEN25_7B_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -1266,7 +1266,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[059] Launching: QWEN25_7B_FS_CTX2t_noLeg"
+echo "[059] Launching: QWEN25_7B_FS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 11_qwen25_7b_fs_ctx2t_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1278,7 +1278,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FS_CTX2t_noLeg \
+    --sheet QWEN25_7B_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -1287,7 +1287,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[060] Launching: QWEN25_7B_FS_CTX2t_Leg"
+echo "[060] Launching: QWEN25_7B_FS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 12_qwen25_7b_fs_ctx2t_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1299,7 +1299,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FS_CTX2t_Leg \
+    --sheet QWEN25_7B_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -1391,7 +1391,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[065] Launching: QWEN25_7B_ZScot_CTX2t_noLeg"
+echo "[065] Launching: QWEN25_7B_ZScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 17_qwen25_7b_zscot_ctx2t_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1403,7 +1403,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZScot_CTX2t_noLeg \
+    --sheet QWEN25_7B_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -1412,7 +1412,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[066] Launching: QWEN25_7B_ZScot_CTX2t_Leg"
+echo "[066] Launching: QWEN25_7B_ZScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 18_qwen25_7b_zscot_ctx2t_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1424,7 +1424,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_ZScot_CTX2t_Leg \
+    --sheet QWEN25_7B_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -1516,7 +1516,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[071] Launching: QWEN25_7B_FScot_CTX2t_noLeg"
+echo "[071] Launching: QWEN25_7B_FScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 23_qwen25_7b_fscot_ctx2t_noleg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1528,7 +1528,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FScot_CTX2t_noLeg \
+    --sheet QWEN25_7B_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -1537,7 +1537,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[072] Launching: QWEN25_7B_FScot_CTX2t_Leg"
+echo "[072] Launching: QWEN25_7B_FScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 24_qwen25_7b_fscot_ctx2t_leg \
   -o Decoder-Only/Qwen2.5/slurm_logs/%x.out \
@@ -1549,7 +1549,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen2.5-7B-Instruct \
     --backend qwen \
-    --sheet QWEN25_7B_FScot_CTX2t_Leg \
+    --sheet QWEN25_7B_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -1656,7 +1656,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --thinking_level high"
 
-echo "[077] Launching: GEMINI3_PRO_ZS_CTX2t_noLeg"
+echo "[077] Launching: GEMINI3_PRO_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gemini3_pro_zs_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -1668,7 +1668,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_ZS_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -1678,7 +1678,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --thinking_level high"
 
-echo "[078] Launching: GEMINI3_PRO_ZS_CTX2t_Leg"
+echo "[078] Launching: GEMINI3_PRO_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gemini3_pro_zs_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -1690,7 +1690,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_ZS_CTX2t_Leg \
+    --sheet GEMINI3_PRO_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -1787,7 +1787,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --thinking_level high"
 
-echo "[083] Launching: GEMINI3_PRO_FS_CTX2t_noLeg"
+echo "[083] Launching: GEMINI3_PRO_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gemini3_pro_fs_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -1799,7 +1799,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_FS_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -1809,7 +1809,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --thinking_level high"
 
-echo "[084] Launching: GEMINI3_PRO_FS_CTX2t_Leg"
+echo "[084] Launching: GEMINI3_PRO_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gemini3_pro_fs_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -1821,7 +1821,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_FS_CTX2t_Leg \
+    --sheet GEMINI3_PRO_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -1918,7 +1918,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --thinking_level high"
 
-echo "[089] Launching: GEMINI3_PRO_ZScot_CTX2t_noLeg"
+echo "[089] Launching: GEMINI3_PRO_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gemini3_pro_zscot_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -1930,7 +1930,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_ZScot_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -1940,7 +1940,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --thinking_level high"
 
-echo "[090] Launching: GEMINI3_PRO_ZScot_CTX2t_Leg"
+echo "[090] Launching: GEMINI3_PRO_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gemini3_pro_zscot_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -1952,7 +1952,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_ZScot_CTX2t_Leg \
+    --sheet GEMINI3_PRO_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -2049,7 +2049,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --thinking_level high"
 
-echo "[095] Launching: GEMINI3_PRO_FScot_CTX2t_noLeg"
+echo "[095] Launching: GEMINI3_PRO_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gemini3_pro_fscot_ctx2t_noleg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -2061,7 +2061,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_FScot_CTX2t_noLeg \
+    --sheet GEMINI3_PRO_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -2071,7 +2071,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --thinking_level high"
 
-echo "[096] Launching: GEMINI3_PRO_FScot_CTX2t_Leg"
+echo "[096] Launching: GEMINI3_PRO_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gemini3_pro_fscot_ctx2t_leg \
   -o Decoder-Only/Gemini3_Pro/slurm_logs/%x.out \
@@ -2083,7 +2083,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gemini-3.1-pro-preview \
     --backend gemini3 \
-    --sheet GEMINI3_PRO_FScot_CTX2t_Leg \
+    --sheet GEMINI3_PRO_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -2187,7 +2187,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[101] Launching: GPT41_ZS_CTX2t_noLeg"
+echo "[101] Launching: GPT41_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt41_zs_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2199,7 +2199,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZS_CTX2t_noLeg \
+    --sheet GPT41_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -2208,7 +2208,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[102] Launching: GPT41_ZS_CTX2t_Leg"
+echo "[102] Launching: GPT41_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt41_zs_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2220,7 +2220,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZS_CTX2t_Leg \
+    --sheet GPT41_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -2312,7 +2312,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[107] Launching: GPT41_FS_CTX2t_noLeg"
+echo "[107] Launching: GPT41_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt41_fs_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2324,7 +2324,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FS_CTX2t_noLeg \
+    --sheet GPT41_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -2333,7 +2333,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[108] Launching: GPT41_FS_CTX2t_Leg"
+echo "[108] Launching: GPT41_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt41_fs_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2345,7 +2345,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FS_CTX2t_Leg \
+    --sheet GPT41_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -2437,7 +2437,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[113] Launching: GPT41_ZScot_CTX2t_noLeg"
+echo "[113] Launching: GPT41_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt41_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2449,7 +2449,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZScot_CTX2t_noLeg \
+    --sheet GPT41_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -2458,7 +2458,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[114] Launching: GPT41_ZScot_CTX2t_Leg"
+echo "[114] Launching: GPT41_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt41_zscot_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2470,7 +2470,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_ZScot_CTX2t_Leg \
+    --sheet GPT41_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -2562,7 +2562,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[119] Launching: GPT41_FScot_CTX2t_noLeg"
+echo "[119] Launching: GPT41_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt41_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2574,7 +2574,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FScot_CTX2t_noLeg \
+    --sheet GPT41_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -2583,7 +2583,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[120] Launching: GPT41_FScot_CTX2t_Leg"
+echo "[120] Launching: GPT41_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt41_fscot_ctx2t_leg \
   -o Decoder-Only/GPT41/slurm_logs/%x.out \
@@ -2595,7 +2595,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-4.1 \
     --backend openai \
-    --sheet GPT41_FScot_CTX2t_Leg \
+    --sheet GPT41_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -2698,7 +2698,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[125] Launching: GPT52_INSTANT_ZS_CTX2t_noLeg"
+echo "[125] Launching: GPT52_INSTANT_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt52_instant_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -2710,7 +2710,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_ZS_CTX2t_noLeg \
+    --sheet GPT52_INSTANT_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -2719,7 +2719,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[126] Launching: GPT52_INSTANT_ZS_CTX2t_Leg"
+echo "[126] Launching: GPT52_INSTANT_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt52_instant_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -2731,7 +2731,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_ZS_CTX2t_Leg \
+    --sheet GPT52_INSTANT_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -2823,7 +2823,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[131] Launching: GPT52_INSTANT_FS_CTX2t_noLeg"
+echo "[131] Launching: GPT52_INSTANT_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt52_instant_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -2835,7 +2835,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_FS_CTX2t_noLeg \
+    --sheet GPT52_INSTANT_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -2844,7 +2844,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[132] Launching: GPT52_INSTANT_FS_CTX2t_Leg"
+echo "[132] Launching: GPT52_INSTANT_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt52_instant_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -2856,7 +2856,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_FS_CTX2t_Leg \
+    --sheet GPT52_INSTANT_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -2948,7 +2948,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[137] Launching: GPT52_INSTANT_ZScot_CTX2t_noLeg"
+echo "[137] Launching: GPT52_INSTANT_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt52_instant_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -2960,7 +2960,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_ZScot_CTX2t_noLeg \
+    --sheet GPT52_INSTANT_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -2969,7 +2969,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[138] Launching: GPT52_INSTANT_ZScot_CTX2t_Leg"
+echo "[138] Launching: GPT52_INSTANT_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt52_instant_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -2981,7 +2981,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_ZScot_CTX2t_Leg \
+    --sheet GPT52_INSTANT_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -3073,7 +3073,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[143] Launching: GPT52_INSTANT_FScot_CTX2t_noLeg"
+echo "[143] Launching: GPT52_INSTANT_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt52_instant_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -3085,7 +3085,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_FScot_CTX2t_noLeg \
+    --sheet GPT52_INSTANT_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -3094,7 +3094,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context \
     --context_mode wide"
 
-echo "[144] Launching: GPT52_INSTANT_FScot_CTX2t_Leg"
+echo "[144] Launching: GPT52_INSTANT_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt52_instant_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Instant/slurm_logs/%x.out \
@@ -3106,7 +3106,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2-chat-latest \
     --backend openai \
-    --sheet GPT52_INSTANT_FScot_CTX2t_Leg \
+    --sheet GPT52_INSTANT_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -3213,7 +3213,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[149] Launching: GPT52_THINK_MED_ZS_CTX2t_noLeg"
+echo "[149] Launching: GPT52_THINK_MED_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt52_think_med_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3225,7 +3225,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_ZS_CTX2t_noLeg \
+    --sheet GPT52_THINK_MED_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -3235,7 +3235,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort medium"
 
-echo "[150] Launching: GPT52_THINK_MED_ZS_CTX2t_Leg"
+echo "[150] Launching: GPT52_THINK_MED_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt52_think_med_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3247,7 +3247,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_ZS_CTX2t_Leg \
+    --sheet GPT52_THINK_MED_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -3344,7 +3344,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[155] Launching: GPT52_THINK_MED_FS_CTX2t_noLeg"
+echo "[155] Launching: GPT52_THINK_MED_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt52_think_med_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3356,7 +3356,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_FS_CTX2t_noLeg \
+    --sheet GPT52_THINK_MED_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -3366,7 +3366,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort medium"
 
-echo "[156] Launching: GPT52_THINK_MED_FS_CTX2t_Leg"
+echo "[156] Launching: GPT52_THINK_MED_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt52_think_med_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3378,7 +3378,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_FS_CTX2t_Leg \
+    --sheet GPT52_THINK_MED_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -3475,7 +3475,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[161] Launching: GPT52_THINK_MED_ZScot_CTX2t_noLeg"
+echo "[161] Launching: GPT52_THINK_MED_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt52_think_med_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3487,7 +3487,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_ZScot_CTX2t_noLeg \
+    --sheet GPT52_THINK_MED_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -3497,7 +3497,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort medium"
 
-echo "[162] Launching: GPT52_THINK_MED_ZScot_CTX2t_Leg"
+echo "[162] Launching: GPT52_THINK_MED_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt52_think_med_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3509,7 +3509,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_ZScot_CTX2t_Leg \
+    --sheet GPT52_THINK_MED_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -3606,7 +3606,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort medium"
 
-echo "[167] Launching: GPT52_THINK_MED_FScot_CTX2t_noLeg"
+echo "[167] Launching: GPT52_THINK_MED_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt52_think_med_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3618,7 +3618,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_FScot_CTX2t_noLeg \
+    --sheet GPT52_THINK_MED_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -3628,7 +3628,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort medium"
 
-echo "[168] Launching: GPT52_THINK_MED_FScot_CTX2t_Leg"
+echo "[168] Launching: GPT52_THINK_MED_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt52_think_med_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_Med/slurm_logs/%x.out \
@@ -3640,7 +3640,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_MED_FScot_CTX2t_Leg \
+    --sheet GPT52_THINK_MED_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -3748,7 +3748,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[173] Launching: GPT52_THINK_HIGH_ZS_CTX2t_noLeg"
+echo "[173] Launching: GPT52_THINK_HIGH_ZS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 05_gpt52_think_high_zs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -3760,7 +3760,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_ZS_CTX2t_noLeg \
+    --sheet GPT52_THINK_HIGH_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -3770,7 +3770,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort high"
 
-echo "[174] Launching: GPT52_THINK_HIGH_ZS_CTX2t_Leg"
+echo "[174] Launching: GPT52_THINK_HIGH_ZS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 06_gpt52_think_high_zs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -3782,7 +3782,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_ZS_CTX2t_Leg \
+    --sheet GPT52_THINK_HIGH_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -3879,7 +3879,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[179] Launching: GPT52_THINK_HIGH_FS_CTX2t_noLeg"
+echo "[179] Launching: GPT52_THINK_HIGH_FS_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 11_gpt52_think_high_fs_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -3891,7 +3891,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_FS_CTX2t_noLeg \
+    --sheet GPT52_THINK_HIGH_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -3901,7 +3901,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort high"
 
-echo "[180] Launching: GPT52_THINK_HIGH_FS_CTX2t_Leg"
+echo "[180] Launching: GPT52_THINK_HIGH_FS_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 12_gpt52_think_high_fs_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -3913,7 +3913,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_FS_CTX2t_Leg \
+    --sheet GPT52_THINK_HIGH_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -4010,7 +4010,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[185] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_noLeg"
+echo "[185] Launching: GPT52_THINK_HIGH_ZScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 17_gpt52_think_high_zscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -4022,7 +4022,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_ZScot_CTX2t_noLeg \
+    --sheet GPT52_THINK_HIGH_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -4032,7 +4032,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort high"
 
-echo "[186] Launching: GPT52_THINK_HIGH_ZScot_CTX2t_Leg"
+echo "[186] Launching: GPT52_THINK_HIGH_ZScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 18_gpt52_think_high_zscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -4044,7 +4044,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_ZScot_CTX2t_Leg \
+    --sheet GPT52_THINK_HIGH_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -4141,7 +4141,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --dialect_legitimacy \
     --reasoning_effort high"
 
-echo "[191] Launching: GPT52_THINK_HIGH_FScot_CTX2t_noLeg"
+echo "[191] Launching: GPT52_THINK_HIGH_FScot_CTX5_noLeg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 23_gpt52_think_high_fscot_ctx2t_noleg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -4153,7 +4153,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_FScot_CTX2t_noLeg \
+    --sheet GPT52_THINK_HIGH_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -4163,7 +4163,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --context_mode wide \
     --reasoning_effort high"
 
-echo "[192] Launching: GPT52_THINK_HIGH_FScot_CTX2t_Leg"
+echo "[192] Launching: GPT52_THINK_HIGH_FScot_CTX5_Leg"
 nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
   -n 24_gpt52_think_high_fscot_ctx2t_leg \
   -o Decoder-Only/GPT52_Thinking_High/slurm_logs/%x.out \
@@ -4175,7 +4175,7 @@ nlprun -q ${API_QUEUE} -p standard -r 40G -c 2 \
     --gold Datasets/FullTest_Final.xlsx \
     --model gpt-5.2 \
     --backend openai_reasoning \
-    --sheet GPT52_THINK_HIGH_FScot_CTX2t_Leg \
+    --sheet GPT52_THINK_HIGH_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -4279,7 +4279,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[197] Launching: PHI4_REASONING_ZS_CTX2t_noLeg"
+echo "[197] Launching: PHI4_REASONING_ZS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 05_phi4_reasoning_zs_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4291,7 +4291,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_ZS_CTX2t_noLeg \
+    --sheet PHI4_REASONING_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -4300,7 +4300,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[198] Launching: PHI4_REASONING_ZS_CTX2t_Leg"
+echo "[198] Launching: PHI4_REASONING_ZS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 06_phi4_reasoning_zs_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4312,7 +4312,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_ZS_CTX2t_Leg \
+    --sheet PHI4_REASONING_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -4404,7 +4404,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[203] Launching: PHI4_REASONING_FS_CTX2t_noLeg"
+echo "[203] Launching: PHI4_REASONING_FS_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 11_phi4_reasoning_fs_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4416,7 +4416,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_FS_CTX2t_noLeg \
+    --sheet PHI4_REASONING_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -4425,7 +4425,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[204] Launching: PHI4_REASONING_FS_CTX2t_Leg"
+echo "[204] Launching: PHI4_REASONING_FS_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 12_phi4_reasoning_fs_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4437,7 +4437,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_FS_CTX2t_Leg \
+    --sheet PHI4_REASONING_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -4529,7 +4529,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[209] Launching: PHI4_REASONING_ZScot_CTX2t_noLeg"
+echo "[209] Launching: PHI4_REASONING_ZScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 17_phi4_reasoning_zscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4541,7 +4541,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_ZScot_CTX2t_noLeg \
+    --sheet PHI4_REASONING_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -4550,7 +4550,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[210] Launching: PHI4_REASONING_ZScot_CTX2t_Leg"
+echo "[210] Launching: PHI4_REASONING_ZScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 18_phi4_reasoning_zscot_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4562,7 +4562,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_ZScot_CTX2t_Leg \
+    --sheet PHI4_REASONING_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -4654,7 +4654,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[215] Launching: PHI4_REASONING_FScot_CTX2t_noLeg"
+echo "[215] Launching: PHI4_REASONING_FScot_CTX5_noLeg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 23_phi4_reasoning_fscot_ctx2t_noleg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4666,7 +4666,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_FScot_CTX2t_noLeg \
+    --sheet PHI4_REASONING_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -4675,7 +4675,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[216] Launching: PHI4_REASONING_FScot_CTX2t_Leg"
+echo "[216] Launching: PHI4_REASONING_FScot_CTX5_Leg"
 nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
   -n 24_phi4_reasoning_fscot_ctx2t_leg \
   -o Decoder-Only/Phi-4-reasoning/slurm_logs/%x.out \
@@ -4687,7 +4687,7 @@ nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model microsoft/Phi-4-reasoning \
     --backend phi_reasoning \
-    --sheet PHI4_REASONING_FScot_CTX2t_Leg \
+    --sheet PHI4_REASONING_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -4790,7 +4790,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[221] Launching: LLAMA70B_ZS_CTX2t_noLeg"
+echo "[221] Launching: LLAMA70B_ZS_CTX5_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 05_llama70b_zs_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -4802,7 +4802,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_ZS_CTX2t_noLeg \
+    --sheet LLAMA70B_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -4811,7 +4811,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode wide"
 
-echo "[222] Launching: LLAMA70B_ZS_CTX2t_Leg"
+echo "[222] Launching: LLAMA70B_ZS_CTX5_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 06_llama70b_zs_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -4823,7 +4823,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_ZS_CTX2t_Leg \
+    --sheet LLAMA70B_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -4915,7 +4915,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[227] Launching: LLAMA70B_FS_CTX2t_noLeg"
+echo "[227] Launching: LLAMA70B_FS_CTX5_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 11_llama70b_fs_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -4927,7 +4927,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_FS_CTX2t_noLeg \
+    --sheet LLAMA70B_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -4936,7 +4936,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode wide"
 
-echo "[228] Launching: LLAMA70B_FS_CTX2t_Leg"
+echo "[228] Launching: LLAMA70B_FS_CTX5_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 12_llama70b_fs_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -4948,7 +4948,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_FS_CTX2t_Leg \
+    --sheet LLAMA70B_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -5040,7 +5040,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[233] Launching: LLAMA70B_ZScot_CTX2t_noLeg"
+echo "[233] Launching: LLAMA70B_ZScot_CTX5_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 17_llama70b_zscot_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -5052,7 +5052,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_ZScot_CTX2t_noLeg \
+    --sheet LLAMA70B_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -5061,7 +5061,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode wide"
 
-echo "[234] Launching: LLAMA70B_ZScot_CTX2t_Leg"
+echo "[234] Launching: LLAMA70B_ZScot_CTX5_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 18_llama70b_zscot_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -5073,7 +5073,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_ZScot_CTX2t_Leg \
+    --sheet LLAMA70B_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -5165,7 +5165,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[239] Launching: LLAMA70B_FScot_CTX2t_noLeg"
+echo "[239] Launching: LLAMA70B_FScot_CTX5_noLeg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 23_llama70b_fscot_ctx2t_noleg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -5177,7 +5177,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_FScot_CTX2t_noLeg \
+    --sheet LLAMA70B_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -5186,7 +5186,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --context \
     --context_mode wide"
 
-echo "[240] Launching: LLAMA70B_FScot_CTX2t_Leg"
+echo "[240] Launching: LLAMA70B_FScot_CTX5_Leg"
 nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
   -n 24_llama70b_fscot_ctx2t_leg \
   -o Decoder-Only/Llama-3.1-70B/slurm_logs/%x.out \
@@ -5198,7 +5198,7 @@ nlprun -g 4 -q sphinx -p standard -r 300G -c 8 \
     --gold Datasets/FullTest_Final.xlsx \
     --model meta-llama/Llama-3.1-70B-Instruct \
     --backend llama \
-    --sheet LLAMA70B_FScot_CTX2t_Leg \
+    --sheet LLAMA70B_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -5301,7 +5301,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[245] Launching: QWEN3_32B_ZS_CTX2t_noLeg"
+echo "[245] Launching: QWEN3_32B_ZS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 05_qwen3_32b_zs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5313,7 +5313,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZS_CTX2t_noLeg \
+    --sheet QWEN3_32B_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -5322,7 +5322,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[246] Launching: QWEN3_32B_ZS_CTX2t_Leg"
+echo "[246] Launching: QWEN3_32B_ZS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 06_qwen3_32b_zs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5334,7 +5334,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZS_CTX2t_Leg \
+    --sheet QWEN3_32B_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -5426,7 +5426,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[251] Launching: QWEN3_32B_FS_CTX2t_noLeg"
+echo "[251] Launching: QWEN3_32B_FS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 11_qwen3_32b_fs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5438,7 +5438,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FS_CTX2t_noLeg \
+    --sheet QWEN3_32B_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -5447,7 +5447,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[252] Launching: QWEN3_32B_FS_CTX2t_Leg"
+echo "[252] Launching: QWEN3_32B_FS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 12_qwen3_32b_fs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5459,7 +5459,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FS_CTX2t_Leg \
+    --sheet QWEN3_32B_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -5551,7 +5551,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[257] Launching: QWEN3_32B_ZScot_CTX2t_noLeg"
+echo "[257] Launching: QWEN3_32B_ZScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 17_qwen3_32b_zscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5563,7 +5563,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZScot_CTX2t_noLeg \
+    --sheet QWEN3_32B_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -5572,7 +5572,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[258] Launching: QWEN3_32B_ZScot_CTX2t_Leg"
+echo "[258] Launching: QWEN3_32B_ZScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 18_qwen3_32b_zscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5584,7 +5584,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_ZScot_CTX2t_Leg \
+    --sheet QWEN3_32B_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -5676,7 +5676,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[263] Launching: QWEN3_32B_FScot_CTX2t_noLeg"
+echo "[263] Launching: QWEN3_32B_FScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 23_qwen3_32b_fscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5688,7 +5688,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FScot_CTX2t_noLeg \
+    --sheet QWEN3_32B_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -5697,7 +5697,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[264] Launching: QWEN3_32B_FScot_CTX2t_Leg"
+echo "[264] Launching: QWEN3_32B_FScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 24_qwen3_32b_fscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B/slurm_logs/%x.out \
@@ -5709,7 +5709,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3 \
-    --sheet QWEN3_32B_FScot_CTX2t_Leg \
+    --sheet QWEN3_32B_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -5812,7 +5812,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[269] Launching: QWEN3_32B_THINK_ZS_CTX2t_noLeg"
+echo "[269] Launching: QWEN3_32B_THINK_ZS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 05_qwen3_32b_think_zs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -5824,7 +5824,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_ZS_CTX2t_noLeg \
+    --sheet QWEN3_32B_THINK_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -5833,7 +5833,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[270] Launching: QWEN3_32B_THINK_ZS_CTX2t_Leg"
+echo "[270] Launching: QWEN3_32B_THINK_ZS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 06_qwen3_32b_think_zs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -5845,7 +5845,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_ZS_CTX2t_Leg \
+    --sheet QWEN3_32B_THINK_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -5937,7 +5937,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[275] Launching: QWEN3_32B_THINK_FS_CTX2t_noLeg"
+echo "[275] Launching: QWEN3_32B_THINK_FS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 11_qwen3_32b_think_fs_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -5949,7 +5949,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_FS_CTX2t_noLeg \
+    --sheet QWEN3_32B_THINK_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -5958,7 +5958,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[276] Launching: QWEN3_32B_THINK_FS_CTX2t_Leg"
+echo "[276] Launching: QWEN3_32B_THINK_FS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 12_qwen3_32b_think_fs_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -5970,7 +5970,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_FS_CTX2t_Leg \
+    --sheet QWEN3_32B_THINK_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -6062,7 +6062,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[281] Launching: QWEN3_32B_THINK_ZScot_CTX2t_noLeg"
+echo "[281] Launching: QWEN3_32B_THINK_ZScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 17_qwen3_32b_think_zscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -6074,7 +6074,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_ZScot_CTX2t_noLeg \
+    --sheet QWEN3_32B_THINK_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -6083,7 +6083,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[282] Launching: QWEN3_32B_THINK_ZScot_CTX2t_Leg"
+echo "[282] Launching: QWEN3_32B_THINK_ZScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 18_qwen3_32b_think_zscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -6095,7 +6095,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_ZScot_CTX2t_Leg \
+    --sheet QWEN3_32B_THINK_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -6187,7 +6187,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[287] Launching: QWEN3_32B_THINK_FScot_CTX2t_noLeg"
+echo "[287] Launching: QWEN3_32B_THINK_FScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 23_qwen3_32b_think_fscot_ctx2t_noleg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -6199,7 +6199,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_FScot_CTX2t_noLeg \
+    --sheet QWEN3_32B_THINK_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -6208,7 +6208,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[288] Launching: QWEN3_32B_THINK_FScot_CTX2t_Leg"
+echo "[288] Launching: QWEN3_32B_THINK_FScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 24_qwen3_32b_think_fscot_ctx2t_leg \
   -o Decoder-Only/Qwen3-32B-Thinking/slurm_logs/%x.out \
@@ -6220,7 +6220,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/Qwen3-32B \
     --backend qwen3_thinking \
-    --sheet QWEN3_32B_THINK_FScot_CTX2t_Leg \
+    --sheet QWEN3_32B_THINK_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -6323,7 +6323,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[293] Launching: QWQ_32B_ZS_CTX2t_noLeg"
+echo "[293] Launching: QWQ_32B_ZS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 05_qwq_32b_zs_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6335,7 +6335,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_ZS_CTX2t_noLeg \
+    --sheet QWQ_32B_ZS_CTX5_noLeg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -6344,7 +6344,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[294] Launching: QWQ_32B_ZS_CTX2t_Leg"
+echo "[294] Launching: QWQ_32B_ZS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 06_qwq_32b_zs_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6356,7 +6356,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_ZS_CTX2t_Leg \
+    --sheet QWQ_32B_ZS_CTX5_Leg \
     --instruction_type zero_shot \
     --extended \
     --output_format markdown \
@@ -6448,7 +6448,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[299] Launching: QWQ_32B_FS_CTX2t_noLeg"
+echo "[299] Launching: QWQ_32B_FS_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 11_qwq_32b_fs_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6460,7 +6460,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_FS_CTX2t_noLeg \
+    --sheet QWQ_32B_FS_CTX5_noLeg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -6469,7 +6469,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[300] Launching: QWQ_32B_FS_CTX2t_Leg"
+echo "[300] Launching: QWQ_32B_FS_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 12_qwq_32b_fs_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6481,7 +6481,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_FS_CTX2t_Leg \
+    --sheet QWQ_32B_FS_CTX5_Leg \
     --instruction_type few_shot \
     --extended \
     --output_format markdown \
@@ -6573,7 +6573,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[305] Launching: QWQ_32B_ZScot_CTX2t_noLeg"
+echo "[305] Launching: QWQ_32B_ZScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 17_qwq_32b_zscot_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6585,7 +6585,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_ZScot_CTX2t_noLeg \
+    --sheet QWQ_32B_ZScot_CTX5_noLeg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -6594,7 +6594,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[306] Launching: QWQ_32B_ZScot_CTX2t_Leg"
+echo "[306] Launching: QWQ_32B_ZScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 18_qwq_32b_zscot_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6606,7 +6606,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_ZScot_CTX2t_Leg \
+    --sheet QWQ_32B_ZScot_CTX5_Leg \
     --instruction_type zero_shot_cot \
     --extended \
     --output_format markdown \
@@ -6698,7 +6698,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context_mode single_turn \
     --dialect_legitimacy"
 
-echo "[311] Launching: QWQ_32B_FScot_CTX2t_noLeg"
+echo "[311] Launching: QWQ_32B_FScot_CTX5_noLeg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 23_qwq_32b_fscot_ctx2t_noleg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6710,7 +6710,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_FScot_CTX2t_noLeg \
+    --sheet QWQ_32B_FScot_CTX5_noLeg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -6719,7 +6719,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --context \
     --context_mode wide"
 
-echo "[312] Launching: QWQ_32B_FScot_CTX2t_Leg"
+echo "[312] Launching: QWQ_32B_FScot_CTX5_Leg"
 nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
   -n 24_qwq_32b_fscot_ctx2t_leg \
   -o Decoder-Only/QwQ-32B/slurm_logs/%x.out \
@@ -6731,7 +6731,7 @@ nlprun -g 2 -q sphinx -p standard -r 200G -c 4 \
     --gold Datasets/FullTest_Final.xlsx \
     --model Qwen/QwQ-32B \
     --backend qwq \
-    --sheet QWQ_32B_FScot_CTX2t_Leg \
+    --sheet QWQ_32B_FScot_CTX5_Leg \
     --instruction_type few_shot_cot \
     --extended \
     --output_format markdown \
@@ -6760,7 +6760,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     zero_shot_cot) ITAG="ZScot" ;;
     few_shot_cot)  ITAG="FScot" ;;
   esac
-  for CTX in "noCTX||" "CTX1t|--context|single_turn" "CTX2t|--context|wide"; do
+  for CTX in "noCTX||" "CTX1t|--context|single_turn" "CTX5|--context|wide"; do
     IFS='|' read -r CTAG CFLAG CMODE <<< "$CTX"
     [[ -n "$CMODE" ]] && CARGS="${CFLAG} --context_mode ${CMODE}" || CARGS=""
     for LEG in "" "--dialect_legitimacy"; do
@@ -6811,7 +6811,7 @@ for INSTR in zero_shot few_shot zero_shot_cot few_shot_cot; do
     zero_shot_cot) ITAG="ZScot" ;;
     few_shot_cot)  ITAG="FScot" ;;
   esac
-  for CTX in "noCTX||" "CTX1t|--context|single_turn" "CTX2t|--context|wide"; do
+  for CTX in "noCTX||" "CTX1t|--context|single_turn" "CTX5|--context|wide"; do
     IFS='|' read -r CTAG CFLAG CMODE <<< "$CTX"
     [[ -n "$CMODE" ]] && CARGS="${CFLAG} --context_mode ${CMODE}" || CARGS=""
     for LEG in "" "--dialect_legitimacy"; do

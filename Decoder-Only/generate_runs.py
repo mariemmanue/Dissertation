@@ -226,7 +226,7 @@ def make_sheet_name(model_key, inst_type, ctx_setting, dialect_leg):
     elif ctx_setting["context_mode"] == "single_turn":
         parts.append("CTX1t")
     else:
-        parts.append("CTXwide")
+        parts.append("CTX5")
 
     parts.append("Leg" if dialect_leg else "noLeg")
 

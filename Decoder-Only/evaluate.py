@@ -25,6 +25,11 @@ import re
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, cohen_kappa_score
 from scipy.stats import wilcoxon
 from itertools import combinations
+try:
+    import statsmodels.formula.api as _smf
+    _HAS_STATSMODELS = True
+except ImportError:
+    _HAS_STATSMODELS = False
 
 # Feature lists inlined to avoid importing heavy model dependencies from multi_prompt_configs
 MASIS_FEATURES = [
@@ -139,11 +144,11 @@ def parse_factors(sheet_name: str) -> dict:
     """
     Parse condition factors out of sheet names like:
       Old style: GPT_17_ZS_CTX_A / GEMINI_25_FSCOT_noCTX_B
-      New style: PHI_ZS_noCTX_noLeg / GEMINI_FScot_CTX2t_Leg / PHI4_ZScot_CTX1t_noLeg
+      New style: PHI_ZS_noCTX_noLeg / GEMINI_FScot_CTX5_Leg / PHI4_ZScot_CTX1t_noLeg
     Returns dict with keys:
       feature_set in {"17","25"} or None
       instr in {"ZS","FS","ZScot","FScot"} or None
-      ctx in {"noCTX","CTX1t","CTX2t"} or None
+      ctx in {"noCTX","CTX1t","CTX5"} or None
       leg in {"Leg","noLeg"} or None
       trial in {"A","B"} or None
     """
@@ -169,8 +174,8 @@ def parse_factors(sheet_name: str) -> dict:
     ctx = None
     if "NOCTX" in toks:
         ctx = "noCTX"
-    elif "CTX2T" in toks:
-        ctx = "CTX2t"
+    elif "CTX5" in toks or "CTXWIDE" in toks:
+        ctx = "CTX5"
     elif "CTX1T" in toks:
         ctx = "CTX1t"
     elif "CTX" in toks:
@@ -647,7 +652,7 @@ def parse_model_config(name: str, model_name_col: str = None):
     Parses sheet/model names to extract Model and Config string.
 
     Handles new naming convention:
-      PHI_ZS_noCTX_noLeg, GEMINI_FScot_CTX2t_Leg, PHI4_ZScot_CTX1t_noLeg
+      PHI_ZS_noCTX_noLeg, GEMINI_FScot_CTX5_Leg, PHI4_ZScot_CTX1t_noLeg
     And old convention:
       GPT_17_ZS_CTX_A, GEMINI_25_FSCOT_noCTX_B
 
@@ -680,8 +685,8 @@ def parse_model_config(name: str, model_name_col: str = None):
     # Context
     if "NOCTX" in base or "NO_CTX" in base:
         ctx = "No Context"
-    elif "CTX2T" in base:
-        ctx = "Context (2-turn)"
+    elif "CTX5" in base or "CTXWIDE" in base:
+        ctx = "Context (5-turn)"
     elif "CTX1T" in base:
         ctx = "Context (1-turn)"
     elif "CTX" in base:
@@ -839,7 +844,7 @@ def plot_config_leaderboard(
     # Color by instruction type if available
     if "instr" in macro.columns:
         unique_instr = sorted(macro["instr"].dropna().unique())
-        cmap = plt.cm.get_cmap("Set2", max(len(unique_instr), 1))
+        cmap = plt.colormaps["Set2"].resampled(max(len(unique_instr), 1))        
         palette = {lvl: cmap(i) for i, lvl in enumerate(unique_instr)}
         colors = [palette.get(row.get("instr"), "steelblue") for _, row in macro.iterrows()]
     else:
@@ -956,10 +961,10 @@ def plot_config_impact_panel(
         return
 
     # Collapse multi-level factors to binary so all can be plotted:
-    #   ctx:   CTX1t / CTX2t  → CTX  (any context vs none)
+    #   ctx:   CTX1t / CTX5  → CTX  (any context vs none)
     #   instr: ZScot → ZS,  FScot → FS  (examples vs no-examples)
     if "ctx" in df.columns:
-        df["ctx"] = df["ctx"].replace({"CTX1t": "CTX", "CTX2t": "CTX"})
+        df["ctx"] = df["ctx"].replace({"CTX1t": "CTX", "CTX5": "CTX"})
     if "instr" in df.columns:
         df["instr"] = df["instr"].replace({"ZScot": "ZS", "FScot": "FS"})
 
@@ -1084,8 +1089,8 @@ def plot_ctx_breakdown(
     """
     Compares all three ctx level pairs side-by-side:
       CTX1t − noCTX  : does 1-turn context help vs none?
-      CTX2t − noCTX  : does 2-turn context help vs none?
-      CTX2t − CTX1t  : is 2-turn better than 1-turn?
+      CTX5 − noCTX  : does wide context help vs none?
+      CTX5 − CTX1t  : is wide context better than 1-turn?
 
     One subplot per comparison, bars per model.
     Green = helps, red = hurts.
@@ -1100,8 +1105,8 @@ def plot_ctx_breakdown(
     have = set(ctx_levels)
     comparisons = [
         ("noCTX", "CTX1t", "CTX1t − noCTX\n(1-turn vs none)"),
-        ("noCTX", "CTX2t", "CTX2t − noCTX\n(2-turn vs none)"),
-        ("CTX1t", "CTX2t", "CTX2t − CTX1t\n(2-turn vs 1-turn)"),
+        ("noCTX", "CTX5", "CTX5 − noCTX\n(wide context vs none)"),
+        ("CTX1t", "CTX5", "CTX5 − CTX1t\n(wide vs 1-turn)"),
     ]
     comparisons = [(a, b, lbl) for a, b, lbl in comparisons if a in have and b in have]
     if not comparisons:
@@ -1408,7 +1413,7 @@ def compute_factor_significance(
 def _holm_bonferroni(p_values: np.ndarray, alpha: float = 0.05) -> np.ndarray:
     """Holm–Bonferroni step-down correction for multiple comparisons."""
     n = len(p_values)
-    order = np.argsort(p_values)
+    order = np.argsort(np.where(np.isnan(p_values), np.inf, p_values))
     corrected = np.full(n, np.nan)
     for rank, idx in enumerate(order):
         if np.isnan(p_values[idx]):
@@ -1761,7 +1766,7 @@ def compute_interrater_reliability(
     rater_names = list(gold_dfs.keys())
     if len(rater_names) < 2:
         print("[INFO] Only one gold rater — skipping interrater reliability.")
-        return
+        return pd.DataFrame()  # instead of bare return
 
     print(f"\n{'='*60}")
     print(f"=== Interrater Reliability ({len(rater_names)} raters) ===")
@@ -1787,8 +1792,9 @@ def compute_interrater_reliability(
             if col1 not in merged.columns or col2 not in merged.columns:
                 continue
 
-            y1 = merged[col1].dropna().astype(int)
-            y2 = merged[col2].dropna().astype(int)
+
+            y1 = pd.to_numeric(merged[col1], errors="coerce").dropna().astype(int)
+            y2 = pd.to_numeric(merged[col2], errors="coerce").dropna().astype(int)
 
             # Align indices after dropna
             common = y1.index.intersection(y2.index)
@@ -1818,7 +1824,7 @@ def compute_interrater_reliability(
 
     if not rows:
         print("[WARN] No interrater reliability data computed.")
-        return
+        return pd.DataFrame()  # instead of bare return
 
     irr_df = pd.DataFrame(rows)
 
@@ -1859,8 +1865,9 @@ def compute_interrater_reliability(
                 col_r, col_a = f"{feat}__rater", f"{feat}__avg"
                 if col_r not in merged.columns or col_a not in merged.columns:
                     continue
-                y_r = merged[col_r].dropna().astype(int)
-                y_a = merged[col_a].dropna().astype(int)
+
+                y_r = pd.to_numeric(merged[col_r], errors="coerce").dropna().astype(int)
+                y_a = pd.to_numeric(merged[col_a], errors="coerce").dropna().astype(int)
                 common = y_r.index.intersection(y_a.index)
                 y_r, y_a = y_r.loc[common], y_a.loc[common]
                 if len(y_r) == 0:
@@ -1907,7 +1914,7 @@ def compute_average_human_labels(
         rater_cols = [f"{feat}__{r}" for r in rater_names if f"{feat}__{r}" in base.columns]
         if not rater_cols:
             continue
-        result[feat] = (base[rater_cols].mean(axis=1) >= 0.5).astype(int)
+        result[feat] = (base[rater_cols].apply(pd.to_numeric, errors="coerce").mean(axis=1) >= 0.5).astype(int)
     return result
 
 
@@ -1935,8 +1942,8 @@ def compute_model_kappas_vs_average(
             col_m, col_a = f"{feat}__model", f"{feat}__avg"
             if col_m not in merged.columns or col_a not in merged.columns:
                 continue
-            y_m = merged[col_m].dropna().astype(int)
-            y_a = merged[col_a].dropna().astype(int)
+            y_m = pd.to_numeric(merged[col_m], errors="coerce").dropna().astype(int)
+            y_a = pd.to_numeric(merged[col_a], errors="coerce").dropna().astype(int)
             common = y_m.index.intersection(y_a.index)
             y_m, y_a = y_m.loc[common], y_a.loc[common]
             if len(y_m) == 0:
@@ -2006,8 +2013,9 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
     # Load primary gold: from CLI files (first rater) or from workbook
     if gold_dfs:
         primary_rater = list(gold_dfs.keys())[0]
-        gold_df = gold_dfs[primary_rater]
-        print(f"[INFO] Using primary gold from CLI: {primary_rater} ({len(gold_df)} sentences)")
+        # gold_df = gold_dfs[primary_rater]
+        gold_df = avg_human_df if avg_human_df is not None else gold_dfs[primary_rater]
+        # print(f"[INFO] Using primary gold from CLI: {primary_rater} ({len(gold_df)} sentences)")
     else:
         gold_df = sheets.get("Gold")
         if gold_df is None:
@@ -2317,7 +2325,7 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         model_label=model_label,
     )
 
-    # Context depth breakdown: CTX1t vs CTX2t vs noCTX pairwise
+    # Context depth breakdown: CTX1t vs CTX5 vs noCTX pairwise
     plot_ctx_breakdown(
         work_eval,
         output_base=output_base,
@@ -2342,8 +2350,10 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
     ext_eval = all_eval[all_eval["feature_set"] == "25"].copy()
     if not ext_eval.empty:
         ext_models = ext_eval["model"].unique().tolist()
-        ext_dfs = [df for df in eval_results if df["model"].iloc[0] in ext_models]
-
+        # ext_dfs = [df for df in eval_results if df["model"].iloc[0] in ext_models]
+        ext_dfs = [df for df in eval_results 
+           if df["model"].iloc[0] in ext_models 
+           and all_eval.loc[all_eval["model"] == df["model"].iloc[0], "feature_set"].eq("25").any()]
         plot_model_metrics(
             eval_dfs=ext_dfs,
             metric="f1",
@@ -2373,6 +2383,8 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
     # Per-model mean/variance of F1 across configs
     mean_f1 = all_eval.groupby("feature")["f1"].mean().sort_values(ascending=False).reset_index(name="mean_f1")
     mean_f1.to_csv(os.path.join(output_base, f"{model_label}_mean_f1_per_feature.csv"), index=False)
+    _dissertation_fig2_feature_f1(mean_f1, output_base, model_label)
+    _dissertation_fig3_regression(all_eval, output_base, model_label)
 
     var_f1 = all_eval.groupby("feature")["f1"].var(ddof=1).reset_index(name="var_f1")
     var_f1.to_csv(os.path.join(output_base, f"{model_label}_var_f1_per_feature.csv"), index=False)
@@ -2468,6 +2480,7 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
         ) else list(MASIS17_FEATURES)
         model_kappas = compute_model_kappas_vs_average(model_sheets, avg_human_df, kappa_features)
         if not model_kappas.empty:
+            model_kappas["base_model"] = model_label
             model_kappa_collector.append(model_kappas)
 
 
@@ -2556,7 +2569,7 @@ def main():
         nargs="+",
         default=None,
         metavar="CTX_LEVEL",
-        help="Context levels to exclude (e.g. --exclude-ctx CTX2t). Sheets with these ctx values are skipped.",
+        help="Context levels to exclude (e.g. --exclude-ctx CTX5). Sheets with these ctx values are skipped.",
     )
 
     parser.add_argument(
@@ -2650,10 +2663,262 @@ def main():
             import traceback
             traceback.print_exc()
 
-    # 5. Write model vs human comparison report
+    # 5. Write model vs human comparison report + Figure 1
     if avg_human_df is not None and (not human_kappas.empty or model_kappa_collector):
         all_model_kappas = pd.concat(model_kappa_collector, ignore_index=True) if model_kappa_collector else pd.DataFrame()
         write_irr_model_comparison(human_kappas, all_model_kappas, output_dir)
+        _dissertation_fig1_irr(human_kappas, all_model_kappas, output_dir)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dissertation summary figures (Figures 1, 2, 3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.DataFrame, out_dir: str):
+    """
+    Figure 1 – IRR comparison: human raters vs LLM model families.
+    Shows the task is genuinely hard (humans ≠ perfect) and models
+    reach a similar agreement level with the average human annotation.
+    """
+    if human_kappas.empty and all_model_kappas.empty:
+        return
+
+    # ---- human summary: mean kappa per rater ----
+    h_sum = (
+        human_kappas.groupby("entity")["cohens_kappa"]
+        .agg(mean="mean", sem=lambda x: x.sem())
+        .reset_index()
+    )
+
+    # ---- model summary: mean kappa per base_model ----
+    if not all_model_kappas.empty and "base_model" in all_model_kappas.columns:
+        m_sum = (
+            all_model_kappas.groupby("base_model")["cohens_kappa"]
+            .agg(mean="mean", sem=lambda x: x.sem())
+            .reset_index()
+            .rename(columns={"base_model": "entity"})
+        )
+    else:
+        m_sum = pd.DataFrame(columns=["entity", "mean", "sem"])
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    human_colors = ["#c0392b", "#e67e22", "#8e44ad"]
+    model_colors = ["#1a5276", "#6c3483", "#1e8449", "#117a65", "#7d6608", "#884ea0"]
+
+    x = 0
+    xticks, xlabels = [], []
+
+    for i, (_, row) in enumerate(h_sum.sort_values("mean", ascending=False).iterrows()):
+        ax.bar(x, row["mean"], yerr=row["sem"], color=human_colors[i % len(human_colors)],
+               width=0.6, capsize=5, alpha=0.85, edgecolor="white", linewidth=1.2)
+        xticks.append(x); xlabels.append(f"{row['entity']}\n(human)")
+        x += 1
+
+    x += 0.5  # gap
+
+    for i, (_, row) in enumerate(m_sum.sort_values("mean", ascending=False).iterrows()):
+        ax.bar(x, row["mean"], yerr=row["sem"], color=model_colors[i % len(model_colors)],
+               width=0.6, capsize=5, alpha=0.85, edgecolor="white", linewidth=1.2)
+        xticks.append(x); xlabels.append(f"{row['entity']}\n(model)")
+        x += 1
+
+    if not h_sum.empty:
+        avg_h = h_sum["mean"].mean()
+        ax.axhline(avg_h, ls="--", color="gray", lw=1.2, alpha=0.7,
+                   label=f"Avg human κ = {avg_h:.2f}")
+
+    sep = len(h_sum) - 0.5 + 0.25
+    ax.axvline(sep, color="lightgrey", ls=":", lw=1.5)
+
+    n_h = len(h_sum)
+    if n_h:
+        ax.text((n_h - 1) / 2, 0.97, "Human raters", ha="center", va="top",
+                transform=ax.get_xaxis_transform(), fontsize=9, color="gray")
+    n_m = len(m_sum)
+    if n_m:
+        ax.text(n_h + 0.5 + (n_m - 1) / 2, 0.97, "LLM models", ha="center", va="top",
+                transform=ax.get_xaxis_transform(), fontsize=9, color="gray")
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xlabels, fontsize=9)
+    ax.set_ylabel("Mean Cohen's κ vs. Average Human Annotation", fontsize=11)
+    ax.set_ylim(0, 1.05)
+    ax.set_title(
+        "Inter-Rater Agreement: Human Annotators vs. LLM Configurations\n"
+        "(across AAE linguistic features; error bars = ±1 SEM)",
+        fontsize=12,
+    )
+    ax.legend(fontsize=9)
+    plt.tight_layout()
+    out = os.path.join(out_dir, "fig1_irr_human_vs_model.png")
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.show()
+    print(f"[FIG1] Saved {out}")
+
+
+def _dissertation_fig2_feature_f1(mean_f1: pd.DataFrame, out_dir: str, model_label: str):
+    """
+    Figure 2 – Feature-level F1 bar chart for one model family.
+    Coloured by performance tier; saved to the model's output folder.
+    """
+    if mean_f1.empty:
+        return
+
+    df = mean_f1.sort_values("mean_f1", ascending=True).reset_index(drop=True)
+
+    def _color(f):
+        if pd.isna(f): return "#bdc3c7"
+        return "#27ae60" if f >= 0.7 else ("#e67e22" if f >= 0.3 else "#e74c3c")
+
+    bar_colors = [_color(v) for v in df["mean_f1"]]
+
+    fig, ax = plt.subplots(figsize=(12, max(7, len(df) * 0.38)))
+    ax.barh(df["feature"], df["mean_f1"].fillna(0),
+            color=bar_colors, height=0.65, edgecolor="white", linewidth=0.8, alpha=0.85)
+
+    ax.axvline(0.7, color="#27ae60", ls="--", lw=1, alpha=0.6)
+    ax.axvline(0.3, color="#e74c3c", ls="--", lw=1, alpha=0.6)
+
+    import matplotlib.patches as _mp
+    legend_patches = [
+        _mp.Patch(color="#27ae60", label="Good  (F1 ≥ 0.7)"),
+        _mp.Patch(color="#e67e22", label="Moderate  (0.3 – 0.7)"),
+        _mp.Patch(color="#e74c3c", label="Poor  (F1 < 0.3)"),
+    ]
+    ax.legend(handles=legend_patches, loc="lower right", fontsize=9)
+    ax.set_xlabel("Mean F1 (averaged across all prompt configurations)", fontsize=11)
+    ax.set_title(
+        f"{model_label}: Performance by AAE Linguistic Feature\n"
+        "(mean F1 across all configs)",
+        fontsize=12,
+    )
+    ax.set_xlim(-0.02, 1.1)
+    plt.tight_layout()
+    out = os.path.join(out_dir, f"{model_label}_fig2_feature_f1.png")
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.show()
+    print(f"[FIG2] Saved {out}")
+
+
+def _dissertation_fig3_regression(all_eval: pd.DataFrame, out_dir: str, model_label: str):
+    """
+    Figure 3 – OLS regression: macro_f1 ~ instr + ctx + leg (within one model family).
+    Shows which prompt configuration parameters actually matter.
+    """
+    if not _HAS_STATSMODELS:
+        print("[FIG3] statsmodels not installed — skipping regression figure.")
+        return
+
+    needed = {"model", "feature", "f1", "instr", "ctx", "leg"}
+    if not needed.issubset(all_eval.columns):
+        print(f"[FIG3] Missing columns for regression: {needed - set(all_eval.columns)}")
+        return
+
+    # macro_f1 per config = mean F1 across features
+    lb = (
+        all_eval.dropna(subset=["instr", "ctx", "leg"])
+        .groupby(["model", "instr", "ctx", "leg"])["f1"]
+        .mean()
+        .reset_index()
+        .rename(columns={"f1": "macro_f1"})
+    )
+    lb["ctx"] = lb["ctx"].fillna("noCTX")
+
+    if lb.empty or lb["macro_f1"].isna().all():
+        return
+
+    # pick reference levels: most common or sensible defaults
+    ref_instr = "ZS" if "ZS" in lb["instr"].values else lb["instr"].iloc[0]
+    ref_ctx   = "noCTX" if "noCTX" in lb["ctx"].values else lb["ctx"].iloc[0]
+    ref_leg   = "noLeg" if "noLeg" in lb["leg"].values else lb["leg"].iloc[0]
+
+    formula = (
+        f"macro_f1 ~ "
+        f"C(instr, Treatment('{ref_instr}')) + "
+        f"C(ctx, Treatment('{ref_ctx}')) + "
+        f"C(leg, Treatment('{ref_leg}'))"
+    )
+    try:
+        result = _smf.ols(formula, data=lb).fit()
+    except Exception as e:
+        print(f"[FIG3] Regression failed: {e}")
+        return
+
+    # Save table
+    tbl = pd.DataFrame({
+        "predictor": result.params.index,
+        "coef":      result.params.values,
+        "se":        result.bse.values,
+        "t":         result.tvalues.values,
+        "p":         result.pvalues.values,
+        "ci_low":    result.conf_int()[0].values,
+        "ci_high":   result.conf_int()[1].values,
+    })
+    tbl_path = os.path.join(out_dir, f"{model_label}_fig3_regression.csv")
+    tbl.to_csv(tbl_path, index=False)
+
+    # Forest plot (drop intercept)
+    coef  = result.params.drop("Intercept")
+    ci    = result.conf_int().drop("Intercept")
+    pvals = result.pvalues.drop("Intercept")
+
+    def _group_color(k):
+        if "instr" in k: return "#8e44ad"
+        if "ctx"   in k: return "#16a085"
+        return "#e67e22"
+
+    import matplotlib.patches as _mp
+    dot_colors = [_group_color(k) for k in coef.index]
+    sig        = pvals < 0.05
+
+    # Clean up labels
+    def _clean(k):
+        k = re.sub(r"C\(\w+, Treatment\('[^']+'\)\)\[T\.([^\]]+)\]", r"\1", k)
+        return k
+
+    labels = [_clean(k) for k in coef.index]
+
+    fig, ax = plt.subplots(figsize=(9, max(5, len(coef) * 0.55)))
+    y_pos = np.arange(len(coef))
+
+    for i, (c, lo, hi, col, is_sig) in enumerate(zip(
+        coef.values,
+        coef.values - ci[0].values,
+        ci[1].values - coef.values,
+        dot_colors, sig
+    )):
+        ax.plot([c - lo, c + hi], [i, i], color=col,
+                lw=2.5 if is_sig else 1.2, alpha=0.9 if is_sig else 0.5)
+        ax.scatter(c, i, color=col, s=120 if is_sig else 55, zorder=5,
+                   edgecolors="white", linewidth=1,
+                   marker="D" if is_sig else "o")
+
+    ax.axvline(0, color="black", lw=1, ls="--")
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.set_xlabel("Regression Coefficient (effect on macro F1)", fontsize=11)
+    ax.set_title(
+        f"{model_label}: Which Config Parameters Predict Performance?\n"
+        f"OLS  |  n={len(lb)}  |  R²={result.rsquared:.3f}  |  Adj. R²={result.rsquared_adj:.3f}",
+        fontsize=12,
+    )
+
+    group_patches = [
+        _mp.Patch(color="#8e44ad", label="Instruction style"),
+        _mp.Patch(color="#16a085", label="Context window"),
+        _mp.Patch(color="#e67e22", label="Legitimacy frame"),
+        plt.Line2D([0],[0], marker="D", color="w", markerfacecolor="gray",
+                   markersize=8, label="p < 0.05"),
+        plt.Line2D([0],[0], marker="o", color="w", markerfacecolor="gray",
+                   markersize=6, label="n.s."),
+    ]
+    ax.legend(handles=group_patches, loc="lower right", fontsize=9)
+    plt.tight_layout()
+    out = os.path.join(out_dir, f"{model_label}_fig3_regression.png")
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.show()
+    print(f"[FIG3] Saved {out}")
 
 
 if __name__ == "__main__":
