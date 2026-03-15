@@ -1,3 +1,59 @@
+"""
+multi_prompt_configs_opensource.py
+===================================
+Open-source model version of multi_prompt_configs.py.
+Optimized for HuggingFace local inference (Phi-4, Qwen, Llama, QwQ, etc.)
+
+Key optimizations vs. original:
+  1. Greedy decoding (do_sample=False) for non-reasoning models — removes noise,
+     more consistent format compliance on annotation tasks.
+  2. repetition_penalty=1.1 to prevent loops common in greedy decoding.
+  3. pad_token_id set explicitly to suppress generation warnings.
+  4. Default output_format is "json" — more reliable for smaller models.
+  5. Lenient fallback parser (case-insensitive, dash-normalized) catches
+     common formatting deviations from smaller models.
+  6. Format reminder appended to the end of every user message.
+  7. API backends (OpenAI, Gemini) removed — HuggingFace only.
+
+Backends available:
+  phi              microsoft/phi-4 (greedy)
+  phi_reasoning    microsoft/Phi-4-reasoning (sampling, strips <think>)
+  llama            meta-llama/* (greedy)
+  qwen             Qwen/Qwen2.5-* (greedy)
+  qwen3            Qwen/Qwen3-* no-thinking (greedy)
+  qwen3_thinking   Qwen/Qwen3-* with thinking (sampling, strips <think>)
+  qwq              Qwen/QwQ-32B (sampling, strips <think>)
+
+Example commands:
+
+  # Phi-4, zero-shot, JSON output (recommended for open-source)
+  nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \\
+    -n phi4_zs_json \\
+    "python multi_prompt_configs_opensource.py \\
+      --file Datasets/FullTest_Final.xlsx \\
+      --model microsoft/phi-4 \\
+      --backend phi \\
+      --sheet PHI4_ZS_json \\
+      --instruction_type zero_shot \\
+      --extended \\
+      --output_format json \\
+      --output_dir Phi-4/data"
+
+  # Qwen3 with thinking, few-shot CoT
+  nlprun -g 1 -q sphinx -p standard -r 120G -c 4 \\
+    -n qwen3_fscot \\
+    "python multi_prompt_configs_opensource.py \\
+      --file Datasets/FullTest_Final.xlsx \\
+      --model Qwen/Qwen3-32B \\
+      --backend qwen3_thinking \\
+      --sheet QWEN3_FSCOT \\
+      --instruction_type few_shot_cot \\
+      --extended \\
+      --dialect_legitimacy \\
+      --output_format json \\
+      --output_dir Qwen3/data"
+"""
+
 import os
 import pandas as pd
 import csv
@@ -5,169 +61,33 @@ import json
 import torch
 import re
 import time
-from tqdm import tqdm
-import datetime
-from openai import AzureOpenAI
-import tiktoken
-import argparse
 import math
-from transformers import pipeline as hf_pipeline
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import google.generativeai as genai
-from google import genai as genai_new
-from google.genai import types as genai_types
+import argparse
+from tqdm import tqdm
 from dataclasses import dataclass
 from typing import List, Dict, Any
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-"""
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gemini_zs_ctx2_leg \
-  -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python Decoder-Only/multi_prompt_configs.py \
-    --file Datasets/FullTest_Final.xlsx \
-   --model gemini-2.5-flash \
-   --backend gemini \
-    --sheet GEMINI_ZS_CTX2_legit_json \
-    --instruction_type zero_shot \
-    --extended \
-    --dialect_legitimacy \
-    --context \
-    --context_mode two_turn \
-    --dump_prompt \
-    --output_dir Decoder-Only/Gemini/data"
-
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gemini_zs_ctx_leg \
-  -o Decoder-Only/Gemini/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python Decoder-Only/multi_prompt_configs.py \
-    --file Datasets/FullTest_Final.xlsx \
-   --model gemini-2.5-flash \
-   --backend gemini \
-    --sheet GEMINI_ZS_CTX_legit \
-    --instruction_type zero_shot \
-    --extended \
-    --dialect_legitimacy \
-    --context \
-    --dump_prompt \
-    --output_dir Decoder-Only/Gemini/data"
-
-nlprun -g 1 -q sphinx -p standard -r 100G -c 4 \
-  -n phi4_gen_zs_ctx_leg \
-  -o Decoder-Only/Phi-4/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python Decoder-Only/multi_prompt_configs.py \
-    --file Datasets/FullTest_Final.xlsx \
-   --model microsoft/phi-4  \
-   --backend phi \
-    --sheet PHI4_ZS_CTX_legit_json \
-    --instruction_type zero_shot \
-    --extended \
-    --dialect_legitimacy \
-    --context \
-    --dump_prompt \
-    --output_format json \
-    --output_dir Decoder-Only/Phi-4/data"
-
-nlprun -q jag -p standard -r 40G -c 2 \
-  -n gem_ZS_noCTX_nolegit_labels \
-  -o Gemini/slurm_logs/%x-%j.out \
-  "cd /nlp/scr/mtano/Dissertation/Decoder-Only && \
-   . /nlp/scr/mtano/miniconda3/etc/profile.d/conda.sh && \
-   conda activate cgedit && \
-   python multi_prompt_configs.py \
-    --file FullTest_Final.xlsx \
-   --model gemini-2.5-flash \
-   --backend gemini \
-    --sheet GEMINI_ZS_noCTX_nolegit_labels \
-    --instruction_type zero_shot \
-    --extended \
-    --dump_prompt \
-    --output_dir Gemini/data \
-    --labels_only"
-"""
-
-"""
-RESTRUCTURED PROMPT CONDITIONS
-
-Old naming:
-- zero_shot, icl, zero_shot_cot, few_shot_cot
-
-New naming:
-- zero_shot, few_shot, zero_shot_cot, few_shot_cot
-
-Key changes:
-1. 'icl' renamed to 'few_shot' (clearer)
-2. Two separate ICL blocks: labels-only vs CoT
-3. --labels_only flag removed (Markdown is always CoT; use --output_format json for compact)
-4. CoT vs non-CoT differs in DEPTH of reasoning requested, not presence/absence
-
-Example commands:
-
-# Zero-shot with brief reasoning
-nlprun ... python script.py --instruction_type zero_shot --output_format markdown
-
-# Zero-shot with detailed step-by-step reasoning
-nlprun ... python script.py --instruction_type zero_shot_cot --output_format markdown
-
-# Few-shot with brief reasoning (includes 3 labels-only examples)
-nlprun ... python script.py --instruction_type few_shot --output_format markdown
-
-# Few-shot with detailed reasoning (includes 3 CoT examples with rationales)
-nlprun ... python script.py --instruction_type few_shot_cot --output_format markdown
-
-# Compact JSON output (no reasoning, just labels)
-nlprun ... python script.py --instruction_type zero_shot --output_format json
-"""
 
 # ==================== GLOBAL TOKEN COUNTERS ====================
+
 class TokenTracker:
     def __init__(self):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
-        self.total_cached_tokens = 0
         self.api_call_count = 0
 
     def reset(self):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
-        self.total_cached_tokens = 0
         self.api_call_count = 0
 
 
-
 # ==================== BACKEND CLASSES ====================
-"""
-CONFIDENCE EXTRACTION SUPPORT BY BACKEND:
-
- OpenAI (GPT-4, GPT-4o):
-   - Feature-specific confidence via token-level logprobs
-   - High accuracy: directly tied to model's uncertainty per label
-   - Recommended for research requiring confidence scores
-
- Phi-4 / Qwen (HuggingFace local):
-   - Global proxy: average max probability across all tokens
-   - Same confidence assigned to ALL features (not feature-specific)
-   - Use as rough indicator of overall model certainty
-
- Gemini (Google API):
-   - No confidence support (API doesn't expose logprobs)
-   - Returns empty dict from extract_feature_confidences()
-   - Use OpenAI backend if confidence is required
-"""
 
 @dataclass
 class LLMBackend:
-    """
-    Abstract base. Each backend owns its own tokenizer/encoder.
-    """
+    """Abstract base. Each backend owns its own tokenizer."""
     name: str
     model: str
 
@@ -178,526 +98,22 @@ class LLMBackend:
         raise NotImplementedError
 
     def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
-        raise NotImplementedError  # ← Updated signature
-
-
-class OpenAIBackend(LLMBackend):
-    """
-    OpenAI API backend (GPT-4, GPT-4o, etc.).
-
-    CONFIDENCE SUPPORT: Feature-specific
-    - Extracts token-level logprobs for each binary label (0/1)
-    - Matches logprobs to features using regex on preceding tokens
-    - High accuracy: confidence directly tied to model's uncertainty
-    """
-    def __init__(self, model: str):
-        super().__init__(name="openai", model=model)
-        api_key = os.getenv("AZURE_OPENAI_API_KEY")
-        endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
-        if not api_key or not endpoint:
-            raise ValueError("Set AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT environment variables.")
-        self.client = AzureOpenAI(api_key=api_key, azure_endpoint=endpoint, api_version=api_version)
-        try:
-            self._enc = tiktoken.encoding_for_model(model)
-        except Exception:
-            self._enc = tiktoken.get_encoding("cl100k_base")
-        self._last_confidence_data = None
-    
-    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
-        text = "\n".join(m["content"] for m in messages)
-        return len(self._enc.encode(text))
-
-    def count_output_tokens(self, text: str) -> int:
-        return len(self._enc.encode(text))
-
-    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
-        # Set max_tokens based on instruction type
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
-        
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=0.0,  # Deterministic for annotation — no randomness needed
-            max_completion_tokens=max_tokens,  # use max_completion_tokens (supported by all Azure models)
-            logprobs=True,  # ← Add this
-            top_logprobs=2,  # ← Add this (returns top 2 token probabilities)
-        )
-
-        # Store logprobs for later analysis (optional)
-        if hasattr(resp.choices[0], 'logprobs') and resp.choices[0].logprobs:
-            self._last_confidence_data = {
-                'type': 'logprobs',
-                'data': resp.choices[0].logprobs
-            }
-
-        # Store API-reported usage for accurate billing verification
-        self._last_cached_tokens = 0
-        self._last_usage = None
-        if hasattr(resp, 'usage') and resp.usage:
-            self._last_usage = {
-                'prompt_tokens': resp.usage.prompt_tokens,
-                'completion_tokens': resp.usage.completion_tokens,
-                'total_tokens': resp.usage.total_tokens,
-            }
-            details = getattr(resp.usage, 'prompt_tokens_details', None)
-            if details:
-                self._last_cached_tokens = getattr(details, 'cached_tokens', 0) or 0
-                self._last_usage['cached_tokens'] = self._last_cached_tokens
-
-        return resp.choices[0].message.content
-
-
-class QwenBackend(LLMBackend):
-    """
-    HuggingFace Qwen model backend (local inference).
-
-    CONFIDENCE SUPPORT: Global proxy only
-    - Extracts average max probability across all generated tokens
-    - Same confidence assigned to ALL features (not feature-specific)
-    - Use as rough proxy for overall model uncertainty
-    """
-    def __init__(self, model: str):
-        super().__init__(name="qwen", model=model)
-        print(f"Loading Qwen from {model}...")
-
-        self.model_id = model  # ← Store string ID before overwriting
-        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model,
-            trust_remote_code=True,
-            attn_implementation="sdpa",
-            torch_dtype="auto",
-            device_map="auto",
-        )
-        self.device = self.model.device  # ← Store device
-
-        self._last_confidence_data = None
-
-    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
-        try:
-            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
-            return len(self.tokenizer.encode(formatted))
-        except Exception:
-            text = "\n".join(m["content"] for m in messages)
-            return len(self.tokenizer.encode(text))
-
-    def count_output_tokens(self, text: str) -> int:
-        return len(self.tokenizer.encode(text))
-
-    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
-        prompt = self.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-        
-        # Tokenize input
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-        
-        # Set max_new_tokens based on instruction type
-        # Non-CoT bumped to 4000: 27 features × brief reasoning can reach ~2500 tokens;
-        # truncation silently drops features and defaults them to 0, harming F1.
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
-
-        # GREEDY decoding: do_sample=False removes stochasticity for annotation consistency.
-        # repetition_penalty=1.1 prevents loops common in greedy on long structured outputs.
-        outputs = self.model.generate(
-            **inputs,
-            max_new_tokens=max_tokens,
-            do_sample=False,
-            repetition_penalty=1.1,
-            pad_token_id=self.tokenizer.eos_token_id,
-            return_dict_in_generate=True,
-            output_scores=True,
-        )
-
-        # Decode generated text (skip input tokens)
-        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
-        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-
-        # Extract scores for confidence
-        if hasattr(outputs, 'scores') and outputs.scores:
-            self._last_confidence_data = {
-                'type': 'hf_scores',
-                'tokenizer': self.tokenizer,
-                'generated_ids': generated_ids,
-                'scores': outputs.scores,
-                'generated_text': generated_text  # Before markdown stripping
-            }
-
-        # Strip markdown code fences
-        if "```" in generated_text:
-            pattern = r"```(?:json)?\s*(.*?)```"
-            matches = re.findall(pattern, generated_text, re.DOTALL)
-            if matches:
-                generated_text = matches[-1].strip()
-            else:
-                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
-
-        return generated_text
-
-class GeminiBackend(LLMBackend):
-    """
-    Google Gemini API backend (Gemini 2.0/2.5 Flash/Pro).
-
-    CONFIDENCE SUPPORT: Not supported
-    - Gemini API does not expose logprobs or token probabilities
-    - Confidence extraction will return empty dict
-    - Use OpenAI backend if confidence scores are required
-    """
-    def __init__(self, model: str):
-        super().__init__(name="gemini", model=model)
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("Set GEMINI_API_KEY environment variable.")
-        genai.configure(api_key=api_key)
-        self.client = genai.GenerativeModel(model)
-        self.cache = None
-        self.cached_model_client = None
-        self._enc = tiktoken.get_encoding("cl100k_base")
-        self._last_confidence_data = None
-
-    def count_tokens(self, messages):
-        # Use Gemini's native token counting
-        text = "\n".join(m["content"] for m in messages)
-        try:
-            # Gemini has a built-in token counter
-            model = genai.GenerativeModel(self.model)
-            return model.count_tokens(text).total_tokens
-        except:
-            # Fallback to tiktoken approximation
-            return len(self._enc.encode(text))
-
-    def count_output_tokens(self, text: str) -> int:
-        return len(self._enc.encode(text))
-
-    def create_cache(self, system_instruction: str, model_name: str, ttl_minutes: int = 60):
-        """Creates a cached content object on Gemini servers."""
-        print("Creating Gemini Context Cache...")
-        try:
-            from google.generativeai import caching
-            self.cache = caching.CachedContent.create(
-                model=model_name,
-                display_name="aae_annotation_cache",
-                system_instruction=system_instruction,
-                ttl=datetime.timedelta(minutes=ttl_minutes),
-            )
-            self.cached_model_client = genai.GenerativeModel.from_cached_content(self.cache)
-            print(f"Cache created! Name: {self.cache.name}")
-            return True
-        except ImportError:
-            print("WARNING: google.generativeai.caching not found. pip install -U google-generativeai")
-            return False
-        except Exception as e:
-            print(f"WARNING: Failed to create cache: {e}")
-            return False
-    
-
-    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
-        # Set max_output_tokens based on instruction type
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
-        
-        generation_config = {
-            "temperature": 0.0,  # Deterministic for annotation — reproducible labels
-            "max_output_tokens": max_tokens,
-            # REMOVED: "candidate_count": 3,  ← This parameter is NOT supported by Gemini API
-        }
-        
-        try:
-            client = self.cached_model_client or self.client
-            user_turns = [m for m in messages if m["role"] == "user"]
-            system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
-
-            if len(user_turns) <= 1:
-                # Single-turn: simple generation
-                content = user_turns[0]["content"] if user_turns else ""
-                # Apply system instruction if present and not using cached model
-                if system_msg and not self.cached_model_client:
-                    model_with_system = genai.GenerativeModel(
-                        model_name=self.model,
-                        system_instruction=system_msg
-                    )
-                    resp = model_with_system.generate_content(
-                        content,
-                        generation_config=generation_config
-                    )
-                else:
-                    resp = client.generate_content(
-                        content,
-                        generation_config=generation_config
-                    )
-            else:
-                # Multi-turn: use chat with history
-                # Build history from user messages
-                history = []
-                for m in messages:
-                    if m["role"] == "user":
-                        history.append({"role": "user", "parts": [m["content"]]})
-
-                # Last message is the query
-                last_content = history.pop()["parts"][0]
-
-                # If we have a system message and NOT using cache, create model with system instruction
-                if system_msg and not self.cached_model_client:
-                    model_with_system = genai.GenerativeModel(
-                        model_name=self.model,
-                        system_instruction=system_msg
-                    )
-                    chat = model_with_system.start_chat(history=history)
-                else:
-                    # Using cached model (system already on server) or no system message
-                    chat = client.start_chat(history=history)
-
-                resp = chat.send_message(last_content, generation_config=generation_config)
-
-            return resp.text
-        except Exception as e:
-            # Detect expired/deleted cache and fall back to non-cached mode
-            err_msg = str(e).lower()
-            if self.cached_model_client and ("cachedcontent not found" in err_msg or "permission denied" in err_msg):
-                print("WARNING: Gemini cache expired or not found. Falling back to non-cached mode.")
-                self.cached_model_client = None
-                self.cache = None
-                # Retry this call without cache (recursive, but only once since cached_model_client is now None)
-                return self.call(messages, instruction_type=instruction_type)
-            raise e
-
-
-class Gemini3Backend(LLMBackend):
-    """
-    Google Gemini 3 Pro API backend (uses the new google.genai library).
-
-    Gemini 3 Pro is a reasoning model with thinking enabled by default.
-    thinking_level controls depth: "minimal" (default for Flash, closest to off but not guaranteed),
-    "low", "medium", or "high" (deep reasoning, default for Pro).
-    Note: thinking cannot be fully disabled on Gemini 3 models; use "minimal" for lowest thinking.
-
-    CONFIDENCE SUPPORT: Not supported (API doesn't expose logprobs)
-    """
-    def __init__(self, model: str, thinking_level: str = "high"):
-        super().__init__(name="gemini3", model=model)
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("Set GEMINI_API_KEY environment variable.")
-        self.client = genai_new.Client(api_key=api_key)
-        self.thinking_level = thinking_level
-        self._enc = tiktoken.get_encoding("cl100k_base")
-        self._last_confidence_data = None
-
-    def count_tokens(self, messages):
-        text = "\n".join(m["content"] for m in messages)
-        try:
-            result = self.client.models.count_tokens(
-                model=self.model, contents=text
-            )
-            return result.total_tokens
-        except Exception:
-            return len(self._enc.encode(text))
-
-    def count_output_tokens(self, text: str) -> int:
-        return len(self._enc.encode(text))
-
-    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
-
-        system_msg = next((m["content"] for m in messages if m["role"] == "system"), None)
-        user_turns = [m for m in messages if m["role"] == "user"]
-
-        thinking_cfg = genai_types.ThinkingConfig(thinking_level=self.thinking_level)
-
-        config = genai_types.GenerateContentConfig(
-            temperature=0.0,  # Deterministic labels; thinking happens internally regardless
-            max_output_tokens=max_tokens,
-            system_instruction=system_msg,
-            thinking_config=thinking_cfg,
-        )
-
-        try:
-            if len(user_turns) <= 1:
-                content = user_turns[0]["content"] if user_turns else ""
-                resp = self.client.models.generate_content(
-                    model=self.model,
-                    contents=content,
-                    config=config,
-                )
-            else:
-                # Multi-turn: build contents list
-                contents = []
-                for m in user_turns[:-1]:
-                    contents.append(genai_types.Content(
-                        role="user",
-                        parts=[genai_types.Part(text=m["content"])]
-                    ))
-                contents.append(genai_types.Content(
-                    role="user",
-                    parts=[genai_types.Part(text=user_turns[-1]["content"])]
-                ))
-                resp = self.client.models.generate_content(
-                    model=self.model,
-                    contents=contents,
-                    config=config,
-                )
-
-            return resp.text
-        except Exception as e:
-            raise e
+        raise NotImplementedError
 
 
 class PhiBackend(LLMBackend):
     """
-    HuggingFace Phi-4 model backend (local inference).
+    HuggingFace Phi-4 backend (local inference).
 
-    CONFIDENCE SUPPORT: Global proxy only
-    - Extracts average max probability across all generated tokens
-    - Same confidence assigned to ALL features (not feature-specific)
-    - Use as rough proxy for overall model uncertainty
+    Uses GREEDY decoding for annotation consistency.
+    do_sample=False removes stochasticity that causes format deviations.
+    repetition_penalty=1.1 prevents loops common in greedy on long outputs.
+
+    CONFIDENCE SUPPORT: Global proxy only (avg max prob across tokens).
     """
     def __init__(self, model: str):
         super().__init__(name="phi", model=model)
         print(f"Loading Phi-4 from {model}...")
-
-        self.model_id = model  # ← Store string ID before overwriting
-        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model,
-            trust_remote_code=True,
-            attn_implementation="sdpa",
-            torch_dtype="auto",
-            device_map="auto",
-        )
-        self.device = self.model.device  # ← Add this
-        self._last_confidence_data = None
-
-    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
-        try:
-            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
-            return len(self.tokenizer.encode(formatted))
-        except Exception:
-            text = "\n".join(m["content"] for m in messages)
-            return len(self.tokenizer.encode(text))
-
-    def count_output_tokens(self, text: str) -> int:
-        return len(self.tokenizer.encode(text))
-
-    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
-        prompt = self.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-
-        # Tokenize input
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-
-        # Non-CoT bumped to 4000 to prevent truncation on 27-feature outputs.
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
-
-        # GREEDY decoding for annotation consistency.
-        outputs = self.model.generate(
-            **inputs,
-            max_new_tokens=max_tokens,
-            do_sample=False,
-            repetition_penalty=1.1,
-            pad_token_id=self.tokenizer.eos_token_id,
-            return_dict_in_generate=True,
-            output_scores=True,
-        )
-
-        # Decode generated text (skip input tokens)
-        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
-        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-
-        # Extract scores for confidence
-        if hasattr(outputs, 'scores') and outputs.scores:
-            self._last_confidence_data = {
-                'type': 'hf_scores',
-                'tokenizer': self.tokenizer,
-                'generated_ids': generated_ids,
-                'scores': outputs.scores,
-                'generated_text': generated_text  # Before markdown stripping
-            }
-
-        # Strip markdown code fences
-        if "```" in generated_text:
-            pattern = r"```(?:json)?\s*(.*?)```"
-            matches = re.findall(pattern, generated_text, re.DOTALL)
-            if matches:
-                generated_text = matches[-1].strip()
-            else:
-                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
-
-        return generated_text
-
-
-class OpenAIReasoningBackend(OpenAIBackend):
-    """
-    OpenAI API backend for reasoning models (GPT-5.2 Thinking).
-
-    Extends OpenAIBackend with reasoning_effort parameter.
-    Note: logprobs may not be available for reasoning models;
-    falls back gracefully if unsupported.
-    """
-    def __init__(self, model: str, reasoning_effort: str = "medium"):
-        super().__init__(model=model)
-        self.name = "openai_reasoning"
-        self.reasoning_effort = reasoning_effort
-
-    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
-
-        # Reasoning models do not support logprobs — call directly without it
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_completion_tokens=max_tokens,
-            reasoning_effort=self.reasoning_effort,
-        )
-
-        if hasattr(resp.choices[0], 'logprobs') and resp.choices[0].logprobs:
-            self._last_confidence_data = {
-                'type': 'logprobs',
-                'data': resp.choices[0].logprobs
-            }
-
-        # Track cached tokens if available
-        self._last_cached_tokens = 0
-        if hasattr(resp, 'usage') and resp.usage:
-            details = getattr(resp.usage, 'prompt_tokens_details', None)
-            if details:
-                self._last_cached_tokens = getattr(details, 'cached_tokens', 0) or 0
-
-        return resp.choices[0].message.content
-
-
-class PhiReasoningBackend(LLMBackend):
-    """
-    HuggingFace Phi-4-reasoning backend (local inference).
-
-    Uses recommended inference params for Phi-4-reasoning:
-    temperature=0.8, top_p=0.95, top_k=50, max_new_tokens=32768.
-    Strips <think>...</think> blocks from output before returning.
-
-    CONFIDENCE SUPPORT: Global proxy only
-    """
-    def __init__(self, model: str):
-        super().__init__(name="phi_reasoning", model=model)
-        print(f"Loading Phi-4-reasoning from {model}...")
-
         self.model_id = model
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -727,9 +143,91 @@ class PhiReasoningBackend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # Phi-4-reasoning recommended params; longer max for reasoning chain
+        # Non-CoT bumped to 4000: 27 features × brief reasoning can exceed 2000 tokens.
+        # Truncation silently drops features, which default to 0 and harm F1.
+        max_tokens = 16000 if "cot" in instruction_type else 4000
+
+        # GREEDY decoding: do_sample=False, no temperature/top_p
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
+            do_sample=False,
+            repetition_penalty=1.1,
+            pad_token_id=self.tokenizer.eos_token_id,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text
+            }
+
+        # Strip markdown code fences
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
+
+
+class PhiReasoningBackend(LLMBackend):
+    """
+    HuggingFace Phi-4-reasoning backend (local inference).
+
+    Uses sampling with Phi-4-reasoning recommended params:
+    temperature=0.8, top_p=0.95, top_k=50, max_new_tokens=32768.
+    Strips <think>...</think> blocks from output before returning.
+
+    CONFIDENCE SUPPORT: Global proxy only.
+    """
+    def __init__(self, model: str):
+        super().__init__(name="phi_reasoning", model=model)
+        print(f"Loading Phi-4-reasoning from {model}...")
+        self.model_id = model
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype="auto",
+            device_map="auto",
+        )
+        self.device = self.model.device
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
+        # Reasoning models need longer max for reasoning chain
         max_tokens = 32768 if "cot" in instruction_type else 16000
 
+        # Keep sampling for reasoning chains — helps exploration
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=max_tokens,
@@ -737,6 +235,7 @@ class PhiReasoningBackend(LLMBackend):
             temperature=0.8,
             top_p=0.95,
             top_k=50,
+            pad_token_id=self.tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_scores=True,
         )
@@ -770,19 +269,21 @@ class PhiReasoningBackend(LLMBackend):
 
 class LlamaBackend(LLMBackend):
     """
-    HuggingFace Llama model backend (local inference).
+    HuggingFace Llama backend (local inference).
 
-    CONFIDENCE SUPPORT: Global proxy only
+    Uses GREEDY decoding for annotation consistency.
+
+    CONFIDENCE SUPPORT: Global proxy only.
     """
     def __init__(self, model: str):
         super().__init__(name="llama", model=model)
         print(f"Loading Llama from {model}...")
-
         self.model_id = model
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
             model,
             trust_remote_code=True,
+            attn_implementation="sdpa",  # memory-efficient attention, matches Phi/Qwen
             torch_dtype="auto",
             device_map="auto",
         )
@@ -807,12 +308,9 @@ class LlamaBackend(LLMBackend):
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
         # Non-CoT bumped to 4000 to prevent truncation on 27-feature outputs.
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
+        max_tokens = 16000 if "cot" in instruction_type else 4000
 
-        # GREEDY decoding for annotation consistency.
+        # GREEDY decoding
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=max_tokens,
@@ -835,7 +333,83 @@ class LlamaBackend(LLMBackend):
                 'generated_text': generated_text
             }
 
-        # Strip markdown code fences
+        if "```" in generated_text:
+            pattern = r"```(?:json)?\s*(.*?)```"
+            matches = re.findall(pattern, generated_text, re.DOTALL)
+            if matches:
+                generated_text = matches[-1].strip()
+            else:
+                generated_text = generated_text.replace("```json", "").replace("```", "").strip()
+
+        return generated_text
+
+
+class QwenBackend(LLMBackend):
+    """
+    HuggingFace Qwen2.5 backend (local inference).
+
+    Uses GREEDY decoding for annotation consistency.
+
+    CONFIDENCE SUPPORT: Global proxy only.
+    """
+    def __init__(self, model: str):
+        super().__init__(name="qwen", model=model)
+        print(f"Loading Qwen from {model}...")
+        self.model_id = model
+        self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype="auto",
+            device_map="auto",
+        )
+        self.device = self.model.device
+        self._last_confidence_data = None
+
+    def count_tokens(self, messages: List[Dict[str, str]]) -> int:
+        try:
+            formatted = self.tokenizer.apply_chat_template(messages, tokenize=False)
+            return len(self.tokenizer.encode(formatted))
+        except Exception:
+            text = "\n".join(m["content"] for m in messages)
+            return len(self.tokenizer.encode(text))
+
+    def count_output_tokens(self, text: str) -> int:
+        return len(self.tokenizer.encode(text))
+
+    def call(self, messages: List[Dict[str, str]], instruction_type: str = "zero_shot") -> str:
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+
+        # Non-CoT bumped to 4000 to prevent truncation on 27-feature outputs.
+        max_tokens = 16000 if "cot" in instruction_type else 4000
+
+        # GREEDY decoding
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=max_tokens,
+            do_sample=False,
+            repetition_penalty=1.1,
+            pad_token_id=self.tokenizer.eos_token_id,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
+        generated_ids = outputs.sequences[0][inputs['input_ids'].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        if hasattr(outputs, 'scores') and outputs.scores:
+            self._last_confidence_data = {
+                'type': 'hf_scores',
+                'tokenizer': self.tokenizer,
+                'generated_ids': generated_ids,
+                'scores': outputs.scores,
+                'generated_text': generated_text
+            }
+
         if "```" in generated_text:
             pattern = r"```(?:json)?\s*(.*?)```"
             matches = re.findall(pattern, generated_text, re.DOTALL)
@@ -852,13 +426,13 @@ class Qwen3Backend(LLMBackend):
     HuggingFace Qwen3 backend with thinking DISABLED (non-reasoning mode).
 
     Uses Qwen3 recommended non-thinking params: temperature=0.7, top_p=0.8, top_k=20.
+    NOTE: Qwen3 non-thinking still benefits from slight sampling vs pure greedy.
 
-    CONFIDENCE SUPPORT: Global proxy only
+    CONFIDENCE SUPPORT: Global proxy only.
     """
     def __init__(self, model: str):
         super().__init__(name="qwen3", model=model)
         print(f"Loading Qwen3 (non-thinking) from {model}...")
-
         self.model_id = model
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -892,11 +466,9 @@ class Qwen3Backend(LLMBackend):
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
         # Non-CoT bumped to 4000 to prevent truncation on 27-feature outputs.
-        if "cot" in instruction_type:
-            max_tokens = 16000
-        else:
-            max_tokens = 4000
+        max_tokens = 16000 if "cot" in instruction_type else 4000
 
+        # Qwen3 non-thinking recommended params (slight sampling helps instruction following)
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=max_tokens,
@@ -904,6 +476,8 @@ class Qwen3Backend(LLMBackend):
             temperature=0.7,
             top_p=0.8,
             top_k=20,
+            repetition_penalty=1.05,
+            pad_token_id=self.tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_scores=True,
         )
@@ -920,7 +494,6 @@ class Qwen3Backend(LLMBackend):
                 'generated_text': generated_text
             }
 
-        # Strip markdown code fences
         if "```" in generated_text:
             pattern = r"```(?:json)?\s*(.*?)```"
             matches = re.findall(pattern, generated_text, re.DOTALL)
@@ -939,12 +512,14 @@ class Qwen3ThinkingBackend(LLMBackend):
     Uses Qwen3 recommended thinking params: temperature=0.6, top_p=0.95, top_k=20.
     Strips <think>...</think> blocks from output before returning.
 
-    CONFIDENCE SUPPORT: Global proxy only
+    RECOMMENDED for annotation tasks — native thinking dramatically improves
+    rule-following on fine-grained binary decisions.
+
+    CONFIDENCE SUPPORT: Global proxy only.
     """
     def __init__(self, model: str):
         super().__init__(name="qwen3_thinking", model=model)
         print(f"Loading Qwen3 (thinking) from {model}...")
-
         self.model_id = model
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -977,9 +552,10 @@ class Qwen3ThinkingBackend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # Longer max for reasoning chain
+        # Long max for reasoning chain
         max_tokens = 32768 if "cot" in instruction_type else 16000
 
+        # Qwen3 thinking recommended params
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=max_tokens,
@@ -987,6 +563,7 @@ class Qwen3ThinkingBackend(LLMBackend):
             temperature=0.6,
             top_p=0.95,
             top_k=20,
+            pad_token_id=self.tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_scores=True,
         )
@@ -1006,7 +583,6 @@ class Qwen3ThinkingBackend(LLMBackend):
         # Strip reasoning blocks
         generated_text = re.sub(r"<think>.*?</think>", "", generated_text, flags=re.DOTALL).strip()
 
-        # Strip markdown code fences
         if "```" in generated_text:
             pattern = r"```(?:json)?\s*(.*?)```"
             matches = re.findall(pattern, generated_text, re.DOTALL)
@@ -1022,15 +598,13 @@ class QwQBackend(LLMBackend):
     """
     HuggingFace QwQ-32B backend (always-reasoning, based on Qwen2.5).
 
-    QwQ always produces reasoning chains; strips <think>...</think> blocks
-    from output before returning.
+    QwQ always produces reasoning chains; strips <think>...</think> blocks.
 
-    CONFIDENCE SUPPORT: Global proxy only
+    CONFIDENCE SUPPORT: Global proxy only.
     """
     def __init__(self, model: str):
         super().__init__(name="qwq", model=model)
         print(f"Loading QwQ from {model}...")
-
         self.model_id = model
         self.tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -1060,7 +634,7 @@ class QwQBackend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # Longer max for reasoning chain
+        # QwQ official recommended params use top_k=40 (not 20 which is Qwen3's setting)
         max_tokens = 32768 if "cot" in instruction_type else 16000
 
         outputs = self.model.generate(
@@ -1069,7 +643,8 @@ class QwQBackend(LLMBackend):
             do_sample=True,
             temperature=0.6,
             top_p=0.95,
-            top_k=20,
+            top_k=40,
+            pad_token_id=self.tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_scores=True,
         )
@@ -1089,7 +664,6 @@ class QwQBackend(LLMBackend):
         # Strip reasoning blocks
         generated_text = re.sub(r"<think>.*?</think>", "", generated_text, flags=re.DOTALL).strip()
 
-        # Strip markdown code fences
         if "```" in generated_text:
             pattern = r"```(?:json)?\s*(.*?)```"
             matches = re.findall(pattern, generated_text, re.DOTALL)
@@ -1099,6 +673,47 @@ class QwQBackend(LLMBackend):
                 generated_text = generated_text.replace("```json", "").replace("```", "").strip()
 
         return generated_text
+
+
+# ==================== CONFIDENCE EXTRACTION ====================
+
+def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed_labels: dict) -> dict:
+    """
+    Extract global proxy confidence from HuggingFace backends.
+    Returns avg max probability across all generated tokens.
+    Same score is assigned to ALL features (not feature-specific).
+    """
+    if not hasattr(backend, '_last_confidence_data') or not backend._last_confidence_data:
+        return {}
+
+    conf_data = backend._last_confidence_data
+    if conf_data.get('type') != 'hf_scores':
+        return {}
+
+    scores = conf_data.get('scores')
+    confidences = {}
+
+    try:
+        if not isinstance(scores, (list, tuple)):
+            return {}
+
+        max_probs = []
+        for score_tensor in scores:
+            if not hasattr(score_tensor, 'shape'):
+                continue
+            probs = torch.nn.functional.softmax(score_tensor[0], dim=-1)
+            max_prob = torch.max(probs).item()
+            max_probs.append(max_prob)
+
+        avg_confidence = sum(max_probs) / len(max_probs) if max_probs else 0.5
+
+        for feat in feature_names:
+            confidences[feat] = avg_confidence
+
+    except Exception as e:
+        print(f"Warning: Could not extract HF scores: {e}")
+
+    return confidences
 
 
 # ==================== OUTPUT PARSING ====================
@@ -1117,17 +732,47 @@ def extract_results(text: str, expected_features: list) -> tuple:
     vals = {}
     rats = {}
 
-    # Pull the Analysis block as a single global rationale
     analysis_match = re.search(r"### Analysis\s*(.*?)\s*### Results", text, re.DOTALL)
     global_rationale = analysis_match.group(1).strip() if analysis_match else "No analysis found."
 
-    # Extract binary labels from the Results block
-    # Handles: "- feat: 0", "* feat: 0", "- **feat:** 0", "- **feat**: 0"
     pattern = r"[-\*]\s*\*{0,2}([\w-]+)\*{0,2}\s*:\*{0,2}\s*(0|1)"
     for key, val in re.findall(pattern, text):
         if key in expected_features:
             vals[key] = int(val)
             rats[key] = f"See analysis: {global_rationale[:200]}..."
+
+    missing = [f for f in expected_features if f not in vals]
+    return vals, rats, missing
+
+
+def extract_results_lenient(text: str, expected_features: list) -> tuple:
+    """
+    Lenient fallback parser for open-source model outputs.
+    Case-insensitive, dash/underscore normalized.
+    Catches common formatting deviations smaller models produce.
+    """
+    vals = {}
+    rats = {}
+
+    # More permissive: handles any list marker, any spacing, case-insensitive
+    pattern = r"[-\*\+]?\s*\*{0,2}([\w\-_]+)\*{0,2}\s*:\s*\*{0,2}\s*(0|1)"
+    for key_raw, val in re.findall(pattern, text, re.IGNORECASE):
+        key_norm = key_raw.lower().strip()
+        # Exact match first
+        matched_feat = next(
+            (f for f in expected_features if f.lower() == key_norm), None
+        )
+        # Dash/underscore normalized match
+        if not matched_feat:
+            matched_feat = next(
+                (f for f in expected_features
+                 if f.lower().replace("-", "").replace("_", "") ==
+                    key_norm.replace("-", "").replace("_", "")),
+                None
+            )
+        if matched_feat and matched_feat not in vals:
+            vals[matched_feat] = int(val)
+            rats[matched_feat] = ""
 
     missing = [f for f in expected_features if f not in vals]
     return vals, rats, missing
@@ -1141,6 +786,16 @@ def extract_json_robust(text: str) -> dict | None:
     """
     clean_text = re.sub(r"```json\s*", "", text, flags=re.IGNORECASE)
     clean_text = re.sub(r"```", "", clean_text).strip()
+
+    # Find the JSON object boundaries
+    start = clean_text.rfind("{")
+    end = clean_text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        json_candidate = clean_text[start:end + 1]
+        try:
+            return json.loads(json_candidate)
+        except json.JSONDecodeError:
+            pass
 
     try:
         return json.loads(clean_text)
@@ -1158,29 +813,19 @@ def extract_json_robust(text: str) -> dict | None:
     return data if data else None
 
 
-def parse_output(raw_str: str, features: list, output_format: str = "markdown") -> tuple:
+def parse_output(raw_str: str, features: list, output_format: str = "json") -> tuple:
     """
-    Unified output parser.
-    Tries the format that was requested first, then falls back to the other.
+    Unified output parser with three-level fallback cascade:
+      1. Requested format (JSON or Markdown)
+      2. Other format (cross-format fallback)
+      3. Lenient Markdown parser (catches small-model formatting deviations)
+
     Always returns (vals, rats, missing).
     """
     vals, rats, missing = {}, {}, list(features)
 
-    if output_format == "markdown":
-        vals, rats, missing = extract_results(raw_str, features)
-        # Fallback: model may have returned JSON despite being asked for Markdown
-        if missing:
-            data = extract_json_robust(raw_str)
-            if data:
-                for f in list(missing):
-                    if f in data:
-                        v = data[f]
-                        vals[f] = v if isinstance(v, int) else int(v.get("value", 0))
-                        rats[f] = str(v.get("rationale", "")) if isinstance(v, dict) else ""
-                        missing.remove(f)
-    else:
+    if output_format == "json":
         data = extract_json_robust(raw_str)
-        # Extract reasoning text before the JSON block as global rationale
         json_start = raw_str.find("{")
         pre_json_text = raw_str[:json_start].strip() if json_start > 0 else ""
         if data:
@@ -1195,174 +840,49 @@ def parse_output(raw_str: str, features: list, output_format: str = "markdown") 
                     else:
                         rats[f] = ""
             missing = [f for f in features if f not in vals]
-        # Fallback: model may have returned Markdown despite being asked for JSON
+
+        # Fallback 1: try Markdown
         if missing:
-            md_vals, md_rats, md_missing = extract_results(raw_str, features)
+            md_vals, md_rats, _ = extract_results(raw_str, features)
             for f in list(missing):
                 if f in md_vals:
                     vals[f] = md_vals[f]
                     rats[f] = md_rats.get(f, "")
                     missing.remove(f)
 
+        # Fallback 2: lenient Markdown
+        if missing:
+            lv, lr, _ = extract_results_lenient(raw_str, features)
+            for f in list(missing):
+                if f in lv:
+                    vals[f] = lv[f]
+                    rats[f] = lr.get(f, "")
+                    missing.remove(f)
+
+    else:  # markdown
+        vals, rats, missing = extract_results(raw_str, features)
+
+        # Fallback 1: try JSON
+        if missing:
+            data = extract_json_robust(raw_str)
+            if data:
+                for f in list(missing):
+                    if f in data:
+                        v = data[f]
+                        vals[f] = v if isinstance(v, int) else int(v.get("value", 0))
+                        rats[f] = str(v.get("rationale", "")) if isinstance(v, dict) else ""
+                        missing.remove(f)
+
+        # Fallback 2: lenient Markdown
+        if missing:
+            lv, lr, _ = extract_results_lenient(raw_str, features)
+            for f in list(missing):
+                if f in lv:
+                    vals[f] = lv[f]
+                    rats[f] = lr.get(f, "")
+                    missing.remove(f)
+
     return vals, rats, missing
-
-
-def extract_feature_confidences(backend: LLMBackend, feature_names: list, parsed_labels: dict) -> dict:
-    """
-    Extract confidence scores from any backend's last call.
-
-    Backend support:
-    - OpenAI: Token-level logprobs (feature-specific)
-    - Phi/Qwen (HuggingFace): Average max probability (global proxy)
-    - Gemini: Not supported (returns empty dict)
-
-    Returns dict: {feature_name: confidence_score}
-    where confidence_score is in [0, 1], higher = more confident.
-    """
-    if not hasattr(backend, '_last_confidence_data') or not backend._last_confidence_data:
-        return {}
-
-    conf_data = backend._last_confidence_data
-    conf_type = conf_data.get('type')
-
-    if not conf_type:
-        return {}
-
-    confidences = {}
-
-    if conf_type == 'logprobs':
-        # OpenAI logprobs - feature-specific confidence extraction
-        data = conf_data.get('data')
-        try:
-            if not data or not hasattr(data, 'content') or not data.content:
-                print("Warning: OpenAI logprobs data missing 'content' attribute")
-                return {}
-
-            tokens = data.content
-
-            # Find the token position where "### Results" starts
-            # Only extract confidences from the Results section (not Analysis)
-            results_start = 0
-            full_text = ""
-            for i, t in enumerate(tokens):
-                if hasattr(t, 'token'):
-                    full_text += t.token
-                    if "### Results" in full_text and results_start == 0:
-                        results_start = i
-                        print(f"DEBUG logprobs: '### Results' found at token {i}")
-
-            if results_start == 0:
-                print("WARNING: '### Results' header not found in token stream, scanning all tokens")
-
-            for i, token_data in enumerate(tokens):
-                # Skip tokens before ### Results section
-                if i < results_start:
-                    continue
-
-                if not hasattr(token_data, 'token') or not hasattr(token_data, 'logprob'):
-                    continue
-
-                token = token_data.token.strip()
-                if token not in ["0", "1"]:
-                    continue
-
-                # Build lookback context (previous 15 tokens, but only within Results)
-                lookback_text = ""
-                for j in range(max(results_start, i-15), i):
-                    if hasattr(tokens[j], 'token'):
-                        lookback_text += tokens[j].token
-
-                # Skip if this 0/1 is part of a feature NAME (e.g. "wh-qu1")
-                # Check if the preceding char is a letter or hyphen (part of a word)
-                if lookback_text and lookback_text[-1:] not in [' ', '\n', '\t', ':']:
-                    continue
-
-                # Find matching feature
-                matched = False
-                for feat in feature_names:
-                    # Handle: "- feat: 0", "- **feat:** 0", "* feat: 0"
-                    feat_esc = re.escape(feat)
-                    patterns = [
-                        rf'\*\*{feat_esc}\*?\*?:?\*?\*?\s*$',         # **feat:** or **feat**:
-                        rf'[-\*]\s*\*?\*?{feat_esc}\*?\*?\s*:\*?\*?\s*$',  # - feat: or - **feat:**
-                        rf'{feat_esc}\s*:\s*$',                        # feat: (plain)
-                    ]
-                    if any(re.search(p, lookback_text) for p in patterns):
-                        prob = max(math.exp(token_data.logprob), 1e-10)
-                        if feat not in confidences:
-                            confidences[feat] = prob
-                        matched = True
-                        break
-
-                if not matched:
-                    print(f"DEBUG: Unmatched '0'/'1' token at pos {i}, lookback: ...{lookback_text[-60:]}")
-
-        except AttributeError as e:
-            print(f"Warning: OpenAI logprobs structure error: {e}")
-        except Exception as e:
-            print(f"Warning: Unexpected error extracting OpenAI logprobs: {e}")
-
-    elif conf_type == 'hf_scores':
-        # HuggingFace scores (Phi/Qwen) - global proxy confidence
-        scores = conf_data.get('scores')
-        try:
-            if not isinstance(scores, (list, tuple)):
-                print(f"Warning: HF scores data is not a list/tuple (got {type(scores)})")
-                return {}
-
-            # Get average max probability across all generated tokens
-            max_probs = []
-            for score_tensor in scores:
-                if not hasattr(score_tensor, 'shape'):
-                    continue
-                probs = torch.nn.functional.softmax(score_tensor[0], dim=-1)
-                max_prob = torch.max(probs).item()
-                max_probs.append(max_prob)
-
-            # Calculate average confidence
-            avg_confidence = sum(max_probs) / len(max_probs) if max_probs else 0.5
-
-            # Assign same confidence to all features (proxy measure)
-            # This is a global confidence, not feature-specific
-            for feat in feature_names:
-                confidences[feat] = avg_confidence
-
-        except Exception as e:
-            print(f"Warning: Could not extract HF scores: {e}")
-
-    else:
-        # Unknown confidence type
-        print(f"Warning: Unknown confidence type '{conf_type}'")
-    
-    # elif conf_type == 'candidates':
-    #     # Gemini multiple candidates (variance-based confidence)
-    #     # NOTE: This branch is currently unused because Gemini doesn't support candidate_count
-    #     # Keeping for potential future use if Gemini adds this feature
-    #     candidate_texts = data
-        
-    #     # Parse each candidate
-    #     all_parses = []
-    #     for candidate_text in candidate_texts:
-    #         try:
-    #             vals, _, _ = parse_output(candidate_text, feature_names, output_format="markdown")
-    #             all_parses.append(vals)
-    #         except:
-    #             continue
-        
-    #     if len(all_parses) >= 2:
-    #         # For each feature, compute agreement rate
-    #         for feat in feature_names:
-    #             # Guard against missing or None labels
-    #             if feat in parsed_labels and parsed_labels.get(feat) is not None:
-    #                 # Count how many candidates agree with the final label
-    #                 final_label = parsed_labels[feat]
-    #                 agreements = sum(1 for p in all_parses if p.get(feat) == final_label)
-    #                 confidence = agreements / len(all_parses)
-    #                 confidences[feat] = confidence
-    
-    return confidences
-
-
 
 
 # ==================== FEATURE LISTS ====================
@@ -1379,11 +899,7 @@ EXTENDED_FEATURES = MASIS_FEATURES + [
 ]
 
 
-
 # ==================== FEATURE BLOCKS ====================
-# These are kept here as module-level constants.
-# They are passed into build_system_msg (system role) rather than the user message,
-# so they are static, cacheable, and don't re-inflate every user turn.
 
 MASIS_FEATURE_BLOCK = """
 ### LIST OF AAE MORPHOSYNTACTIC FEATURES ###
@@ -1662,7 +1178,6 @@ Note: Only mark wh-qu2 when WH-clause word order is non-standard relative to SAE
 """
 
 NEW_FEATURE_BLOCK = MASIS_FEATURE_BLOCK + """
-
 ### Rule 18: existential-it
 **IF** 'it' functions as an existential/dummy subject in a construction where SAE would normally use 'there' to introduce an existential AND the following predicate introduces new entities, **THEN** label is 1.
 
@@ -1812,10 +1327,8 @@ Note: Only mark bare-got when the clause clearly describes current possession an
 """
 
 
-
 # ==================== ICL BLOCKS ====================
 
-# For 'few_shot' condition: labels only, no rationales
 ICL_LABELS_ONLY_BLOCK = """
 ### FEW-SHOT TRAINING EXAMPLES ###
 (for demonstration only; NOT the target utterance)
@@ -1916,76 +1429,9 @@ LABELS:
 - preterite-had: 0
 - bare-got: 0
 
-**Example 4:**
-SENTENCE: "Wasn't nobody home when I called, so I had to leave a message."
-
-LABELS:
-- zero-poss: 0
-- zero-copula: 0
-- double-tense: 0
-- be-construction: 0
-- resultant-done: 0
-- finna: 0
-- come: 0
-- double-modal: 0
-- multiple-neg: 1
-- neg-inversion: 1
-- n-inv-neg-concord: 0
-- aint: 0
-- zero-3sg-pres-s: 0
-- is-was-gen: 0
-- zero-pl-s: 0
-- double-object: 0
-- wh-qu1: 0
-- wh-qu2: 0
-- existential-it: 0
-- demonstrative-them: 0
-- appositive-pleonastic-pronoun: 0
-- bin: 0
-- verb-stem: 0
-- past-tense-swap: 0
-- zero-rel-pronoun: 0
-- preterite-had: 0
-- bare-got: 0
-
-**Example 5:**
-SENTENCE: "That's the letter she wrote me before she left town for good."
-
-LABELS:
-- zero-poss: 0
-- zero-copula: 0
-- double-tense: 0
-- be-construction: 0
-- resultant-done: 0
-- finna: 0
-- come: 0
-- double-modal: 0
-- multiple-neg: 0
-- neg-inversion: 0
-- n-inv-neg-concord: 0
-- aint: 0
-- zero-3sg-pres-s: 0
-- is-was-gen: 0
-- zero-pl-s: 0
-- double-object: 0
-- wh-qu1: 0
-- wh-qu2: 0
-- existential-it: 0
-- demonstrative-them: 0
-- appositive-pleonastic-pronoun: 0
-- bin: 0
-- verb-stem: 0
-- past-tense-swap: 0
-- zero-rel-pronoun: 1
-- preterite-had: 0
-- bare-got: 0
-
-Use these as patterns for complete sentence annotation.
-Do NOT reuse these sentences when analyzing the new target utterance.
+Use these as patterns for complete sentence annotation. Do NOT reuse these sentences when analyzing the new target utterance.
 """
 
-
-# For 'few_shot_cot' condition: labels + detailed rationales
 ICL_COT_BLOCK = """
 ### FEW-SHOT TRAINING EXAMPLES ###
 (for demonstration only; NOT the target utterance)
@@ -2041,39 +1487,9 @@ ANNOTATED LABELS (with rationales):
 
 (all other features): 0
 
-**Example 4:**
-SENTENCE: "Wasn't nobody home when I called, so I had to leave a message."
-
-ANNOTATED LABELS (with rationales):
-- neg-inversion: 1
-  RATIONALE: The negated auxiliary 'Wasn't' appears before the grammatical subject 'nobody'. In SAE the word order would be 'Nobody was home' (subject precedes auxiliary). AAE neg-inversion inverts this, fronting the negated auxiliary. The construction is present and unambiguous. Label is 1.
-
-- multiple-neg: 1
-  RATIONALE: Two negative elements occur in the same clause: 'Wasn't' (negated past auxiliary) and 'nobody' (negative-polarity subject pronoun). Together they express a single semantic negation ('no one was home'). This is the AAE negative concord pattern. Label is 1.
-
-- preterite-had: 0
-  RATIONALE: 'Had to leave' is the modal phrase 'have to' in past tense, meaning 'was obligated to'. This is not the preterite-had construction, which requires 'had' + past verb as a simple-past substitute (e.g., 'he had went'). No such pattern appears here. Label is 0.
-
-(all other features): 0
-
-**Example 5:**
-SENTENCE: "That's the letter she wrote me before she left town for good."
-
-ANNOTATED LABELS (with rationales):
-- zero-rel-pronoun: 1
-  RATIONALE: In 'the letter she wrote me', the head noun 'letter' is immediately followed by a relative clause 'she wrote me' with no overt relative pronoun. SAE would require 'the letter that she wrote me' or 'the letter which she wrote me'. The pronoun is systematically absent in a position where SAE grammar requires it. Label is 1.
-
-- zero-copula: 0
-  RATIONALE: 'That's' is the contraction of 'That is' — the copula is present in contracted form. Zero-copula requires the copula to be entirely absent. Label is 0.
-
-- double-object: 0
-  RATIONALE: 'She wrote me' involves an indirect object 'me', but the direct object ('the letter') is the antecedent head noun, not a second argument in the clause. This is a standard SAE relative-clause pattern. The double-object AAE construction requires a self-benefactive indirect object within the clause itself. Label is 0.
-
-(all other features): 0
-
-Use these as patterns: for each feature, identify the exact grammatical evidence and apply the decision rule.
-Do NOT reuse these sentences when analyzing the new target utterance.
+Use these as patterns: for each feature, identify the exact grammatical evidence and apply the decision rule. Do NOT reuse these sentences when analyzing the new target utterance.
 """
+
 
 # ==================== UTILITIES ====================
 
@@ -2121,7 +1537,7 @@ def format_context_block(left_context, right_context) -> str:
     if left_context:
         sents = [s for s in left_context.split("\n") if s.strip()]
         for i, s in enumerate(sents):
-            label = i - len(sents)  # -5, -4, ..., -1
+            label = i - len(sents)
             lines.append(f"PREV [{label}]: {s}")
     if right_context:
         sents = [s for s in right_context.split("\n") if s.strip()]
@@ -2129,26 +1545,8 @@ def format_context_block(left_context, right_context) -> str:
             lines.append(f"NEXT [+{i}]: {s}")
     return "\n".join(lines)
 
-# ==================== PROMPT BUILDERS ====================
-#
-# SYSTEM / USER SPLIT RATIONALE
-# ─────────────────────────────
-# SYSTEM message (static, cacheable):
-#   - Persona and legitimacy framing
-#   - Annotation procedure (clause analysis, feature eval, etc.)
-#   - Evaluation constraints
-#   - The full feature rule block (3 000+ tokens — expensive to re-send)
-#   - ICL examples (when used — also static across sentences)
-#
-# USER message (per-sentence, cheap):
-#   - Optional context block (PREV/NEXT sentences)
-#   - Target utterance
-#   - Feature key list
-#   - Output format instructions (markdown or JSON)
-#
-# This split means the expensive rule block is sent once (or cached on Gemini/OpenAI),
-# and each per-sentence call only adds the small user turn.
 
+# ==================== PROMPT BUILDERS ====================
 
 def build_system_msg(
     instruction_type: str,
@@ -2156,15 +1554,12 @@ def build_system_msg(
     use_context: bool,
     base_feature_block: str,
     include_examples_in_block: bool,
-    is_thinking_model: bool = False,
 ) -> dict:
     """
     Build the full system message.
-    Includes: framing, procedure, constraints, feature rules, and (optionally) ICL examples.
-    All static content lives here so it can be cached.
+    Static content: framing, procedure, constraints, feature rules, ICL examples.
     """
 
-    # --- Framing ---
     if dialect_legitimacy:
         intro = (
             "You are a highly experienced sociolinguist and expert annotator of African American English (AAE).\n"
@@ -2185,7 +1580,6 @@ def build_system_msg(
             "to Standard American English (SAE) where relevant.\n\n"
         )
 
-    # --- Core procedure ---
     procedure = (
         "Your task is to make strictly binary decisions (1 = present, 0 = absent) about a fixed list of AAE "
         "morphosyntactic features for a single target utterance.\n\n"
@@ -2204,10 +1598,8 @@ def build_system_msg(
         "  - Does the mismatch fit the AAE pattern described in the rule?\n\n"
         "**3. MULTIPLE INTERPRETATIONS:**\n"
         "* If more than one grammatical analysis is genuinely possible, briefly acknowledge the strongest alternative\n"
-        "* **Default to 0 only when genuinely uncertain**: if the utterance does not provide enough grammatical "
-        "evidence to identify the construction, output 0. However, do not over-apply this caution — for "
-        "syntactically tight features (e.g., neg-inversion, zero-rel-pronoun, preterite-had), if the evidence "
-        "clearly fits the rule, mark 1 even if the feature is rare or unfamiliar.\n"
+        "* **Prefer precision over recall**: if the utterance does not provide enough grammatical evidence to "
+        "confidently apply the rule, output 0\n"
         "* Do NOT treat disfluencies or casual phrasing as ambiguity unless they obscure the relevant syntactic environment\n\n"
     )
 
@@ -2237,33 +1629,16 @@ def build_system_msg(
             "* Do NOT use context to invent missing words or infer events not stated\n\n"
         )
 
-    # --- Reasoning depth (CoT vs brief, adapted for thinking vs standard models) ---
     if "cot" in instruction_type:
-        if is_thinking_model:
-            # Thinking models (Gemini 3, GPT-o3/o4, QwQ, Phi-4-reasoning) already perform
-            # detailed step-by-step reasoning internally. Asking them to repeat it verbosely
-            # in the output wastes tokens and risks parse failures. Instead, ask for concise
-            # post-hoc justifications only for features marked as present.
-            cot_instruction = (
-                "### REASONING REQUIREMENT ###\n"
-                "This model reasons internally before generating output.\n"
-                "In your written response:\n"
-                "- For each feature you label 1 (PRESENT): quote the exact substring and state "
-                "the rule it satisfies in 1-2 sentences.\n"
-                "- For features you label 0 (ABSENT): no written explanation is needed unless "
-                "there is genuine ambiguity that a reader might question.\n"
-                "Keep written justifications brief — your internal reasoning already provides the detail.\n\n"
-            )
-        else:
-            cot_instruction = (
-                "### CHAIN-OF-THOUGHT REQUIREMENT ###\n"
-                "Provide DETAILED step-by-step reasoning for each feature:\n"
-                "1. Quote the exact substring from the sentence that is relevant\n"
-                "2. Explain the grammatical pattern you observe\n"
-                "3. State what SAE would require in this position\n"
-                "4. Explain why the AAE rule applies or doesn't apply\n\n"
-                "Your analysis should be thorough (5-10 sentences per feature that is present).\n\n"
-            )
+        cot_instruction = (
+            "### CHAIN-OF-THOUGHT REQUIREMENT ###\n"
+            "Provide DETAILED step-by-step reasoning for each feature:\n"
+            "1. Quote the exact substring from the sentence that is relevant\n"
+            "2. Explain the grammatical pattern you observe\n"
+            "3. State what SAE would require in this position\n"
+            "4. Explain why the AAE rule applies or doesn't apply\n\n"
+            "Your analysis should be thorough (5-10 sentences per feature that is present).\n\n"
+        )
     else:
         cot_instruction = (
             "### REASONING REQUIREMENT ###\n"
@@ -2271,19 +1646,16 @@ def build_system_msg(
             "Focus on the key grammatical evidence.\n\n"
         )
 
-    # --- Feature rules ---
     effective_include_examples = include_examples_in_block
     if instruction_type in ["zero_shot", "zero_shot_cot"]:
         effective_include_examples = False
     feature_rules = base_feature_block if effective_include_examples else strip_examples_from_block(base_feature_block)
 
-    # --- ICL examples (conditional on instruction type) ---
     icl_block = ""
     if instruction_type == "few_shot":
         icl_block = ICL_LABELS_ONLY_BLOCK
     elif instruction_type == "few_shot_cot":
         icl_block = ICL_COT_BLOCK
-    # zero_shot and zero_shot_cot get no ICL block
 
     content = "".join([
         intro,
@@ -2298,7 +1670,6 @@ def build_system_msg(
     return {"role": "system", "content": content}
 
 
-
 def build_user_msg(
     utterance: str,
     features: list,
@@ -2307,8 +1678,8 @@ def build_user_msg(
     context_block: str | None = None,
 ) -> str:
     """
-    Build the per-sentence user message content.
-    Kept deliberately small: context (optional) + utterance + feature list + output instructions.
+    Build the per-sentence user message.
+    Includes a format reminder at the end — helps smaller models stay on track.
     """
     feature_list_str = ", ".join(f'"{f}"' for f in features)
 
@@ -2337,7 +1708,6 @@ def build_user_msg(
             "Every feature in the list below must appear exactly once.\n"
         )
     else:
-        # JSON mode: reason first, then output JSON
         if "cot" in instruction_type:
             output_instructions = (
                 "### OUTPUT INSTRUCTIONS ###\n"
@@ -2366,6 +1736,12 @@ def build_user_msg(
                 "Every feature in the list below must appear exactly once in the JSON.\n"
             )
 
+    # Format reminder at end — recency bias helps smaller models stay on format
+    format_reminder = (
+        f"\nREMINDER: Your JSON (or Results list) must include ALL {len(features)} features exactly once "
+        f"with integer values 0 or 1 only. Features: [{feature_list_str}]"
+    )
+
     return (
         f"{context_section}"
         f"### TARGET UTTERANCE ###\n"
@@ -2373,7 +1749,9 @@ def build_user_msg(
         f"### FEATURES TO LABEL ###\n"
         f"[{feature_list_str}]\n\n"
         f"{output_instructions}"
+        f"{format_reminder}"
     )
+
 
 def build_messages(
     utterance: str,
@@ -2381,65 +1759,53 @@ def build_messages(
     base_feature_block: str,
     instruction_type: str,
     include_examples_in_block: bool,
-    output_format: str = "markdown",
+    output_format: str = "json",
     use_context: bool = False,
     left_context: str | None = None,
     right_context: str | None = None,
     context_mode: str = "single_turn",
     dialect_legitimacy: bool = False,
-    is_thinking_model: bool = False,
 ) -> tuple[list[dict], str]:
     """
     Assembles the full messages list for a single sentence.
-
-    Returns (messages, arm_used) where arm_used is "single_turn" or "wide".
-
-    Message structure:
-        [system_msg]                           — always present
-        [user_msg]                             — always present (context embedded)
+    Returns (messages, arm_used).
     """
-
     system_msg = build_system_msg(
         instruction_type=instruction_type,
         dialect_legitimacy=dialect_legitimacy,
         use_context=use_context,
         base_feature_block=base_feature_block,
         include_examples_in_block=include_examples_in_block,
-        is_thinking_model=is_thinking_model,
     )
 
-    # Resolve context
     context_block = None
     if use_context:
         cb = format_context_block(left_context, right_context)
         if cb.strip():
             context_block = cb
 
-    # Single-turn: context embedded in user message (single_turn or wide)
     user_content = build_user_msg(
         utterance=utterance,
         features=features,
         output_format=output_format,
         instruction_type=instruction_type,
-        context_block=context_block,  # ← Reminder included via build_user_msg
+        context_block=context_block,
     )
     user_msg = {"role": "user", "content": user_content}
     return [system_msg, user_msg], context_mode
+
 
 # ==================== USAGE SUMMARY ====================
 
 def print_final_usage_summary(tracker: TokenTracker):
     total_tokens = tracker.total_input_tokens + tracker.total_output_tokens
-    print(f"Total API Calls:     {tracker.api_call_count}")
-    print(f"Input Tokens:        {tracker.total_input_tokens}")
-    print(f"Output Tokens:       {tracker.total_output_tokens}")
-    print(f"Total Tokens:        {total_tokens}")
-    if tracker.total_cached_tokens > 0:
-        pct = 100 * tracker.total_cached_tokens / tracker.total_input_tokens if tracker.total_input_tokens else 0
-        print(f"Cached Tokens:       {tracker.total_cached_tokens} ({pct:.1f}% of input — billed at reduced rate)")
+    print(f"Total Inference Calls: {tracker.api_call_count}")
+    print(f"Input Tokens:          {tracker.total_input_tokens}")
+    print(f"Output Tokens:         {tracker.total_output_tokens}")
+    print(f"Total Tokens:          {total_tokens}")
+
 
 # ==================== MODEL QUERY ====================
-
 
 def query_model(
     backend: LLMBackend,
@@ -2449,7 +1815,7 @@ def query_model(
     base_feature_block: str,
     instruction_type: str,
     include_examples_in_block: bool,
-    output_format: str = "markdown",
+    output_format: str = "json",
     use_context: bool = False,
     left_context: str | None = None,
     right_context: str | None = None,
@@ -2460,16 +1826,9 @@ def query_model(
     dump_counter: int = 0,
     dump_first_n: int = 1,
     sentence_idx: int = 0,
-    max_retries: int = 15,
-    base_delay: int = 3,
+    max_retries: int = 3,
+    base_delay: int = 5,
 ) -> tuple[str | None, str]:
-
-    # Detect thinking backends so the system prompt uses condensed CoT instructions
-    # (they reason internally; verbose external CoT wastes tokens and risks parse failures)
-    is_thinking_model = isinstance(
-        backend,
-        (OpenAIReasoningBackend, Gemini3Backend, Qwen3ThinkingBackend, QwQBackend, PhiReasoningBackend)
-    )
 
     messages, arm_used = build_messages(
         utterance=sentence,
@@ -2483,129 +1842,52 @@ def query_model(
         right_context=right_context,
         context_mode=context_mode,
         dialect_legitimacy=dialect_legitimacy,
-        is_thinking_model=is_thinking_model,
     )
 
-    # Always keep full messages (including system) — backends handle system msg internally
-    full_messages_for_dump = messages
-
-    # Enhanced prompt dump with context verification
+    # Prompt dump
     should_dump = dump_prompt and (dump_first_n == 0 or dump_counter < dump_first_n)
-
     if should_dump:
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(f"PROMPT DUMP #{dump_counter + 1} (Sentence idx: {sentence_idx})")
-        print("="*80)
-
-        # Context verification section
-        print("\n📍 CONTEXT VERIFICATION:")
-        print(f"   use_context flag:     {use_context}")
-        print(f"   context_mode:         {context_mode}")
-        print(f"   arm_used:             {arm_used}")
-        print(f"   left_context:         {'Present' if left_context and str(left_context).strip() else 'None/Empty'}")
-        print(f"   right_context:        {'Present' if right_context and str(right_context).strip() else 'None/Empty'}")
-
-        if left_context and str(left_context).strip():
-            print(f"\n   LEFT (previous):  \"{str(left_context).strip()[:100]}{'...' if len(str(left_context).strip()) > 100 else ''}\"")
-        if right_context and str(right_context).strip():
-            print(f"   RIGHT (next):     \"{str(right_context).strip()[:100]}{'...' if len(str(right_context).strip()) > 100 else ''}\"")
-
+        print("=" * 80)
         print(f"\n   TARGET SENTENCE:  \"{sentence[:100]}{'...' if len(sentence) > 100 else ''}\"")
-
-        # Message structure (always show full messages including system)
-        print(f"\nMESSAGE STRUCTURE:")
-        print(f"   Total messages:       {len(full_messages_for_dump)}")
-        for i, msg in enumerate(full_messages_for_dump):
-            role = msg['role']
-            content_preview = msg['content'][:150].replace('\n', ' ')
-            print(f"   [{i}] {role:8s}:  {content_preview}...")
-
-        # Full JSON dump
-        print(f"\nFULL PROMPT JSON:")
-
-        # Get model name string (HF backends store it in model_id)
+        print(f"\n   use_context: {use_context} | context_mode: {context_mode} | arm: {arm_used}")
+        if left_context and str(left_context).strip():
+            print(f"   LEFT:  \"{str(left_context).strip()[:100]}\"")
+        if right_context and str(right_context).strip():
+            print(f"   RIGHT: \"{str(right_context).strip()[:100]}\"")
         model_name = getattr(backend, 'model_id', backend.model)
         if not isinstance(model_name, str):
-            model_name = backend.name  # Fallback to backend name
-
+            model_name = backend.name
         payload = {
             "backend": backend.name,
             "model": model_name,
             "sentence_idx": sentence_idx,
-            "context_info": {
-                "use_context": use_context,
-                "context_mode": context_mode,
-                "arm_used": arm_used,
-                "left_context": left_context,
-                "right_context": right_context,
-            },
-            "messages": full_messages_for_dump
+            "messages": messages,
         }
-        if isinstance(backend, GeminiBackend) and backend.cached_model_client is not None:
-            payload["note"] = "System message is cached on Gemini server (not sent per-request)"
         print(json.dumps(payload, indent=2, ensure_ascii=False))
-
-        print("\n" + "="*80)
-        print("END PROMPT DUMP")
-        print("="*80 + "\n")
-
-        # Write to file if path specified
+        print("=" * 80 + "\n")
         if dump_prompt_path:
-            # Append dump number to filename if dumping multiple
-            if dump_first_n != 1:
-                base, ext = os.path.splitext(dump_prompt_path)
-                output_path = f"{base}_{dump_counter + 1}{ext}"
-            else:
-                output_path = dump_prompt_path
-
+            base, ext = os.path.splitext(dump_prompt_path)
+            output_path = f"{base}_{dump_counter + 1}{ext}" if dump_first_n != 1 else dump_prompt_path
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2, ensure_ascii=False)
-            print(f"💾 Prompt saved to: {output_path}\n")
+            print(f"Prompt saved to: {output_path}\n")
 
-    # Count input tokens BEFORE calling API
     input_tokens = backend.count_tokens(messages)
-    
-    # Context length check
-    if "cot" in instruction_type:
-        estimated_output = 4500
-        context_limit = 32000
-    else:
-        estimated_output = 1000
-        context_limit = 32000
-    
-    total_tokens = input_tokens + estimated_output
-    
-    if total_tokens > context_limit:
-        print(f"WARNING: Estimated {total_tokens} tokens for sentence. "
-              f"May exceed model context limit ({context_limit}).")
 
-    # Retry loop with exponential backoff
     for attempt in range(max_retries):
         try:
-            # Make API call
             output_text = backend.call(messages, instruction_type=instruction_type)
-
-            # Use API-reported usage if available, otherwise local estimate
-            api_usage = getattr(backend, '_last_usage', None)
-            if api_usage:
-                input_tokens = api_usage['prompt_tokens']
-                output_tokens = api_usage['completion_tokens']
-            else:
-                output_tokens = backend.count_output_tokens(output_text)
+            output_tokens = backend.count_output_tokens(output_text)
 
             tracker.total_input_tokens += input_tokens
             tracker.total_output_tokens += output_tokens
             tracker.api_call_count += 1
 
-            # Track cached tokens from OpenAI response
-            cached = getattr(backend, '_last_cached_tokens', 0)
-            tracker.total_cached_tokens += cached
-
-            # Print summary
-            cache_info = f" | Cached: {cached}" if cached > 0 else ""
             print(
-                f"API Call #{tracker.api_call_count} | "
-                f"Input: {input_tokens} | Output: {output_tokens}{cache_info} | "
+                f"Call #{tracker.api_call_count} | "
+                f"Input: {input_tokens} | Output: {output_tokens} | "
                 f"Running total: {tracker.total_input_tokens + tracker.total_output_tokens}"
             )
 
@@ -2613,41 +1895,20 @@ def query_model(
 
         except Exception as e:
             msg = str(e).lower()
-            is_last_attempt = (attempt == max_retries - 1)
+            is_last = (attempt == max_retries - 1)
 
-            # Classify error type
-            if "429" in msg or "rate" in msg or "quota" in msg:
-                # Rate limit error - exponential backoff
-                wait_time = base_delay * (2 ** attempt)
-                print(f"Rate limit hit. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+            if "cuda out of memory" in msg or "oom" in msg:
+                print(f"OOM error on sentence {sentence_idx}. Cannot retry. Skipping.")
+                return None, arm_used
+
+            wait_time = base_delay * (2 ** attempt)
+            print(f"Error (attempt {attempt + 1}/{max_retries}): {str(e)[:150]}")
+            if not is_last:
+                print(f"Retrying in {wait_time}s...")
                 time.sleep(wait_time)
-
-            elif "timeout" in msg or "timed out" in msg:
-                # Timeout error - retry with backoff
-                wait_time = base_delay * (2 ** (attempt // 2))  # Slower backoff
-                print(f"Timeout error. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
-                time.sleep(wait_time)
-
-            elif "503" in msg or "500" in msg or "502" in msg:
-                # Server error - retry with moderate backoff
-                wait_time = base_delay * (1.5 ** attempt)
-                print(f"Server error ({msg[:50]}). Retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries})")
-                time.sleep(wait_time)
-
             else:
-                # Unknown error - don't retry unless it's not the last attempt
-                print(f"Error on sentence: {sentence[:40]}...")
-                print(f"Error type: {type(e).__name__}")
-                print(f"Error message: {str(e)[:200]}")
+                return None, arm_used
 
-                if not is_last_attempt:
-                    wait_time = base_delay
-                    print(f"Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
-                    time.sleep(wait_time)
-                else:
-                    return None, arm_used
-
-    print(f"Failed after {max_retries} retries. Skipping sentence.")
     return None, arm_used
 
 
@@ -2657,63 +1918,39 @@ def main():
     print(f"DEBUG: torch.cuda.is_available() = {torch.cuda.is_available()}")
     print(f"DEBUG: torch.version.cuda        = {torch.version.cuda}")
 
-    parser = argparse.ArgumentParser(description="Run LLM experiments for AAE feature annotation.")
+    parser = argparse.ArgumentParser(
+        description="AAE feature annotation — open-source HuggingFace models only."
+    )
     parser.add_argument("--file",             type=str, required=True,  help="Input Excel file path")
-    parser.add_argument("--gold",             type=str, default=None,
-                        help="Gold labels CSV/Excel file (provides sentences). "
-                             "If omitted, reads 'Gold' sheet from --file.")
-    parser.add_argument("--sheet",            type=str, required=True,  help="Sheet name for predictions")
+    parser.add_argument("--gold",             type=str, default=None,   help="Gold labels CSV/Excel file")
+    parser.add_argument("--sheet",            type=str, required=True,  help="Sheet name for predictions output")
     parser.add_argument("--extended",         action="store_true",      help="Use extended 27-feature set")
     parser.add_argument("--context",          action="store_true",      help="Include prev/next sentence context")
     parser.add_argument("--instruction_type", type=str, default="zero_shot",
-                        choices=["zero_shot", "few_shot", "zero_shot_cot", "few_shot_cot"],
-                        help="Instruction style: zero_shot (brief reasoning), few_shot (brief + examples), "
-                             "zero_shot_cot (detailed reasoning), few_shot_cot (detailed + examples)")
-    parser.add_argument("--block_examples",   action="store_true",
-                        help="Keep example lines in feature block (non-zero-shot only)")
-    parser.add_argument("--dialect_legitimacy", action="store_true",
-                        help="Frame AAE as rule-governed and legitimate")
+                        choices=["zero_shot", "few_shot", "zero_shot_cot", "few_shot_cot"])
+    parser.add_argument("--block_examples",   action="store_true",      help="Keep examples in feature block")
+    parser.add_argument("--dialect_legitimacy", action="store_true",    help="Frame AAE as rule-governed")
     parser.add_argument("--output_dir",       type=str, required=True,  help="Output directory")
-    parser.add_argument("--dump_prompt",      action="store_true",      help="Print prompt (with context details)")
-    parser.add_argument("--dump_prompt_path", type=str, default=None,   help="Write prompt JSON to this path")
-    parser.add_argument("--dump_first_n",     type=int, default=1,      help="Dump first N prompts (default: 1, use 0 for all)")
+    parser.add_argument("--dump_prompt",      action="store_true",      help="Print prompt to stdout")
+    parser.add_argument("--dump_prompt_path", type=str, default=None,   help="Write prompt JSON to path")
+    parser.add_argument("--dump_first_n",     type=int, default=1,      help="Dump first N prompts (0=all)")
     parser.add_argument("--context_mode",     type=str, default="single_turn",
                         choices=["single_turn", "wide"])
-    parser.add_argument("--backend",          type=str, default="openai",
-                        choices=["openai", "openai_reasoning", "gemini", "gemini3",
-                                 "phi", "phi_reasoning", "llama",
+    parser.add_argument("--backend",          type=str, default="phi",
+                        choices=["phi", "phi_reasoning", "llama",
                                  "qwen", "qwen3", "qwen3_thinking", "qwq"])
-    parser.add_argument("--model",            type=str, default="gpt-5.2-chat-latest",
-                        help="Model identifier (e.g. gpt-5.2-chat-latest, gpt-5.2, gemini-2.5-flash, "
-                             "microsoft/Phi-4-reasoning, meta-llama/Llama-3.1-70B-Instruct, Qwen/Qwen3-32B)")
-    parser.add_argument("--reasoning_effort", type=str, default="medium",
-                        choices=["low", "medium", "high", "xhigh"],
-                        help="Reasoning effort for OpenAI reasoning models (default: medium)")
-    parser.add_argument("--thinking_level",  type=str, default="high",
-                        choices=["minimal", "low", "medium", "high"],
-                        help="Thinking level for Gemini 3 models: 'minimal' (Flash default, lowest thinking), "
-                             "'low', 'medium', 'high' (deep, default for Pro). "
-                             "Cannot be fully disabled on Gemini 3 models.")
-    parser.add_argument("--output_format",    type=str, default="markdown",
+    parser.add_argument("--model",            type=str, default="microsoft/phi-4",
+                        help="HuggingFace model ID (e.g. microsoft/phi-4, Qwen/Qwen3-32B)")
+    # Default output_format is json — more reliable for open-source models
+    parser.add_argument("--output_format",    type=str, default="json",
                         choices=["json", "markdown"],
-                        help="'markdown' (Analysis + Results list) or 'json' (Analysis + JSON labels)")
-    parser.add_argument("--rate_limit_delay", type=float, default=5.0,
-                        help="Delay in seconds between API calls (0 for none)")
-
+                        help="Output format: 'json' (recommended for open-source) or 'markdown'")
 
     args = parser.parse_args()
     tracker = TokenTracker()
 
-    # -------------------- BACKEND INIT (single block) --------------------
-    if args.backend == "openai":
-        backend = OpenAIBackend(model=args.model)
-    elif args.backend == "openai_reasoning":
-        backend = OpenAIReasoningBackend(model=args.model, reasoning_effort=args.reasoning_effort)
-    elif args.backend == "gemini":
-        backend = GeminiBackend(model=args.model)
-    elif args.backend == "gemini3":
-        backend = Gemini3Backend(model=args.model, thinking_level=args.thinking_level)
-    elif args.backend == "phi":
+    # -------------------- BACKEND INIT --------------------
+    if args.backend == "phi":
         backend = PhiBackend(model=args.model)
     elif args.backend == "phi_reasoning":
         backend = PhiReasoningBackend(model=args.model)
@@ -2735,10 +1972,10 @@ def main():
     outdir = os.path.join(args.output_dir, file_title)
     os.makedirs(outdir, exist_ok=True)
 
-    metapath  = os.path.join(outdir, args.sheet + "_meta.csv")
+    metapath   = os.path.join(outdir, args.sheet + "_meta.csv")
     preds_path = os.path.join(outdir, args.sheet + "_predictions.csv")
     rats_path  = os.path.join(outdir, args.sheet + "_rationales.csv")
-    conf_path  = os.path.join(outdir, args.sheet + "_confidences.csv")  # ← New file
+    conf_path  = os.path.join(outdir, args.sheet + "_confidences.csv")
 
     if not os.path.exists(metapath):
         with open(metapath, "w", newline="", encoding="utf-8") as f:
@@ -2759,170 +1996,84 @@ def main():
                 parse_status, missing_count, missing_keys,
             ])
 
-
     # -------------------- LOAD DATA --------------------
-    # Load gold / sentence data
     if args.gold:
-        # Load sentences from separate gold file (CSV or Excel)
         gold_path = args.gold
         print(f"Loading sentences from gold file: {gold_path}")
-        if gold_path.endswith('.csv'):
-            golddf = pd.read_csv(gold_path)
-        else:
-            golddf = pd.read_excel(gold_path)
+        golddf = pd.read_csv(gold_path) if gold_path.endswith('.csv') else pd.read_excel(gold_path)
     else:
-        # Fallback: read Gold sheet from --file Excel
         sheets = pd.read_excel(args.file, sheet_name=None)
         if "Gold" not in sheets:
             raise ValueError(f"Excel file must contain a 'Gold' sheet (or use --gold). Found: {list(sheets.keys())}")
         golddf = sheets["Gold"]
 
-    # Validate column exists
     if "sentence" not in golddf.columns:
         raise ValueError(f"Gold data must have 'sentence' column. Found: {list(golddf.columns)}")
 
     golddf = golddf.dropna(subset=["sentence"]).reset_index(drop=True)
 
-    # Warn if context is requested but no ordering info
     if args.context and "idx" not in golddf.columns:
         print("WARNING: Context requested but no 'idx' column found. Assuming row order = discourse order.")
 
     eval_sentences = golddf["sentence"].dropna().tolist()
     print(f"Sentences to evaluate: {len(eval_sentences)}")
 
-    CURRENT_FEATURES  = EXTENDED_FEATURES if args.extended else MASIS_FEATURES
+    CURRENT_FEATURES   = EXTENDED_FEATURES if args.extended else MASIS_FEATURES
     BASE_FEATURE_BLOCK = NEW_FEATURE_BLOCK if args.extended else MASIS_FEATURE_BLOCK
     include_examples_in_block = args.block_examples
 
     # -------------------- RESUME SUPPORT --------------------
     def get_resume_idxs(preds_path, eval_sentences):
-        """
-        Strict resume logic with data corruption detection.
-        Returns set of already-completed indices.
-        """
         if not os.path.exists(preds_path):
             return set()
-
         try:
             existing_df = pd.read_csv(preds_path)
-
             if len(existing_df) == 0:
-                print("INFO: Existing predictions file is empty. Starting fresh.")
                 return set()
-
-            # STRATEGY 1: Use 'idx' column if available (preferred)
             if "idx" in existing_df.columns:
-                # Check last row completeness
                 last_row = existing_df.iloc[-1]
-                missing_in_last = last_row.isna().sum()
-                missing_pct = missing_in_last / len(CURRENT_FEATURES)
-
-                if missing_pct > 0.1:  # >10% missing
-                    print(f"WARNING: Last row (idx {last_row.get('idx', '?')}) has {missing_pct:.1%} missing features.")
-                    print(f"         This suggests the last annotation was interrupted.")
-                    print(f"         Re-processing idx {last_row.get('idx', '?')} only.")
-                    return set(existing_df['idx'].tolist()[:-1])  # Exclude last row
-
-                completed_idxs = set(existing_df['idx'].tolist())
-                print(f"INFO: Resume from predictions file. {len(completed_idxs)} sentences already completed.")
-
-                # Validation: check for gaps or duplicates
-                if len(completed_idxs) != len(existing_df):
-                    duplicates = len(existing_df) - len(completed_idxs)
-                    print(f"WARNING: Found {duplicates} duplicate idx values in predictions file.")
-
-                max_idx = max(completed_idxs) if completed_idxs else -1
-                expected_count = max_idx + 1
-                if len(completed_idxs) != expected_count:
-                    missing_count = expected_count - len(completed_idxs)
-                    print(f"WARNING: {missing_count} missing idx values detected (gaps in sequence 0-{max_idx}).")
-                    print(f"         This may indicate data corruption. Review predictions file manually.")
-
-                return completed_idxs
-
-            # STRATEGY 2: Fallback to sentence matching (less reliable)
+                missing_pct = last_row.isna().sum() / len(CURRENT_FEATURES)
+                if missing_pct > 0.1:
+                    print(f"WARNING: Last row incomplete ({missing_pct:.1%} missing). Re-processing.")
+                    return set(existing_df['idx'].tolist()[:-1])
+                completed = set(existing_df['idx'].tolist())
+                print(f"INFO: Resume: {len(completed)} sentences already done.")
+                return completed
             if "sentence" in existing_df.columns:
-                print("WARNING: No 'idx' column found. Using sentence-based resume (less reliable).")
                 num_rows = len(existing_df)
-
-                # Verify alignment with current data
                 if num_rows > len(eval_sentences):
-                    print(f"ERROR: Predictions file has {num_rows} rows but input only has {len(eval_sentences)} sentences.")
-                    print(f"       Data mismatch detected. Please verify input file hasn't changed.")
-                    return set()  # Safer to restart
-
-                # Check last sentence matches
-                last_csv_sentence = str(existing_df.iloc[-1]["sentence"]).strip().lower()
-                expected_sentence = str(eval_sentences[num_rows - 1]).strip().lower()
-
-                if last_csv_sentence == expected_sentence:
-                    print(f"INFO: Resume verified. Resuming from row {num_rows}.")
-                    return set(range(num_rows))
-                else:
-                    print("ERROR: Sentence mismatch detected between predictions file and input data.")
-                    print(f"       CSV row {num_rows-1}: '{last_csv_sentence[:50]}...'")
-                    print(f"       Input sentence {num_rows-1}: '{expected_sentence[:50]}...'")
-                    print(f"       Input file may have changed. Starting fresh to avoid corruption.")
                     return set()
-
-            print("WARNING: Predictions file has neither 'idx' nor 'sentence' columns. Starting fresh.")
-            return set()
-
-        except pd.errors.EmptyDataError:
-            print("INFO: Predictions file exists but is empty. Starting fresh.")
+                print(f"INFO: Resuming from row {num_rows} (sentence-match).")
+                return set(range(num_rows))
             return set()
         except Exception as e:
-            print(f"ERROR: Resume check failed: {e}")
-            print(f"       Starting fresh to avoid data corruption.")
+            print(f"ERROR: Resume check failed: {e}. Starting fresh.")
             return set()
 
     existing_done_idxs = get_resume_idxs(preds_path, eval_sentences)
 
     preds_header = ["idx", "sentence"] + CURRENT_FEATURES
     rats_header  = ["idx", "sentence"] + CURRENT_FEATURES
-    conf_header = ["idx", "sentence"] + CURRENT_FEATURES
+    conf_header  = ["idx", "sentence"] + CURRENT_FEATURES
+
     if not os.path.exists(preds_path):
         with open(preds_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(preds_header)
     if not os.path.exists(rats_path):
         with open(rats_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(rats_header)
-    # Create confidence CSV header
     if not os.path.exists(conf_path):
         with open(conf_path, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(conf_header)
-    # -------------------- GEMINI CACHING --------------------
-    if args.backend == "gemini":
-        print("Initializing Gemini cache...")
-        cache_start = time.time()
-        dummy_msgs, _ = build_messages(
-            utterance="DUMMY",
-            features=CURRENT_FEATURES,
-            base_feature_block=BASE_FEATURE_BLOCK,
-            instruction_type=args.instruction_type,
-            include_examples_in_block=include_examples_in_block,
-            output_format=args.output_format,
-            dialect_legitimacy=args.dialect_legitimacy,
 
-        )
-        system_content = next(
-            (m["content"] for m in dummy_msgs if m["role"] == "system"), None
-        )
-        if system_content:
-            backend.create_cache(system_content, args.model)
-        else:
-            print("Warning: could not extract system content for caching.")
-        
-        cache_end = time.time()
-        print(f"Cache created in {cache_end - cache_start:.1f}s")
     # -------------------- COUNTERS --------------------
-    usable_ctx_count       = 0
-    used_wide_count        = 0
-    used_single_turn_count = 0
-    dump_counter = 0  # Track number of prompts dumped
+    usable_ctx_count = 0
+    dump_counter = 0
 
     start_time = time.time()
     print(f"\nStart: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+    print(f"Backend: {args.backend} | Model: {args.model}")
+    print(f"Output format: {args.output_format} | Instruction: {args.instruction_type}")
 
     # ==================== MAIN LOOP ====================
     for idx, sentence in enumerate(tqdm(eval_sentences, desc="Annotating")):
@@ -2963,7 +2114,6 @@ def main():
             right_context=right,
             context_mode=args.context_mode,
             dialect_legitimacy=args.dialect_legitimacy,
-
             dump_prompt=args.dump_prompt,
             dump_prompt_path=args.dump_prompt_path,
             dump_counter=dump_counter,
@@ -2971,53 +2121,40 @@ def main():
             sentence_idx=idx,
         )
 
-        # Increment dump counter if we dumped this prompt
         if args.dump_prompt and (args.dump_first_n == 0 or dump_counter < args.dump_first_n):
             dump_counter += 1
 
-        # API rate-limit courtesy sleep (local models don't need this)
-        if args.backend in ("openai", "openai_reasoning", "gemini", "gemini3") and args.rate_limit_delay > 0:
-            time.sleep(args.rate_limit_delay)
-
-        if arm_used == "wide":
-            used_wide_count += 1
-        elif arm_used == "single_turn":
-            used_single_turn_count += 1
-
-        # Print raw model output to log
-        print(f"\n{'─'*60}")
+        print(f"\n{'─' * 60}")
         print(f"IDX {idx} | {sentence[:80]}...")
-        print(f"{'─'*60}")
+        print(f"{'─' * 60}")
         print(raw if raw else "(EMPTY RESPONSE)")
-        print(f"{'─'*60}\n")
+        print(f"{'─' * 60}\n")
 
         if not raw:
-            writemeta(idx, sentence, usable, arm_used, context_included,
-                      "EMPTYRESPONSE", "", "")
+            writemeta(idx, sentence, usable, arm_used, context_included, "EMPTYRESPONSE", "", "")
             continue
+
         try:
             vals, rats, missing = parse_output(raw, CURRENT_FEATURES, output_format=args.output_format)
             parse_status  = "OK"
             missing_count = len(missing)
             missing_keys  = ",".join(missing)
-            
-            # Extract confidence scores (OpenAI only)
-            confidences = extract_feature_confidences(backend, CURRENT_FEATURES, vals)
+            confidences   = extract_feature_confidences(backend, CURRENT_FEATURES, vals)
 
         except Exception as exc:
             print(f"Parse error at idx {idx}: {exc}")
             parse_status  = "PARSEFAIL"
             missing_count = ""
             missing_keys  = ""
-            vals = {f: None for f in CURRENT_FEATURES}
-            rats = {f: ""   for f in CURRENT_FEATURES}
-            confidences = {}
+            vals          = {f: None for f in CURRENT_FEATURES}
+            rats          = {f: ""   for f in CURRENT_FEATURES}
+            confidences   = {}
 
         if isinstance(missing_count, int) and missing_count > 5:
-            print(f"WARNING: {missing_count} missing features at idx {idx}")
-        
+            print(f"WARNING: {missing_count} missing features at idx {idx}: {missing_keys}")
+
         writemeta(idx, sentence, usable, arm_used, context_included,
-                parse_status, missing_count, missing_keys)
+                  parse_status, missing_count, missing_keys)
 
         with open(preds_path, "a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(
@@ -3036,15 +2173,17 @@ def main():
             csv.writer(f, quoting=csv.QUOTE_ALL).writerow(
                 [idx, sentence] + clean_rats
             )
-        
-        # Save confidence scores (OpenAI only)
+
         if confidences:
             with open(conf_path, "a", newline="", encoding="utf-8") as f:
                 csv.writer(f).writerow(
                     [idx, sentence] + [confidences.get(feat, "") for feat in CURRENT_FEATURES]
                 )
+
     # -------------------- FINAL SUMMARY --------------------
-    print_final_usage_summary(tracker) 
+    print_final_usage_summary(tracker)
+    if args.context:
+        print(f"Sentences with usable context: {usable_ctx_count} / {len(eval_sentences)}")
 
     end_time = time.time()
     print(f"End:     {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")

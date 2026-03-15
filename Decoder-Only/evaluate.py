@@ -2768,12 +2768,16 @@ def main():
         all_model_kappas = pd.concat(model_kappa_collector, ignore_index=True) if model_kappa_collector else pd.DataFrame()
         write_irr_model_comparison(human_kappas, all_model_kappas, output_dir)
         _dissertation_fig1_irr(human_kappas, all_model_kappas, output_dir)
+        _dissertation_fig1b_annotator_disagreement(human_kappas, output_dir)
 
     # 6. Overall feature F1 across all models
     _dissertation_fig2_overall_feature_f1(output_dir)
 
     # 7. Cross-model regression (all model families pooled)
     _dissertation_fig4_cross_model_regression(output_dir)
+
+    # 8. Print cross-model error summary for manual error analysis
+    _print_cross_model_error_summary(output_dir)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2782,106 +2786,149 @@ def main():
 
 def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.DataFrame, out_dir: str):
     """
-    Figure 1 – Two-panel IRR comparison.
-    Left:  human raters as bars with annotated kappa values.
-    Right: model families as box plots (distribution across features × configs),
-           with the human kappa range shaded as a reference band.
+    Figure 1 – Unified box plot: human raters and LLM model families on the same axes.
+    Human raters: distribution of κ across 25 AAE features (per-feature kappa).
+    Model families: distribution of κ across 25 features × all prompt configs.
+    Both sorted by mean κ descending; humans visually distinguished by dashed box border.
+
+    Note on κ near 0: for rare features where both gold and model produce nearly all-zero
+    vectors, Cohen's kappa can be 0 or very low (agreement at chance level). These are
+    real, valid data points — not computational errors. NaN kappas (undefined, e.g. when
+    one vector is all-constant) are excluded via dropna() before plotting.
     """
     if human_kappas.empty and all_model_kappas.empty:
         return
 
-    has_models = not all_model_kappas.empty and "base_model" in all_model_kappas.columns
-    n_models = all_model_kappas["base_model"].nunique() if has_models else 1
+    # ── Build combined long-form table ────────────────────────────────────────
+    records = []
+    human_labels: set = set()
 
-    fig, (ax_h, ax_m) = plt.subplots(
-        1, 2,
-        figsize=(5 + n_models * 1.6, 7),
-        gridspec_kw={"width_ratios": [1, max(1, n_models * 0.8)]},
-    )
+    if not human_kappas.empty and "feature" in human_kappas.columns:
+        for _, row in human_kappas.iterrows():
+            records.append({
+                "label": row["entity"],
+                "entity_type": "human",
+                "cohens_kappa": row["cohens_kappa"],
+            })
+        human_labels = set(human_kappas["entity"].unique())
 
-    # ── LEFT: Human raters ────────────────────────────────────────────────────
-    h_order = (
-        human_kappas.groupby("entity")["cohens_kappa"]
+    if not all_model_kappas.empty and "base_model" in all_model_kappas.columns:
+        for _, row in all_model_kappas.iterrows():
+            records.append({
+                "label": row["base_model"],
+                "entity_type": "model",
+                "cohens_kappa": row["cohens_kappa"],
+            })
+
+    if not records:
+        return
+
+    combined = pd.DataFrame(records)
+
+    # ── Diagnostics: print κ≈0 cases so advisor can verify ───────────────────
+    near_zero = combined[combined["cohens_kappa"].notna() & (combined["cohens_kappa"] < 0.05)]
+    if not near_zero.empty:
+        print("\n[FIG1] κ < 0.05 cases (near-zero agreement, NOT computational errors):")
+        print(near_zero.groupby("label").size().rename("n_cases").to_string())
+        print("  These occur on rare/hard features where model agreement with humans")
+        print("  is at chance level for that feature × config combination.")
+
+    # ── Sort all entities by mean κ descending ────────────────────────────────
+    order = (
+        combined.groupby("label")["cohens_kappa"]
         .mean()
         .sort_values(ascending=False)
+        .index.tolist()
     )
+
+    # ── Color maps ────────────────────────────────────────────────────────────
     h_colors = {"Gold": "#c0392b", "Razan": "#e67e22", "Tilly": "#8e44ad"}
-    fallback = ["#c0392b", "#e67e22", "#8e44ad"]
+    h_fallback = ["#c0392b", "#e67e22", "#8e44ad"]
+    m_palette  = ["#1a5276", "#6c3483", "#1e8449", "#117a65",
+                  "#7d6608", "#884ea0", "#922b21", "#1abc9c", "#2c3e50"]
+    model_labels = [l for l in order if l not in human_labels]
+    m_color_map  = {m: m_palette[i % len(m_palette)] for i, m in enumerate(model_labels)}
 
-    for i, (rater, mean_k) in enumerate(h_order.items()):
-        sem_k = human_kappas[human_kappas["entity"] == rater]["cohens_kappa"].sem()
-        color = h_colors.get(rater, fallback[i % len(fallback)])
-        ax_h.bar(i, mean_k, yerr=sem_k, color=color, width=0.5,
-                 capsize=7, alpha=0.85, edgecolor="white", linewidth=1.5)
-        ax_h.text(i, mean_k + (sem_k or 0) + 0.025,
-                  f"κ = {mean_k:.2f}",
-                  ha="center", va="bottom", fontsize=13, fontweight="bold", color=color)
+    n_entities = len(order)
+    fig, ax = plt.subplots(figsize=(max(10, n_entities * 1.5), 7))
 
-    ax_h.set_xticks(range(len(h_order)))
-    ax_h.set_xticklabels(h_order.index, fontsize=13)
-    ax_h.set_ylabel("Mean Cohen's κ vs. Average Human Annotation", fontsize=12)
-    ax_h.set_ylim(0, 1.08)
-    ax_h.set_title("Human Annotators", fontsize=14, fontweight="bold", pad=10)
-    ax_h.spines[["top", "right"]].set_visible(False)
-    ax_h.yaxis.grid(True, alpha=0.3, linestyle="--")
-    ax_h.set_axisbelow(True)
+    # ── Human range reference band ────────────────────────────────────────────
+    if human_labels:
+        human_means = combined[combined["label"].isin(human_labels)].groupby("label")["cohens_kappa"].mean()
+        h_min = float(human_means.min())
+        h_max = float(human_means.max())
+        h_avg = float(human_means.mean())
+        ax.axhspan(h_min, h_max, alpha=0.08, color="#7f8c8d",
+                   label=f"Human range  ({h_min:.2f} – {h_max:.2f})")
+        ax.axhline(h_avg, ls="--", color="#7f8c8d", lw=1.4, alpha=0.7,
+                   label=f"Human mean  κ = {h_avg:.2f}")
 
-    h_min, h_max = float(h_order.min()), float(h_order.max())
-    h_avg = float(h_order.mean())
+    # ── Draw box plots ────────────────────────────────────────────────────────
+    h_idx = 0
+    for i, label in enumerate(order):
+        data = combined[combined["label"] == label]["cohens_kappa"].dropna()
+        if data.empty:
+            continue
+        is_human = label in human_labels
+        if is_human:
+            color = h_colors.get(label, h_fallback[h_idx % len(h_fallback)])
+            h_idx += 1
+            box_lw, box_ls = 2.5, "--"
+        else:
+            color = m_color_map.get(label, m_palette[0])
+            box_lw, box_ls = 1.2, "-"
 
-    # ── RIGHT: Model families ─────────────────────────────────────────────────
-    if has_models:
-        model_order = (
-            all_model_kappas.groupby("base_model")["cohens_kappa"]
-            .mean()
-            .sort_values(ascending=False)
-            .index.tolist()
+        ax.boxplot(
+            data, positions=[i], widths=0.45, patch_artist=True,
+            medianprops=dict(color="white", lw=2.5),
+            boxprops=dict(facecolor=color, alpha=0.78,
+                          linestyle=box_ls, linewidth=box_lw),
+            whiskerprops=dict(color=color, lw=1.5),
+            capprops=dict(color=color, lw=1.8),
+            flierprops=dict(marker="o", markerfacecolor=color,
+                            alpha=0.35, markersize=3, linestyle="none"),
         )
-        m_colors = ["#1a5276", "#6c3483", "#1e8449", "#117a65", "#7d6608", "#884ea0", "#922b21"]
+        mean_k = float(data.mean())
+        ax.plot(i, mean_k, marker="D", color="white",
+                markeredgecolor=color, markeredgewidth=1.5, markersize=7, zorder=5)
+        ax.text(i, float(data.max()) + 0.03,
+                f"μ = {mean_k:.2f}",
+                ha="center", va="bottom", fontsize=9,
+                color=color, fontweight="bold")
 
-        # Shade human range as background reference
-        ax_m.axhspan(h_min, h_max, alpha=0.10, color="#7f8c8d",
-                     label=f"Human range  ({h_min:.2f} – {h_max:.2f})")
-        ax_m.axhline(h_avg, ls="--", color="#7f8c8d", lw=1.4, alpha=0.7,
-                     label=f"Human mean  κ = {h_avg:.2f}")
+    # ── Vertical separator between humans and models ──────────────────────────
+    human_pos = [i for i, l in enumerate(order) if l in human_labels]
+    model_pos  = [i for i, l in enumerate(order) if l not in human_labels]
+    if human_pos and model_pos:
+        sep = (max(human_pos) + min(model_pos)) / 2
+        ax.axvline(sep, color="black", lw=1, ls=":", alpha=0.45)
 
-        for i, model in enumerate(model_order):
-            data = (
-                all_model_kappas[all_model_kappas["base_model"] == model]["cohens_kappa"]
-                .dropna()
-            )
-            if data.empty:
-                continue
-            color = m_colors[i % len(m_colors)]
-            bp = ax_m.boxplot(
-                data, positions=[i], widths=0.45, patch_artist=True,
-                medianprops=dict(color="white", lw=2.5),
-                boxprops=dict(facecolor=color, alpha=0.75),
-                whiskerprops=dict(color=color, lw=1.5),
-                capprops=dict(color=color, lw=1.5),
-                flierprops=dict(marker="o", markerfacecolor=color,
-                                alpha=0.35, markersize=3, linestyle="none"),
-            )
-            mean_k = data.mean()
-            ax_m.plot(i, mean_k, marker="D", color="white",
-                      markeredgecolor=color, markeredgewidth=1.5, markersize=7, zorder=5)
-            ax_m.text(i, data.max() + 0.025,
-                      f"μ = {mean_k:.2f}",
-                      ha="center", va="bottom", fontsize=10,
-                      color=color, fontweight="bold")
+    # ── Axes formatting ───────────────────────────────────────────────────────
+    ax.set_xticks(range(n_entities))
+    ax.set_xticklabels(order, fontsize=11, rotation=22, ha="right")
+    ax.set_ylim(-0.15, 1.15)
+    ax.set_ylabel("Cohen's κ vs. Average Human Annotation", fontsize=12)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.yaxis.grid(True, alpha=0.3, linestyle="--")
+    ax.set_axisbelow(True)
 
-        ax_m.set_xticks(range(len(model_order)))
-        ax_m.set_xticklabels(model_order, fontsize=12, rotation=20, ha="right")
-        ax_m.set_ylim(0, 1.08)
-        ax_m.set_title("LLM Model Families", fontsize=14, fontweight="bold", pad=10)
-        ax_m.set_ylabel("Cohen's κ per feature × config", fontsize=12)
-        ax_m.spines[["top", "right"]].set_visible(False)
-        ax_m.yaxis.grid(True, alpha=0.3, linestyle="--")
-        ax_m.set_axisbelow(True)
-        ax_m.legend(fontsize=10, loc="lower right", framealpha=0.9)
-    else:
-        ax_m.text(0.5, 0.5, "No model data available",
-                  ha="center", va="center", transform=ax_m.transAxes, fontsize=12)
+    # Custom legend: include human-box style marker
+    import matplotlib.patches as _mp2
+    import matplotlib.lines as _ml
+    legend_handles = []
+    if human_labels:
+        legend_handles += [
+            ax.axhspan(0, 0, alpha=0.08, color="#7f8c8d",
+                       label=f"Human range  ({h_min:.2f} – {h_max:.2f})"),
+            _ml.Line2D([0], [0], color="#7f8c8d", lw=1.4, ls="--",
+                       label=f"Human mean  κ = {h_avg:.2f}"),
+            _mp2.Patch(facecolor="gray", edgecolor="black", linewidth=2,
+                       linestyle="--", alpha=0.78, label="Human rater (box = across features)"),
+            _mp2.Patch(facecolor="gray", edgecolor="black", linewidth=1.2,
+                       linestyle="-", alpha=0.78, label="LLM model (box = features × configs)"),
+        ]
+    ax.legend(handles=legend_handles, fontsize=9, loc="lower left",
+              framealpha=0.9, ncol=2)
 
     fig.suptitle(
         "Inter-Annotator Agreement: Human Raters vs. LLM Models\n"
@@ -2892,7 +2939,59 @@ def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.Data
     plt.tight_layout()
     out = os.path.join(out_dir, "fig1_irr_human_vs_model.png")
     plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close()
     print(f"[FIG1] Saved {out}")
+
+
+def _dissertation_fig1b_annotator_disagreement(human_kappas: pd.DataFrame, out_dir: str):
+    """
+    Figure 1b – Per-feature annotator agreement heatmap.
+    Shows Cohen's κ vs average human annotation for each rater × feature,
+    sorted so the most-disagreed-upon features appear at the top.
+    """
+    if human_kappas.empty or "feature" not in human_kappas.columns:
+        print("[FIG1b] No per-feature human kappa data — skipping.")
+        return
+
+    pivot = human_kappas.pivot_table(
+        index="feature", columns="entity", values="cohens_kappa"
+    )
+    # Sort ascending by mean kappa: most disagreement at top
+    pivot = pivot.loc[pivot.mean(axis=1).sort_values().index]
+
+    n_features = len(pivot)
+    n_raters   = len(pivot.columns)
+    fig, ax = plt.subplots(figsize=(max(5, n_raters * 1.8), max(5, n_features * 0.38)))
+
+    im = ax.imshow(pivot.values, aspect="auto", cmap="RdYlGn", vmin=-0.2, vmax=1.0)
+
+    ax.set_xticks(range(n_raters))
+    ax.set_xticklabels(pivot.columns, fontsize=12)
+    ax.set_yticks(range(n_features))
+    ax.set_yticklabels(pivot.index, fontsize=9)
+
+    for i in range(n_features):
+        for j in range(n_raters):
+            val = pivot.values[i, j]
+            if not np.isnan(val):
+                text_color = "white" if val < 0.2 or val > 0.85 else "black"
+                ax.text(j, i, f"{val:.2f}", ha="center", va="center",
+                        fontsize=9, color=text_color, fontweight="bold")
+
+    plt.colorbar(im, ax=ax, label="Cohen's κ", shrink=0.7, pad=0.02)
+    ax.set_title(
+        "Per-Feature Annotator Agreement\n"
+        "(Cohen's κ vs. average human annotation — sorted by disagreement)",
+        fontsize=13, pad=10,
+    )
+    ax.set_xlabel("Annotator", fontsize=11)
+    ax.set_ylabel("AAE Feature", fontsize=11)
+
+    plt.tight_layout()
+    out = os.path.join(out_dir, "fig1b_annotator_disagreement_by_feature.png")
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[FIG1b] Saved annotator disagreement heatmap → {out}")
 
 
 def _dissertation_fig2_feature_f1(mean_f1: pd.DataFrame, out_dir: str, model_label: str):
@@ -3110,7 +3209,7 @@ def _dissertation_fig2_overall_feature_f1(results_root: str):
 
     agg = (
         all_f1.groupby("feature")["mean_f1"]
-        .agg(mean="mean", std="std", n="count")
+        .agg(mean="mean", std=lambda x: x.std() / np.sqrt(len(x)), n="count")
         .reset_index()
         .sort_values("mean", ascending=True)
     )
@@ -3137,7 +3236,7 @@ def _dissertation_fig2_overall_feature_f1(results_root: str):
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(agg["feature"], fontsize=9)
-    ax.set_xlabel("Mean F1 (averaged across all model families)", fontsize=11)
+    ax.set_xlabel("Mean F1 ± SEM (averaged across all model families)", fontsize=11)
     ax.set_xlim(0, 1.05)
     ax.axvline(0.7, color="#27ae60", lw=1, ls="--", alpha=0.5, label="Good (≥ 0.7)")
     ax.axvline(0.4, color="#e67e22", lw=1, ls="--", alpha=0.5, label="Moderate (≥ 0.4)")
@@ -3362,7 +3461,8 @@ def _dissertation_fig4_cross_model_regression(results_root: str):
         plt.Line2D([0],[0], marker="o", color="w", markerfacecolor="gray",
                    markersize=6, label="n.s."),
     ]
-    ax.legend(handles=legend_handles, loc="lower right", fontsize=9)
+    ax.legend(handles=legend_handles, loc="upper left", bbox_to_anchor=(1.02, 1),
+              fontsize=9, borderaxespad=0, framealpha=0.9)
     ax.spines[["top", "right"]].set_visible(False)
     plt.tight_layout()
 
@@ -3370,6 +3470,107 @@ def _dissertation_fig4_cross_model_regression(results_root: str):
     plt.savefig(out, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"[FIG4] Saved cross-model regression → {out}")
+
+
+def _print_cross_model_error_summary(results_root: str) -> None:
+    """
+    Scan all model output directories for error Excel files, then print a
+    structured error breakdown to stdout grouped by:
+      model family → feature → error type (FN / FP) → sentence
+
+    This is designed for manual error analysis: you can pipe the output to a
+    file (`python evaluate.py ... > errors.txt`) and grep through it.
+    """
+    import glob as _glob
+
+    error_files = sorted(
+        _glob.glob(os.path.join(results_root, "**", "model_errors_all_experiments.xlsx"),
+                   recursive=True)
+    )
+    if not error_files:
+        print("[ERROR SUMMARY] No model_errors_all_experiments.xlsx files found — "
+              "run evaluation first.")
+        return
+
+    all_dfs = []
+    for f in error_files:
+        try:
+            xf = pd.read_excel(f, sheet_name="all_errors", engine="openpyxl")
+            xf["base_model"] = os.path.basename(os.path.dirname(f))
+            all_dfs.append(xf)
+        except Exception as e:
+            print(f"[WARN] Could not read {f}: {e}")
+
+    if not all_dfs:
+        print("[ERROR SUMMARY] No readable error data found.")
+        return
+
+    all_errors = pd.concat(all_dfs, ignore_index=True)
+
+    # Classify FN vs FP
+    all_errors["error_type"] = np.where(
+        (all_errors["gold"] == 1) & (all_errors["pred"] == 0), "FN (missed)",
+        np.where(
+            (all_errors["gold"] == 0) & (all_errors["pred"] == 1), "FP (false alarm)",
+            "other"
+        )
+    )
+
+    sep = "=" * 80
+    thin = "-" * 60
+
+    print(f"\n{sep}")
+    print("CROSS-MODEL ERROR SUMMARY")
+    print(f"{sep}\n")
+
+    # ── Table 1: total errors per model family ────────────────────────────────
+    print("── Total errors by model family ──")
+    tbl1 = (
+        all_errors.groupby(["base_model", "error_type"])
+        .size()
+        .unstack(fill_value=0)
+        .assign(TOTAL=lambda d: d.sum(axis=1))
+        .sort_values("TOTAL", ascending=False)
+    )
+    print(tbl1.to_string())
+
+    # ── Table 2: errors by feature (collapsed across models) ─────────────────
+    print(f"\n── Errors by feature (all models combined) ──")
+    tbl2 = (
+        all_errors.groupby(["feature", "error_type"])
+        .size()
+        .unstack(fill_value=0)
+        .assign(TOTAL=lambda d: d.sum(axis=1))
+        .sort_values("TOTAL", ascending=False)
+    )
+    print(tbl2.to_string())
+
+    # ── Detailed per-model → per-feature breakdown ────────────────────────────
+    print(f"\n── Detailed errors: model → feature → sentence ──")
+    for base_model in sorted(all_errors["base_model"].unique()):
+        m_errs = all_errors[all_errors["base_model"] == base_model]
+        print(f"\n{sep}")
+        print(f"  MODEL FAMILY: {base_model}   ({len(m_errs)} total errors)")
+        print(sep)
+
+        for feature in sorted(m_errs["feature"].unique()):
+            f_errs = m_errs[m_errs["feature"] == feature]
+            fn_n = (f_errs["error_type"] == "FN (missed)").sum()
+            fp_n = (f_errs["error_type"] == "FP (false alarm)").sum()
+            print(f"\n  [{feature}]  FN={fn_n}  FP={fp_n}  total={len(f_errs)}")
+            print(f"  {thin}")
+
+            for _, row in f_errs.sort_values("error_type").iterrows():
+                sent = str(row["sentence"])
+                rat  = str(row.get("model_rationale", "")).strip()
+                print(f"  [{row['error_type']}]  gold={row['gold']}  pred={row['pred']}")
+                print(f"    Sentence : {sent}")
+                if rat:
+                    print(f"    Rationale: {rat[:200]}")
+
+    print(f"\n{sep}")
+    print(f"TOTAL errors across all models: {len(all_errors)}")
+    print(sep)
 
 
 if __name__ == "__main__":
