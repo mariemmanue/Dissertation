@@ -2485,6 +2485,9 @@ def evaluate_sheets(file_path: str, gold_dfs: Optional[Dict[str, pd.DataFrame]] 
     _dissertation_fig2_feature_f1(mean_f1, output_base, model_label)
     _dissertation_fig3_regression(all_eval, output_base, model_label)
 
+    # Best-config F1: top-3 configs by macro F1, average per-feature F1 across them
+    _save_best_config_f1(all_eval, output_base, model_label, top_k=3)
+
     var_f1 = all_eval.groupby("feature")["f1"].var(ddof=1).reset_index(name="var_f1")
     var_f1.to_csv(os.path.join(output_base, f"{model_label}_var_f1_per_feature.csv"), index=False)
 
@@ -2776,13 +2779,193 @@ def main():
     # 7. Cross-model regression (all model families pooled)
     _dissertation_fig4_cross_model_regression(output_dir)
 
-    # 8. Print cross-model error summary for manual error analysis
+    # 8. Best-condition F1: top-3 configs per model, cross-model heatmap + bar
+    _dissertation_fig5_best_config_f1(output_dir)
+
+    # 9. Print cross-model error summary for manual error analysis
     _print_cross_model_error_summary(output_dir)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Dissertation summary figures (Figures 1, 2, 3, 4)
+# Dissertation summary figures (Figures 1, 2, 3, 4, 5)
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _save_best_config_f1(all_eval: pd.DataFrame, output_base: str,
+                         model_label: str, top_k: int = 3) -> None:
+    """
+    Within one model family's evaluation data, identify the top-K prompt configs
+    by macro F1 (mean F1 across features) and save the average per-feature F1
+    across those top-K configs.
+
+    Outputs:
+      {model_label}_best{K}_configs.txt        — which configs made the cut
+      {model_label}_best{K}_f1_per_feature.csv — per-feature mean F1 (used by fig5)
+    """
+    if all_eval.empty or "model" not in all_eval.columns or "f1" not in all_eval.columns:
+        return
+
+    # Macro F1 per config (mean F1 across features)
+    macro = (
+        all_eval.groupby("model")["f1"]
+        .mean()
+        .sort_values(ascending=False)
+    )
+
+    top_configs = macro.head(top_k).index.tolist()
+
+    # Print + save which configs made the cut
+    lines = [
+        f"[BEST-{top_k}] {model_label}",
+        f"Top {top_k} configs by macro F1:",
+    ]
+    for rank, cfg in enumerate(top_configs, 1):
+        lines.append(f"  {rank}. {cfg}  (macro F1 = {macro[cfg]:.4f})")
+    summary_txt = "\n".join(lines)
+    print(summary_txt)
+
+    txt_path = os.path.join(output_base, f"{model_label}_best{top_k}_configs.txt")
+    with open(txt_path, "w", encoding="utf-8") as fh:
+        fh.write(summary_txt + "\n")
+
+    # Average per-feature F1 across the top-K configs
+    top_eval = all_eval[all_eval["model"].isin(top_configs)]
+    best_f1 = (
+        top_eval.groupby("feature")["f1"]
+        .mean()
+        .reset_index(name="mean_f1")
+    )
+    best_f1["model_label"] = model_label
+
+    csv_path = os.path.join(output_base, f"{model_label}_best{top_k}_f1_per_feature.csv")
+    best_f1.to_csv(csv_path, index=False)
+    print(f"[BEST-{top_k}] Saved → {csv_path}")
+
+
+def _dissertation_fig5_best_config_f1(results_root: str, top_k: int = 3) -> None:
+    """
+    Figure 5 – Best-condition F1: average of each model's top-{K} configs.
+
+    Pools every *_best{K}_f1_per_feature.csv under results_root and produces:
+      fig5a_best_config_bar.png        — horizontal bar (pooled across models, like fig2)
+      fig5b_best_config_heatmap.png    — feature × model heatmap
+      fig5_best_config_f1.csv          — full data table
+    """
+    import glob as _glob
+
+    pattern = os.path.join(results_root, "**", f"*_best{top_k}_f1_per_feature.csv")
+    csv_files = sorted(_glob.glob(pattern, recursive=True))
+
+    if not csv_files:
+        print(f"[FIG5] No *_best{top_k}_f1_per_feature.csv files found — "
+              "run evaluate_sheets first.")
+        return
+
+    frames = []
+    for f in csv_files:
+        try:
+            df = pd.read_csv(f)
+            if "model_label" not in df.columns:
+                df["model_label"] = os.path.basename(os.path.dirname(f))
+            frames.append(df)
+        except Exception as e:
+            print(f"[FIG5] Could not read {f}: {e}")
+
+    if not frames:
+        return
+
+    all_best = pd.concat(frames, ignore_index=True)
+    all_best.columns = all_best.columns.str.strip().str.lower()
+
+    if "feature" not in all_best.columns or "mean_f1" not in all_best.columns:
+        print("[FIG5] Unexpected columns — skipping.")
+        return
+
+    # Prettify model labels
+    all_best["model_label"] = all_best["model_label"].apply(prettify_model_label)
+
+    # Save full table
+    csv_out = os.path.join(results_root, "fig5_best_config_f1.csv")
+    all_best.to_csv(csv_out, index=False)
+    print(f"[FIG5] Saved data table → {csv_out}")
+
+    # ── Fig 5a: pooled bar (avg across models, like fig2) ─────────────────────
+    pooled = (
+        all_best.groupby("feature")["mean_f1"]
+        .agg(mean="mean", sem=lambda x: x.std() / np.sqrt(len(x)))
+        .reset_index()
+        .sort_values("mean", ascending=True)
+    )
+    pooled["sem"] = pooled["sem"].fillna(0)
+
+    n_models = all_best["model_label"].nunique()
+
+    def _tier(v):
+        if v >= 0.7: return "#27ae60"
+        if v >= 0.4: return "#e67e22"
+        return "#c0392b"
+
+    colors = [_tier(v) for v in pooled["mean"]]
+    fig, ax = plt.subplots(figsize=(9, max(6, len(pooled) * 0.42)))
+    y_pos = np.arange(len(pooled))
+
+    ax.barh(y_pos, pooled["mean"], xerr=pooled["sem"], color=colors,
+            height=0.65, capsize=4, alpha=0.85,
+            error_kw={"elinewidth": 1.2, "ecolor": "gray", "capthick": 1.2})
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(pooled["feature"], fontsize=9)
+    ax.set_xlabel(f"Mean F1 ± SEM (top-{top_k} configs per model)", fontsize=11)
+    ax.set_xlim(0, 1.05)
+    ax.axvline(0.7, color="#27ae60", lw=1, ls="--", alpha=0.5, label="Good (≥ 0.7)")
+    ax.axvline(0.4, color="#e67e22", lw=1, ls="--", alpha=0.5, label="Moderate (≥ 0.4)")
+    ax.legend(fontsize=9, loc="lower right")
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.yaxis.grid(True, alpha=0.25, linestyle="--")
+    ax.set_axisbelow(True)
+    fig.suptitle(
+        f"Best-Condition Feature Detection (Top-{top_k} Configs per Model)\n"
+        f"Mean F1 ± SEM across {n_models} model families",
+        fontsize=13, y=1.01,
+    )
+    plt.tight_layout()
+    bar_out = os.path.join(results_root, "fig5a_best_config_bar.png")
+    plt.savefig(bar_out, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[FIG5] Saved bar chart → {bar_out}")
+
+    # ── Fig 5b: feature × model heatmap ───────────────────────────────────────
+    pivot = all_best.pivot_table(
+        index="feature", columns="model_label", values="mean_f1", aggfunc="mean"
+    )
+    # Sort features by mean across models (worst at top for readability)
+    pivot = pivot.loc[pivot.mean(axis=1).sort_values(ascending=True).index]
+
+    fig, ax = plt.subplots(figsize=(max(8, pivot.shape[1] * 1.4), max(8, pivot.shape[0] * 0.4)))
+    im = ax.imshow(pivot.values, aspect="auto", cmap="RdYlGn", vmin=0, vmax=1)
+
+    ax.set_xticks(np.arange(pivot.shape[1]))
+    ax.set_xticklabels(pivot.columns, rotation=35, ha="right", fontsize=10)
+    ax.set_yticks(np.arange(pivot.shape[0]))
+    ax.set_yticklabels(pivot.index, fontsize=9)
+
+    # Annotate cells
+    for r in range(pivot.shape[0]):
+        for c in range(pivot.shape[1]):
+            val = pivot.values[r, c]
+            if not np.isnan(val):
+                ax.text(c, r, f"{val:.2f}", ha="center", va="center",
+                        fontsize=7, color="black" if 0.2 < val < 0.85 else "white")
+
+    plt.colorbar(im, ax=ax, label="Mean F1 (top-3 configs)", shrink=0.6)
+    ax.set_title(
+        f"Best-Condition F1 by Feature × Model (top-{top_k} configs per model)",
+        fontsize=12, pad=12
+    )
+    plt.tight_layout()
+    hm_out = os.path.join(results_root, "fig5b_best_config_heatmap.png")
+    plt.savefig(hm_out, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[FIG5] Saved heatmap → {hm_out}")
 
 def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.DataFrame, out_dir: str):
     """
