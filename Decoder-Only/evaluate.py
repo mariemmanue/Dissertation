@@ -3479,13 +3479,16 @@ def _dissertation_fig4_cross_model_regression(results_root: str):
 def _print_cross_model_error_summary(results_root: str) -> None:
     """
     Scan all model output directories for error Excel files, then print a
-    structured error breakdown to stdout grouped by:
+    structured error breakdown grouped by:
       model family → feature → error type (FN / FP) → sentence
 
-    This is designed for manual error analysis: you can pipe the output to a
-    file (`python evaluate.py ... > errors.txt`) and grep through it.
+    Output is written to stdout AND saved to:
+      Results/cross_model_error_summary.txt   (full narrative report)
+      Results/error_summary_by_model.csv      (Table 1)
+      Results/error_summary_by_feature.csv    (Table 2)
     """
     import glob as _glob
+    import io as _io
 
     error_files = sorted(
         _glob.glob(os.path.join(results_root, "**", "model_errors_all_experiments.xlsx"),
@@ -3520,15 +3523,21 @@ def _print_cross_model_error_summary(results_root: str) -> None:
         )
     )
 
-    sep = "=" * 80
+    sep  = "=" * 80
     thin = "-" * 60
+    buf  = _io.StringIO()
 
-    print(f"\n{sep}")
-    print("CROSS-MODEL ERROR SUMMARY")
-    print(f"{sep}\n")
+    def _out(line=""):
+        """Write to both stdout and the string buffer."""
+        print(line)
+        buf.write(line + "\n")
+
+    _out(f"\n{sep}")
+    _out("CROSS-MODEL ERROR SUMMARY")
+    _out(f"{sep}\n")
 
     # ── Table 1: total errors per model family ────────────────────────────────
-    print("── Total errors by model family ──")
+    _out("── Total errors by model family ──")
     tbl1 = (
         all_errors.groupby(["base_model", "error_type"])
         .size()
@@ -3536,10 +3545,10 @@ def _print_cross_model_error_summary(results_root: str) -> None:
         .assign(TOTAL=lambda d: d.sum(axis=1))
         .sort_values("TOTAL", ascending=False)
     )
-    print(tbl1.to_string())
+    _out(tbl1.to_string())
 
     # ── Table 2: errors by feature (collapsed across models) ─────────────────
-    print(f"\n── Errors by feature (all models combined) ──")
+    _out(f"\n── Errors by feature (all models combined) ──")
     tbl2 = (
         all_errors.groupby(["feature", "error_type"])
         .size()
@@ -3547,34 +3556,48 @@ def _print_cross_model_error_summary(results_root: str) -> None:
         .assign(TOTAL=lambda d: d.sum(axis=1))
         .sort_values("TOTAL", ascending=False)
     )
-    print(tbl2.to_string())
+    _out(tbl2.to_string())
 
     # ── Detailed per-model → per-feature breakdown ────────────────────────────
-    print(f"\n── Detailed errors: model → feature → sentence ──")
+    _out(f"\n── Detailed errors: model → feature → sentence ──")
     for base_model in sorted(all_errors["base_model"].unique()):
         m_errs = all_errors[all_errors["base_model"] == base_model]
-        print(f"\n{sep}")
-        print(f"  MODEL FAMILY: {base_model}   ({len(m_errs)} total errors)")
-        print(sep)
+        _out(f"\n{sep}")
+        _out(f"  MODEL FAMILY: {base_model}   ({len(m_errs)} total errors)")
+        _out(sep)
 
         for feature in sorted(m_errs["feature"].unique()):
             f_errs = m_errs[m_errs["feature"] == feature]
             fn_n = (f_errs["error_type"] == "FN (missed)").sum()
             fp_n = (f_errs["error_type"] == "FP (false alarm)").sum()
-            print(f"\n  [{feature}]  FN={fn_n}  FP={fp_n}  total={len(f_errs)}")
-            print(f"  {thin}")
+            _out(f"\n  [{feature}]  FN={fn_n}  FP={fp_n}  total={len(f_errs)}")
+            _out(f"  {thin}")
 
             for _, row in f_errs.sort_values("error_type").iterrows():
                 sent = str(row["sentence"])
                 rat  = str(row.get("model_rationale", "")).strip()
-                print(f"  [{row['error_type']}]  gold={row['gold']}  pred={row['pred']}")
-                print(f"    Sentence : {sent}")
+                _out(f"  [{row['error_type']}]  gold={row['gold']}  pred={row['pred']}")
+                _out(f"    Sentence : {sent}")
                 if rat:
-                    print(f"    Rationale: {rat[:200]}")
+                    _out(f"    Rationale: {rat[:200]}")
 
-    print(f"\n{sep}")
-    print(f"TOTAL errors across all models: {len(all_errors)}")
-    print(sep)
+    _out(f"\n{sep}")
+    _out(f"TOTAL errors across all models: {len(all_errors)}")
+    _out(sep)
+
+    # ── Save outputs ──────────────────────────────────────────────────────────
+    txt_path = os.path.join(results_root, "cross_model_error_summary.txt")
+    with open(txt_path, "w", encoding="utf-8") as fh:
+        fh.write(buf.getvalue())
+    print(f"[ERROR SUMMARY] Saved narrative report → {txt_path}")
+
+    csv1 = os.path.join(results_root, "error_summary_by_model.csv")
+    tbl1.to_csv(csv1)
+    print(f"[ERROR SUMMARY] Saved by-model table    → {csv1}")
+
+    csv2 = os.path.join(results_root, "error_summary_by_feature.csv")
+    tbl2.to_csv(csv2)
+    print(f"[ERROR SUMMARY] Saved by-feature table  → {csv2}")
 
 
 if __name__ == "__main__":
