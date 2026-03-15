@@ -143,9 +143,7 @@ class PhiBackend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # Non-CoT bumped to 4000: 27 features × brief reasoning can exceed 2000 tokens.
-        # Truncation silently drops features, which default to 0 and harm F1.
-        max_tokens = 16000 if "cot" in instruction_type else 4000
+        max_tokens = 16000 if "cot" in instruction_type else 2000
 
         # GREEDY decoding: do_sample=False, no temperature/top_p
         outputs = self.model.generate(
@@ -283,7 +281,6 @@ class LlamaBackend(LLMBackend):
         self.model = AutoModelForCausalLM.from_pretrained(
             model,
             trust_remote_code=True,
-            attn_implementation="sdpa",  # memory-efficient attention, matches Phi/Qwen
             torch_dtype="auto",
             device_map="auto",
         )
@@ -307,8 +304,7 @@ class LlamaBackend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # Non-CoT bumped to 4000 to prevent truncation on 27-feature outputs.
-        max_tokens = 16000 if "cot" in instruction_type else 4000
+        max_tokens = 16000 if "cot" in instruction_type else 2000
 
         # GREEDY decoding
         outputs = self.model.generate(
@@ -384,8 +380,7 @@ class QwenBackend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # Non-CoT bumped to 4000 to prevent truncation on 27-feature outputs.
-        max_tokens = 16000 if "cot" in instruction_type else 4000
+        max_tokens = 16000 if "cot" in instruction_type else 2000
 
         # GREEDY decoding
         outputs = self.model.generate(
@@ -465,8 +460,7 @@ class Qwen3Backend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # Non-CoT bumped to 4000 to prevent truncation on 27-feature outputs.
-        max_tokens = 16000 if "cot" in instruction_type else 4000
+        max_tokens = 16000 if "cot" in instruction_type else 2000
 
         # Qwen3 non-thinking recommended params (slight sampling helps instruction following)
         outputs = self.model.generate(
@@ -634,7 +628,6 @@ class QwQBackend(LLMBackend):
         )
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        # QwQ official recommended params use top_k=40 (not 20 which is Qwen3's setting)
         max_tokens = 32768 if "cot" in instruction_type else 16000
 
         outputs = self.model.generate(
@@ -643,7 +636,7 @@ class QwQBackend(LLMBackend):
             do_sample=True,
             temperature=0.6,
             top_p=0.95,
-            top_k=40,
+            top_k=20,
             pad_token_id=self.tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_scores=True,
@@ -937,7 +930,13 @@ This applies when BE is missing:
   * Label is 0
   * Explanation: Fragment with no recoverable subject–predicate BE slot
 
-Note: If there is a recoverable subject and predicate slot that would host BE in SAE, mark 1 even if the utterance is short or informal.
+**COMMON FALSE POSITIVE GUARDS — mark 0 for these:**
+* Participial or gerund phrases with no overt subject: "Getting that up." / "No father figure in his life, really good at a sport." — these are fragments, not zero-copula clauses.
+* Clauses where the copula IS present but contracted or informal: "He's really tall" → 0.
+* Prepositional/locative phrases that are complements of a prior clause: "Um, or in somebody yard doing something playing music" — the 'in somebody yard' is a PP complement, not a zero-copula predicate.
+* Sentences where the subject is unclear or unrecoverable from the same utterance → prefer 0.
+
+Note: If there is a recoverable subject and predicate slot that would host BE in SAE, mark 1 even if the utterance is short or informal. But do NOT create a subject–predicate reading where none exists.
 
 ### Rule 3: double-tense
 **IF** a single lexical verb shows duplicated overt past-tense morphology (usually repeated -ed) within one word, **THEN** label is 1.
@@ -1043,6 +1042,14 @@ Notes:
   * Label is 0
   * Explanation: Negative elements not at beginning of clause
 
+**DISAMBIGUATION from n-inv-neg-concord (Rule 11):**
+These two features are mutually exclusive in any single clause.
+* neg-inversion: NEGATIVE MARKER FIRST, then subject. Order = [NEG][SUBJECT][VERB]. Example: "Don't nobody..."
+* n-inv-neg-concord: SUBJECT FIRST, then negative verb. Order = [NEG-SUBJECT][NEG-VERB]. Example: "Nobody don't..."
+Check the ORDER: if the negative marker comes before the subject, it's neg-inversion. If the subject (which is itself negative) comes first, it's n-inv-neg-concord. NEVER mark both for the same clause.
+
+**COMMON FALSE POSITIVE GUARD:** Multiple-negative sentences where the negative elements are in the middle of the clause (e.g., "I didn't do no report") are NOT neg-inversion. The inversion only applies when the negative auxiliary is clause-initial.
+
 ### Rule 11: n-inv-neg-concord
 **IF** both the subject and the finite verb (or auxiliary) show overt negative marking AND the subject still comes first at the beginning of a sentence or clause AND together they express a single semantic negation, **THEN** label is 1.
 
@@ -1057,6 +1064,11 @@ Notes:
 – Example: "That's how nobody never seen."
   * Label is 0
   * Explanation: Negative elements not at beginning of clause
+
+**DISAMBIGUATION from neg-inversion (Rule 10):**
+* n-inv-neg-concord requires the SUBJECT to come FIRST and be NEGATIVE (nobody, nothing, ain't nobody, etc.), followed by a NEGATIVE VERB. Order = [NEG-SUBJECT][NEG-VERB].
+* If the negative auxiliary precedes the subject, that's neg-inversion (Rule 10), not this feature.
+* Both features require multiple-neg (Rule 9) to also be marked 1.
 
 ### Rule 12: aint
 **IF** 'ain't' is used as a general negative auxiliary for BE, HAVE, or DO, or as a general clausal negator (rather than as a lexical verb), **THEN** label is 1.
@@ -1084,6 +1096,12 @@ Exclude non-agreeing 'is/was' forms (those are Rule 14: is-was-gen).
 
 Note: **If the bare verb occurs in reported speech, restarts, conditional/subjunctive context, or embedded clauses where the syntactic environment is ambiguous, prefer 0.** Only mark when the clause is clearly a finite present-tense declarative with 3sg subject.
 
+**DISAMBIGUATION from verb-stem (Rule 22):**
+* zero-3sg-pres-s: bare verb in a PRESENT-TENSE context with a 3sg subject. The time reference is NOW or habitual.
+* verb-stem: bare verb in a PAST-TENSE context anchored by explicit time adverbs ("yesterday", "last week"), a prior past-tense verb in the same sequence, or an aspect marker like 'done'.
+* ONE verb token cannot simultaneously be zero-3sg-pres-s AND verb-stem. Determine the tense reference FIRST, then assign the feature.
+* If the tense is genuinely ambiguous (no explicit anchor), prefer zero-3sg-pres-s over verb-stem when there is a 3sg subject present.
+
 ### Rule 14: is-was-gen
 **IF** 'is' or 'was' is used in a way that ignores SAE person/number agreement (e.g., with plural or 1st person subjects) in a finite clause, **THEN** label is 1.
 
@@ -1099,6 +1117,12 @@ Do NOT mark for existential 'it' constructions ("It was a fight," "It's people o
 
 Note: If 'was' may be part of a quoting frame or reported speech with unclear subject, prefer 0.
 
+**DISAMBIGUATION from existential-it (Rule 18):**
+When you see "it was [NP]..." or "it's [NP]...", ask: is 'it' a dummy existential subject introducing new entities (where SAE would say 'there was/were')? If yes → mark existential-it (Rule 18), do NOT also mark is-was-gen. The 'was' in "It was a couple of players that should've graduated" is part of the existential construction, not an agreement violation.
+* is-was-gen requires a REAL plural or 1sg subject + 'is/was'.
+* existential-it 'it' is a dummy subject with no referent — it is not a plural subject, so there is no agreement violation to mark.
+* NEVER mark both existential-it and is-was-gen for the same 'it was/is' string.
+
 ### Rule 15: zero-pl-s
 **IF** a noun that clearly has plural reference (from a quantifier, determiner, or context) surfaces without SAE plural -s AND the plural reading is local to the noun phrase, **THEN** label is 1.
 
@@ -1106,9 +1130,24 @@ Note: If 'was' may be part of a quoting frame or reported speech with unclear su
   * Label is 1
   * Explanation: Plural demonstrative 'them' + bare 'dog'
 
++ Example: "Two brother."
+  * Label is 1
+  * Explanation: Numeral 'two' licenses plural reading; bare 'brother' lacks -s; SAE: 'two brothers'
+
++ Example: "Sometime seven day."
+  * Label is 1
+  * Explanation: Numeral 'seven' + bare 'day'; SAE: 'seven days'
+
 – Example: "A dogs."
   * Label is 0
   * Explanation: Article–noun mismatch, not AAE plural pattern
+
+**STEP-BY-STEP DETECTION CHECK (use this sequence explicitly):**
+1. Find every NOUN in the sentence.
+2. For each noun, check: is there a numeral, quantifier, or plural demonstrative ('them', 'all', 'these', 'those') locally within the same NP that establishes plural reference?
+3. Does that noun LACK the -s suffix that SAE would require?
+4. If YES to both 2 and 3 → mark 1.
+This feature has near-zero false positives but very high miss rate — actively search for it rather than waiting for it to be obvious.
 
 Note: If plurality is only inferable from distant context and not clear in the NP itself, prefer 0.
 
@@ -1231,6 +1270,19 @@ Fillers or pauses (e.g., 'uh', 'you know') may appear between NP and pronoun.
   * Label is 0
   * Explanation: 'You' is subject of different clause; 'they' is also in different clause
 
+**THE REDUNDANCY TEST — apply this before marking 1:**
+Remove the pronoun. Read the result. Is it a complete, grammatical SAE sentence? If YES → the pronoun is pleonastic → mark 1. If NO (removing the pronoun breaks the sentence) → the pronoun is required → mark 0.
+* "My dad, he told me it." → Remove 'he' → "My dad told me it." ✓ Grammatical → mark 1.
+* "Cause I watch what my older brother all the trouble they got into." → 'they' is the subject of the embedded clause 'they got into' — it is required, not redundant → mark 0.
+
+**CLAUSE BOUNDARY RULE — the NP and pronoun must be in the SAME clause:**
+* If the NP is in one clause and the pronoun is in a DIFFERENT embedded/subordinate clause, do NOT mark appositive-pleonastic. The NP and pronoun must be co-present in the same finite clause.
+
+**COMMON FALSE POSITIVE PATTERNS — mark 0 for these:**
+* Long subject NP followed by pronoun that IS the grammatical subject: "My mother's side of the family we are close" — here 'my mother's side of the family' is the topic and 'we' is grammatical subject. Apply the redundancy test to disambiguate.
+* "Neither one of 'em they do well" — 'they' is the grammatical subject that the rest of the clause requires; test whether removing 'they' leaves a grammatical clause.
+* Sentences with disfluency/restarts where NP and pronoun are in separate discourse chunks rather than the same syntactic clause.
+
 Note: The key diagnostic is whether removing the pronoun leaves a grammatical SAE clause. **Do not mark complex NPs with nested modifiers as appositive-pleonastic unless there is a separate, co-referential pronoun in the same grammatical role within the same clause.** If the pronoun is required as subject or object, it is not pleonastic.
 
 ### Rule 21: bin
@@ -1262,12 +1314,28 @@ Local past-time cues include:
 
 Note: **In coordinate or serial verb constructions (comma-separated verbs describing a sequence of events), if either verb is past-tense and another verb is bare, the bare verb counts as verb-stem because the first verb anchors the time reference as past.** If there is no explicit evidence that the event is past, prefer 0 and avoid assuming past meaning.
 
+**DISAMBIGUATION from zero-3sg-pres-s (Rule 13):**
+* verb-stem = bare form in a PAST context. Requires an explicit past anchor.
+* zero-3sg-pres-s = bare form in a PRESENT context with a 3sg subject.
+* If there is NO past-time anchor, do NOT label as verb-stem. Prefer zero-3sg-pres-s if there is a 3sg subject, or 0 if neither applies.
+
+**DISAMBIGUATION from past-tense-swap (Rule 23):**
+* verb-stem = NO overt tense morphology at all (the verb is a bare stem: walk, go, say).
+* past-tense-swap = the verb HAS overt tense morphology, but it is the WRONG morphology for the position (e.g., 'seen' used as simple past, 'throwed' instead of 'threw').
+* A verb cannot be simultaneously verb-stem AND past-tense-swap. Check: does the verb have any tense suffix or irregular past form? If yes → past-tense-swap. If truly bare with no morphology → verb-stem.
+
+**COMMON FALSE POSITIVE GUARD:**
+Bare verbs in subordinate clauses, conditional clauses ("if you go..."), and habitual present descriptions are NOT verb-stem even if the surrounding discourse is past. The bare verb's OWN clause must have past reference. Examples of false positives to avoid:
+* "Whereas though after school you go there..." — 'go' is in a habitual/conditional frame, not past → 0.
+* "Which means anything happen..." — 'happen' is in a present habitual embedded clause → 0.
+* Present-tense narration with historic present is NOT verb-stem.
+
 ### Rule 23: past-tense-swap
 **IF** an overtly non-SAE tense form is used as the main tense carrier of a clause AND the clause has clear simple-past or perfect/pluperfect reference, **THEN** label is 1.
 
 Mark 1 when:
 * A past participle is used as simple past (e.g., 'seen', 'done' for 'saw', 'did'), OR
-* A regularized past is used where SAE requires irregular (e.g., 'throwed' for 'threw'), OR
+* A regularized past is used where SAE requires irregular (e.g., 'throwed' for 'threw', 'droves' for 'drove', 'sung' for 'sang'), OR
 * A past-tense form appears in any position where SAE requires a non-tensed form (bare infinitive after 'do/did/does', or distinct participle after 'have/had')
 
 + Example: "I seen him yesterday."
@@ -1282,6 +1350,15 @@ Mark 1 when:
   * Label is 0
   * Explanation: Standard preterite form
 
+**MOST COMMONLY MISSED PATTERN — past participle as simple preterite:**
+The single most under-detected case is a past participle (seen, done, come, gone, given, run) used as the only past-tense verb in a simple-past declarative clause, where SAE requires the simple past form (saw, did, came, went, gave, ran).
+* "He just seen it happen again." → 'seen' as preterite for 'saw' → mark 1.
+* "I done told you." → 'done' as preterite for 'did' → WAIT — check if 'done' is aspectual (resultant-done). If it precedes another verb, it may be resultant-done (Rule 5). If it is the sole main verb → past-tense-swap.
+* Actively scan for 'seen', 'done', 'come', 'went' (past tense used where participle needed), 'brung', 'sung', 'throwed', 'droves', 'droved' as strong signals.
+
+**DISAMBIGUATION from verb-stem (Rule 22):**
+past-tense-swap requires the verb to have OVERT morphology — a suffix or irregular form. If the verb is bare with no morphology → verb-stem. The two features are mutually exclusive.
+
 Note: This feature never applies to bare stems (those are verb-stem). If the verb has no overt tense morphology, mark 0 for past-tense-swap.
 
 ### Rule 24: zero-rel-pronoun
@@ -1289,24 +1366,60 @@ Note: This feature never applies to bare stems (those are verb-stem). If the ver
 
 + Example: "There are many mothers don't know their children."
   * Label is 1
-  * Explanation: Clause modifying 'mothers' without 'who'
+  * Explanation: Clause modifying 'mothers' without 'who'; SAE: 'mothers who don't know'
+
++ Example: "It's a lot of stuff I learned from him."
+  * Label is 1
+  * Explanation: 'stuff [that] I learned' — wait, this is object gap, not subject relative → 0. But note: subject relatives are the target.
+
++ Example: "I knew people was doing that."
+  * Label is 1 (if 'people' is modified by 'was doing that' with no overt 'who')
+  * Explanation: Clause 'was doing that' modifies 'people' with no overt 'who'
 
 – Example: "I think he left."
   * Label is 0
   * Explanation: That-deletion in complement clause, not subject relative
 
+– Example: "The report you did yesterday" (object relative gap)
+  * Label is 0
+  * Explanation: 'you' is overt subject; the gap is in object position, not subject relative without pronoun
+
+**STEP-BY-STEP DETECTION — this feature has near-zero detection rates; use this sequence:**
+1. Find every noun or noun phrase in the sentence.
+2. For each NP, ask: is there a finite clause (with its own subject + verb) immediately following that modifies that NP?
+3. If yes, check: would SAE require 'who', 'that', or 'which' as the SUBJECT of that embedded clause?
+4. Is 'who/that/which' ABSENT from the surface form?
+5. If YES to 3 and 4 → mark 1.
+
+**KEY DISTINCTION from that-deletion in complement clauses:**
+* Subject relative: "people [who] don't know" — 'who' would be the SUBJECT of the embedded clause.
+* Complement that-deletion: "I think [that] he left" — 'he' is overt; only the complementizer 'that' is missing, not a relative pronoun.
+* Zero-rel-pronoun ONLY applies to the subject-relative case, not to complement clauses.
+
+**This feature is VERY common in spontaneous AAE speech.** Sentences with long NPs followed by finite clauses are strong candidates. Actively look for it rather than waiting for obvious cases.
+
 ### Rule 25: preterite-had
 **IF** 'had' plus a past verb is used to express a simple past event (with no clear 'past-before-past' meaning) AND there is no later past event anchoring a pluperfect reading, **THEN** label is 1.
 
-Often appears with regularized/AAE-style past forms (had went, had ran).
+Often appears with regularized/AAE-style past forms (had went, had ran, had did).
 
 + Example: "The alarm next door had went off a few minutes ago."
   * Label is 1
-  * Explanation: Simple past meaning; no later reference event
+  * Explanation: Simple past meaning; no later reference event; 'went' is also a non-standard participle
 
 – Example: "They had seen the movie before we arrived."
   * Label is 0
-  * Explanation: True pluperfect (past-before-past)
+  * Explanation: True pluperfect (past-before-past); 'before we arrived' anchors pluperfect
+
+**THE SUBSTITUTION TEST — apply before marking 1:**
+Replace 'had [VERB]' with the simple past form of the verb. Does the sentence mean the same thing? If YES → preterite-had (mark 1). If changing to simple past loses the past-before-past meaning → NOT preterite-had (mark 0).
+* "The alarm had went off." → "The alarm went off." Same meaning → mark 1.
+* "They had cut my hours." → "They cut my hours." SAME meaning → BUT check for a second past event. If no second past event in context → mark 1. If the cutting clearly happened before another narrated event → mark 0.
+
+**CRITICAL FALSE POSITIVE GUARD:**
+Standard SAE pluperfect triggers this feature incorrectly. "And they had cut my hours to one or two" is standard SAE if it describes an event that preceded another narrated moment. Ask: is there a prior narrative event that this 'had' is anchoring against? If yes → SAE pluperfect → mark 0.
+
+**SIGNAL OF TRUE PRETERITE-HAD:** The strongest signal is 'had' + non-standard past form ('had went', 'had did', 'had ran', 'had came', 'had brung'). Standard SAE uses the past PARTICIPLE after 'had' ('had gone', 'had done', 'had run'). If the form after 'had' is the simple past instead of the participle → very likely preterite-had → mark 1.
 
 Note: If there is a clear second past event that makes 'had' plausibly pluperfect, prefer 0 and treat as SAE pluperfect.
 
@@ -1326,6 +1439,72 @@ The subject has something right now (current possession), not a past 'got' event
 Note: Only mark bare-got when the clause clearly describes current possession and does not contain an overt 'have/has'. If 'got' can be read as simple past or as part of 'have got', prefer 0.
 """
 
+
+# ==================== DISAMBIGUATION BLOCK ====================
+# Injected at the END of the system message (recency advantage).
+# Directly addresses the top confusion pairs identified in error analysis.
+
+DISAMBIGUATION_BLOCK = """
+### FEATURE DISAMBIGUATION REFERENCE ###
+The following feature pairs are frequently confused. Before finalizing your labels,
+check each pair that is relevant to the sentence.
+
+---
+**PAIR 1: verb-stem (Rule 22) vs. past-tense-swap (Rule 23) vs. zero-3sg-pres-s (Rule 13)**
+These three features all involve non-standard verb morphology. Use this decision tree:
+
+Step 1 — What is the TENSE CONTEXT of the clause?
+  * PAST context (explicit time adverb, prior past verb, 'done' marker) → go to Step 2.
+  * PRESENT context (habitual, current state, no past anchor) → check zero-3sg-pres-s (Rule 13).
+  * Ambiguous → prefer zero-3sg-pres-s if 3sg subject present, else 0.
+
+Step 2 — Does the verb have OVERT MORPHOLOGY?
+  * Bare stem, no suffix, no irregular form (e.g., 'walk', 'say', 'go') → verb-stem (Rule 22).
+  * Has overt but NON-STANDARD morphology (e.g., 'seen'/'done' as preterite, 'throwed', 'sung' for 'sang') → past-tense-swap (Rule 23).
+
+A single verb cannot be verb-stem AND past-tense-swap simultaneously.
+A single verb cannot be verb-stem AND zero-3sg-pres-s simultaneously.
+
+---
+**PAIR 2: neg-inversion (Rule 10) vs. n-inv-neg-concord (Rule 11)**
+These are mutually exclusive. Check word ORDER:
+
+  * [NEG-AUX] + [SUBJECT] + [VERB] = neg-inversion. Example: "Don't nobody know."
+  * [NEG-SUBJECT] + [NEG-AUX/VERB] = n-inv-neg-concord. Example: "Nobody don't know."
+
+Never mark both for the same clause. If multiple-neg (Rule 9) applies, decide which of Rule 10 or Rule 11 fits, or neither.
+
+---
+**PAIR 3: existential-it (Rule 18) vs. is-was-gen (Rule 14)**
+When you see "it was/is [NP]..." ask: is 'it' a DUMMY existential subject (where SAE says 'there was/were')?
+  * If yes → mark existential-it (Rule 18). Do NOT also mark is-was-gen. 'It' is not a plural subject.
+  * If 'it' has a clear prior referent (a real pronoun with antecedent) AND 'was' disagrees with a real plural subject → is-was-gen (Rule 14).
+  * These two features share the surface form "it was" but are mutually exclusive.
+
+---
+**PAIR 4: appositive-pleonastic-pronoun (Rule 20) vs. zero-rel-pronoun (Rule 24)**
+These can co-occur but are often confused. Before marking appositive-pleonastic, run the REDUNDANCY TEST:
+Remove the pronoun — is the result a complete grammatical SAE sentence?
+  * YES → appositive-pleonastic (Rule 20).
+  * NO (pronoun is required for the clause) → not appositive-pleonastic. Check zero-rel-pronoun separately.
+
+For zero-rel-pronoun: look for NP + [finite clause without 'who/that/which' as subject].
+These features look at different levels: appositive-pleonastic is about a redundant resumptive pronoun;
+zero-rel-pronoun is about a missing relative pronoun that would be a SUBJECT.
+
+---
+**PAIR 5: preterite-had (Rule 25) vs. SAE pluperfect**
+"had + past form" is the surface of BOTH. Use the SUBSTITUTION TEST:
+  * Replace "had [VERB]" with simple past. Does meaning stay the same? → preterite-had (Rule 25).
+  * STRONGEST SIGNAL: 'had' + non-standard past participle (had went, had did, had ran, had came) → preterite-had.
+  * Standard SAE pluperfect uses correct participle form (had gone, had done, had run). If form is standard AND a pluperfect reading is available → NOT preterite-had → mark 0.
+
+---
+**ZERO-MARKING REMINDER (Rules 15, 24 — near-zero detection rates):**
+These features are defined by the ABSENCE of something SAE requires. Models tend to miss them.
+  * zero-pl-s (Rule 15): Actively scan EVERY noun for: numeral/quantifier + bare noun. Do not wait for it to be obvious.
+  * zero-rel-pronoun (Rule 24): Actively scan EVERY NP for a following finite clause that modifies it without an overt 'who/that'. Do not wait for it to be obvious. It is VERY common in spontaneous speech.
+"""
 
 # ==================== ICL BLOCKS ====================
 
@@ -1657,6 +1836,7 @@ def build_system_msg(
     elif instruction_type == "few_shot_cot":
         icl_block = ICL_COT_BLOCK
 
+    # DISAMBIGUATION_BLOCK placed AFTER ICL (last = most salient at inference time)
     content = "".join([
         intro,
         procedure,
@@ -1665,6 +1845,7 @@ def build_system_msg(
         cot_instruction,
         feature_rules,
         icl_block,
+        DISAMBIGUATION_BLOCK,
     ])
 
     return {"role": "system", "content": content}
