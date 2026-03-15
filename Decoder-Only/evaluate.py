@@ -1889,6 +1889,105 @@ def compute_interrater_reliability(
     return pd.DataFrame(human_vs_avg_rows)
 
 
+def export_annotator_disagreements(
+    gold_dfs: Dict[str, pd.DataFrame],
+    features: List[str],
+    output_path: str,
+) -> pd.DataFrame:
+    """
+    Find every (sentence, feature) where at least one pair of raters disagrees.
+    Saves two files:
+      - annotator_disagreements.csv   : long format, one row per disagreeing sentence×feature
+      - annotator_disagreements_wide.csv : wide format, one row per sentence, all features side by side
+    Returns the long-format DataFrame.
+    """
+    rater_names = list(gold_dfs.keys())
+    if len(rater_names) < 2:
+        print("[INFO] Only one rater — nothing to disagree about.")
+        return pd.DataFrame()
+
+    # Build a merged wide table: sentence + feat__Rater1, feat__Rater2, ...
+    base = None
+    for rater, df in gold_dfs.items():
+        feat_cols = [f for f in features if f in df.columns]
+        sub = df[["sentence"] + feat_cols].copy()
+        sub = sub.rename(columns={f: f"{f}__{rater}" for f in feat_cols})
+        base = sub if base is None else base.merge(sub, on="sentence", how="inner")
+
+    if base is None or base.empty:
+        print("[WARN] No overlapping sentences across raters.")
+        return pd.DataFrame()
+
+    rows = []
+    for _, row in base.iterrows():
+        for feat in features:
+            rater_cols = [f"{feat}__{r}" for r in rater_names if f"{feat}__{r}" in base.columns]
+            if len(rater_cols) < 2:
+                continue
+            vals = {}
+            for rc in rater_cols:
+                v = pd.to_numeric(row[rc], errors="coerce")
+                if not np.isnan(v):
+                    vals[rc.split("__", 1)[1]] = int(v)
+            if len(vals) < 2:
+                continue
+            unique_vals = set(vals.values())
+            if len(unique_vals) > 1:          # at least one pair disagrees
+                disagreeing_pairs = [
+                    f"{r1}≠{r2}"
+                    for r1, r2 in combinations(vals.keys(), 2)
+                    if vals[r1] != vals[r2]
+                ]
+                entry = {
+                    "sentence": row["sentence"],
+                    "feature":  feat,
+                    "disagreeing_pairs": ", ".join(disagreeing_pairs),
+                }
+                for rater, val in vals.items():
+                    entry[f"label_{rater}"] = val
+                rows.append(entry)
+
+    if not rows:
+        print("[INFO] No annotator disagreements found.")
+        return pd.DataFrame()
+
+    long_df = pd.DataFrame(rows)
+    long_df = long_df.sort_values(["feature", "sentence"]).reset_index(drop=True)
+
+    # Wide format: one row per sentence, disagreeing features as columns
+    wide_rows = {}
+    for _, r in long_df.iterrows():
+        s = r["sentence"]
+        if s not in wide_rows:
+            wide_rows[s] = {"sentence": s}
+        for rater in rater_names:
+            col = f"label_{rater}"
+            if col in r:
+                wide_rows[s][f"{r['feature']}__{rater}"] = r[col]
+        wide_rows[s].setdefault("features_disagreed", []).append(r["feature"])
+
+    wide_df = pd.DataFrame(wide_rows.values())
+    wide_df["features_disagreed"] = wide_df["features_disagreed"].apply(
+        lambda x: ", ".join(x) if isinstance(x, list) else x
+    )
+
+    long_path = os.path.join(output_path, "annotator_disagreements.csv")
+    wide_path = os.path.join(output_path, "annotator_disagreements_wide.csv")
+    long_df.to_csv(long_path, index=False)
+    wide_df.to_csv(wide_path, index=False)
+
+    n_sentences = long_df["sentence"].nunique()
+    n_cases = len(long_df)
+    print(f"\n[IRR] Annotator disagreements: {n_cases} sentence×feature pairs across "
+          f"{n_sentences} unique sentences")
+    print(f"[IRR] Wrote {long_path}")
+    print(f"[IRR] Wrote {wide_path}")
+    print("\n=== Top disagreed features ===")
+    print(long_df.groupby("feature").size().sort_values(ascending=False).to_string())
+
+    return long_df
+
+
 def compute_average_human_labels(
     gold_dfs: Dict[str, pd.DataFrame],
     features: List[str],
@@ -2623,6 +2722,7 @@ def main():
         avg_human_df = compute_average_human_labels(gold_dfs, irr_features)
         print(f"[INIT] Computed average human labels ({len(avg_human_df)} sentences, {len(irr_features)} features)")
         human_kappas = compute_interrater_reliability(gold_dfs, irr_features, output_dir, avg_human_df=avg_human_df)
+        export_annotator_disagreements(gold_dfs, irr_features, output_dir)
 
     # 3. Resolve input paths (handle files, directories, and glob patterns)
     filepaths = []
@@ -2669,91 +2769,129 @@ def main():
         write_irr_model_comparison(human_kappas, all_model_kappas, output_dir)
         _dissertation_fig1_irr(human_kappas, all_model_kappas, output_dir)
 
+    # 6. Overall feature F1 across all models
+    _dissertation_fig2_overall_feature_f1(output_dir)
+
+    # 7. Cross-model regression (all model families pooled)
+    _dissertation_fig4_cross_model_regression(output_dir)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Dissertation summary figures (Figures 1, 2, 3)
+# Dissertation summary figures (Figures 1, 2, 3, 4)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.DataFrame, out_dir: str):
     """
-    Figure 1 – IRR comparison: human raters vs LLM model families.
-    Shows the task is genuinely hard (humans ≠ perfect) and models
-    reach a similar agreement level with the average human annotation.
+    Figure 1 – Two-panel IRR comparison.
+    Left:  human raters as bars with annotated kappa values.
+    Right: model families as box plots (distribution across features × configs),
+           with the human kappa range shaded as a reference band.
     """
     if human_kappas.empty and all_model_kappas.empty:
         return
 
-    # ---- human summary: mean kappa per rater ----
-    h_sum = (
+    has_models = not all_model_kappas.empty and "base_model" in all_model_kappas.columns
+    n_models = all_model_kappas["base_model"].nunique() if has_models else 1
+
+    fig, (ax_h, ax_m) = plt.subplots(
+        1, 2,
+        figsize=(5 + n_models * 1.6, 7),
+        gridspec_kw={"width_ratios": [1, max(1, n_models * 0.8)]},
+    )
+
+    # ── LEFT: Human raters ────────────────────────────────────────────────────
+    h_order = (
         human_kappas.groupby("entity")["cohens_kappa"]
-        .agg(mean="mean", sem=lambda x: x.sem())
-        .reset_index()
+        .mean()
+        .sort_values(ascending=False)
     )
+    h_colors = {"Gold": "#c0392b", "Razan": "#e67e22", "Tilly": "#8e44ad"}
+    fallback = ["#c0392b", "#e67e22", "#8e44ad"]
 
-    # ---- model summary: mean kappa per base_model ----
-    if not all_model_kappas.empty and "base_model" in all_model_kappas.columns:
-        m_sum = (
+    for i, (rater, mean_k) in enumerate(h_order.items()):
+        sem_k = human_kappas[human_kappas["entity"] == rater]["cohens_kappa"].sem()
+        color = h_colors.get(rater, fallback[i % len(fallback)])
+        ax_h.bar(i, mean_k, yerr=sem_k, color=color, width=0.5,
+                 capsize=7, alpha=0.85, edgecolor="white", linewidth=1.5)
+        ax_h.text(i, mean_k + (sem_k or 0) + 0.025,
+                  f"κ = {mean_k:.2f}",
+                  ha="center", va="bottom", fontsize=13, fontweight="bold", color=color)
+
+    ax_h.set_xticks(range(len(h_order)))
+    ax_h.set_xticklabels(h_order.index, fontsize=13)
+    ax_h.set_ylabel("Mean Cohen's κ vs. Average Human Annotation", fontsize=12)
+    ax_h.set_ylim(0, 1.08)
+    ax_h.set_title("Human Annotators", fontsize=14, fontweight="bold", pad=10)
+    ax_h.spines[["top", "right"]].set_visible(False)
+    ax_h.yaxis.grid(True, alpha=0.3, linestyle="--")
+    ax_h.set_axisbelow(True)
+
+    h_min, h_max = float(h_order.min()), float(h_order.max())
+    h_avg = float(h_order.mean())
+
+    # ── RIGHT: Model families ─────────────────────────────────────────────────
+    if has_models:
+        model_order = (
             all_model_kappas.groupby("base_model")["cohens_kappa"]
-            .agg(mean="mean", sem=lambda x: x.sem())
-            .reset_index()
-            .rename(columns={"base_model": "entity"})
+            .mean()
+            .sort_values(ascending=False)
+            .index.tolist()
         )
+        m_colors = ["#1a5276", "#6c3483", "#1e8449", "#117a65", "#7d6608", "#884ea0", "#922b21"]
+
+        # Shade human range as background reference
+        ax_m.axhspan(h_min, h_max, alpha=0.10, color="#7f8c8d",
+                     label=f"Human range  ({h_min:.2f} – {h_max:.2f})")
+        ax_m.axhline(h_avg, ls="--", color="#7f8c8d", lw=1.4, alpha=0.7,
+                     label=f"Human mean  κ = {h_avg:.2f}")
+
+        for i, model in enumerate(model_order):
+            data = (
+                all_model_kappas[all_model_kappas["base_model"] == model]["cohens_kappa"]
+                .dropna()
+            )
+            if data.empty:
+                continue
+            color = m_colors[i % len(m_colors)]
+            bp = ax_m.boxplot(
+                data, positions=[i], widths=0.45, patch_artist=True,
+                medianprops=dict(color="white", lw=2.5),
+                boxprops=dict(facecolor=color, alpha=0.75),
+                whiskerprops=dict(color=color, lw=1.5),
+                capprops=dict(color=color, lw=1.5),
+                flierprops=dict(marker="o", markerfacecolor=color,
+                                alpha=0.35, markersize=3, linestyle="none"),
+            )
+            mean_k = data.mean()
+            ax_m.plot(i, mean_k, marker="D", color="white",
+                      markeredgecolor=color, markeredgewidth=1.5, markersize=7, zorder=5)
+            ax_m.text(i, data.max() + 0.025,
+                      f"μ = {mean_k:.2f}",
+                      ha="center", va="bottom", fontsize=10,
+                      color=color, fontweight="bold")
+
+        ax_m.set_xticks(range(len(model_order)))
+        ax_m.set_xticklabels(model_order, fontsize=12, rotation=20, ha="right")
+        ax_m.set_ylim(0, 1.08)
+        ax_m.set_title("LLM Model Families", fontsize=14, fontweight="bold", pad=10)
+        ax_m.set_ylabel("Cohen's κ per feature × config", fontsize=12)
+        ax_m.spines[["top", "right"]].set_visible(False)
+        ax_m.yaxis.grid(True, alpha=0.3, linestyle="--")
+        ax_m.set_axisbelow(True)
+        ax_m.legend(fontsize=10, loc="lower right", framealpha=0.9)
     else:
-        m_sum = pd.DataFrame(columns=["entity", "mean", "sem"])
+        ax_m.text(0.5, 0.5, "No model data available",
+                  ha="center", va="center", transform=ax_m.transAxes, fontsize=12)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    human_colors = ["#c0392b", "#e67e22", "#8e44ad"]
-    model_colors = ["#1a5276", "#6c3483", "#1e8449", "#117a65", "#7d6608", "#884ea0"]
-
-    x = 0
-    xticks, xlabels = [], []
-
-    for i, (_, row) in enumerate(h_sum.sort_values("mean", ascending=False).iterrows()):
-        ax.bar(x, row["mean"], yerr=row["sem"], color=human_colors[i % len(human_colors)],
-               width=0.6, capsize=5, alpha=0.85, edgecolor="white", linewidth=1.2)
-        xticks.append(x); xlabels.append(f"{row['entity']}\n(human)")
-        x += 1
-
-    x += 0.5  # gap
-
-    for i, (_, row) in enumerate(m_sum.sort_values("mean", ascending=False).iterrows()):
-        ax.bar(x, row["mean"], yerr=row["sem"], color=model_colors[i % len(model_colors)],
-               width=0.6, capsize=5, alpha=0.85, edgecolor="white", linewidth=1.2)
-        xticks.append(x); xlabels.append(f"{row['entity']}\n(model)")
-        x += 1
-
-    if not h_sum.empty:
-        avg_h = h_sum["mean"].mean()
-        ax.axhline(avg_h, ls="--", color="gray", lw=1.2, alpha=0.7,
-                   label=f"Avg human κ = {avg_h:.2f}")
-
-    sep = len(h_sum) - 0.5 + 0.25
-    ax.axvline(sep, color="lightgrey", ls=":", lw=1.5)
-
-    n_h = len(h_sum)
-    if n_h:
-        ax.text((n_h - 1) / 2, 0.97, "Human raters", ha="center", va="top",
-                transform=ax.get_xaxis_transform(), fontsize=9, color="gray")
-    n_m = len(m_sum)
-    if n_m:
-        ax.text(n_h + 0.5 + (n_m - 1) / 2, 0.97, "LLM models", ha="center", va="top",
-                transform=ax.get_xaxis_transform(), fontsize=9, color="gray")
-
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xlabels, fontsize=9)
-    ax.set_ylabel("Mean Cohen's κ vs. Average Human Annotation", fontsize=11)
-    ax.set_ylim(0, 1.05)
-    ax.set_title(
-        "Inter-Rater Agreement: Human Annotators vs. LLM Configurations\n"
-        "(across AAE linguistic features; error bars = ±1 SEM)",
-        fontsize=12,
+    fig.suptitle(
+        "Inter-Annotator Agreement: Human Raters vs. LLM Models\n"
+        "(Cohen's κ against average human annotation; "
+        "boxes = distribution across 25 AAE features & all prompt configs)",
+        fontsize=13, y=1.01,
     )
-    ax.legend(fontsize=9)
     plt.tight_layout()
     out = os.path.join(out_dir, "fig1_irr_human_vs_model.png")
     plt.savefig(out, dpi=300, bbox_inches="tight")
-    plt.show()
     print(f"[FIG1] Saved {out}")
 
 
@@ -2797,14 +2935,29 @@ def _dissertation_fig2_feature_f1(mean_f1: pd.DataFrame, out_dir: str, model_lab
     plt.tight_layout()
     out = os.path.join(out_dir, f"{model_label}_fig2_feature_f1.png")
     plt.savefig(out, dpi=300, bbox_inches="tight")
-    plt.show()
     print(f"[FIG2] Saved {out}")
+
+
+def _add_prompt_binary_features(lb: pd.DataFrame) -> pd.DataFrame:
+    """
+    Decompose the 4-level 'instr' column (ZS / FS / ZScot / FScot) into two
+    orthogonal binary predictors:
+      has_examples : 1 if prompt includes few-shot examples (FS or FScot)
+      has_cot      : 1 if prompt uses chain-of-thought (ZScot or FScot)
+    """
+    lb = lb.copy()
+    lb["has_examples"] = lb["instr"].isin(["FS", "FScot"]).astype(int)
+    lb["has_cot"]      = lb["instr"].isin(["ZScot", "FScot"]).astype(int)
+    return lb
 
 
 def _dissertation_fig3_regression(all_eval: pd.DataFrame, out_dir: str, model_label: str):
     """
-    Figure 3 – OLS regression: macro_f1 ~ instr + ctx + leg (within one model family).
+    Figure 3 – OLS regression: macro_f1 ~ has_examples + has_cot + ctx + leg
+    (within one model family).
     Shows which prompt configuration parameters actually matter.
+    'instr' is decomposed into orthogonal binary predictors so examples and
+    chain-of-thought are estimated independently.
     """
     if not _HAS_STATSMODELS:
         print("[FIG3] statsmodels not installed — skipping regression figure.")
@@ -2824,18 +2977,17 @@ def _dissertation_fig3_regression(all_eval: pd.DataFrame, out_dir: str, model_la
         .rename(columns={"f1": "macro_f1"})
     )
     lb["ctx"] = lb["ctx"].fillna("noCTX")
+    lb = _add_prompt_binary_features(lb)
 
     if lb.empty or lb["macro_f1"].isna().all():
         return
 
-    # pick reference levels: most common or sensible defaults
-    ref_instr = "ZS" if "ZS" in lb["instr"].values else lb["instr"].iloc[0]
-    ref_ctx   = "noCTX" if "noCTX" in lb["ctx"].values else lb["ctx"].iloc[0]
-    ref_leg   = "noLeg" if "noLeg" in lb["leg"].values else lb["leg"].iloc[0]
+    ref_ctx = "noCTX" if "noCTX" in lb["ctx"].values else lb["ctx"].iloc[0]
+    ref_leg = "noLeg" if "noLeg" in lb["leg"].values else lb["leg"].iloc[0]
 
     formula = (
         f"macro_f1 ~ "
-        f"C(instr, Treatment('{ref_instr}')) + "
+        f"has_examples + has_cot + "
         f"C(ctx, Treatment('{ref_ctx}')) + "
         f"C(leg, Treatment('{ref_leg}'))"
     )
@@ -2864,16 +3016,22 @@ def _dissertation_fig3_regression(all_eval: pd.DataFrame, out_dir: str, model_la
     pvals = result.pvalues.drop("Intercept")
 
     def _group_color(k):
-        if "instr" in k: return "#8e44ad"
-        if "ctx"   in k: return "#16a085"
+        if k in ("has_examples", "has_cot"): return "#8e44ad"
+        if "ctx" in k: return "#16a085"
         return "#e67e22"
 
     import matplotlib.patches as _mp
     dot_colors = [_group_color(k) for k in coef.index]
     sig        = pvals < 0.05
 
-    # Clean up labels
+    label_map = {
+        "has_examples": "Few-shot examples",
+        "has_cot":      "Chain-of-thought",
+    }
+
     def _clean(k):
+        if k in label_map:
+            return label_map[k]
         k = re.sub(r"C\(\w+, Treatment\('[^']+'\)\)\[T\.([^\]]+)\]", r"\1", k)
         return k
 
@@ -2883,12 +3041,9 @@ def _dissertation_fig3_regression(all_eval: pd.DataFrame, out_dir: str, model_la
     y_pos = np.arange(len(coef))
 
     for i, (c, lo, hi, col, is_sig) in enumerate(zip(
-        coef.values,
-        coef.values - ci[0].values,
-        ci[1].values - coef.values,
-        dot_colors, sig
+        coef.values, ci[0].values, ci[1].values, dot_colors, sig
     )):
-        ax.plot([c - lo, c + hi], [i, i], color=col,
+        ax.plot([lo, hi], [i, i], color=col,
                 lw=2.5 if is_sig else 1.2, alpha=0.9 if is_sig else 0.5)
         ax.scatter(c, i, color=col, s=120 if is_sig else 55, zorder=5,
                    edgecolors="white", linewidth=1,
@@ -2905,7 +3060,7 @@ def _dissertation_fig3_regression(all_eval: pd.DataFrame, out_dir: str, model_la
     )
 
     group_patches = [
-        _mp.Patch(color="#8e44ad", label="Instruction style"),
+        _mp.Patch(color="#8e44ad", label="Prompting strategy"),
         _mp.Patch(color="#16a085", label="Context window"),
         _mp.Patch(color="#e67e22", label="Legitimacy frame"),
         plt.Line2D([0],[0], marker="D", color="w", markerfacecolor="gray",
@@ -2917,8 +3072,304 @@ def _dissertation_fig3_regression(all_eval: pd.DataFrame, out_dir: str, model_la
     plt.tight_layout()
     out = os.path.join(out_dir, f"{model_label}_fig3_regression.png")
     plt.savefig(out, dpi=300, bbox_inches="tight")
-    plt.show()
+    plt.close()
     print(f"[FIG3] Saved {out}")
+
+
+def _dissertation_fig2_overall_feature_f1(results_root: str):
+    """
+    Overall Figure 2 – mean F1 per AAE feature, averaged across ALL model families.
+
+    Pools every *_mean_f1_per_feature.csv found under results_root, computes
+    the mean and std of mean_f1 per feature, and saves:
+      - fig2_overall_feature_f1.csv
+      - fig2_overall_feature_f1.png  (horizontal bar chart with error bars)
+    """
+    frames = []
+    for dirpath, _, filenames in os.walk(results_root):
+        for fname in filenames:
+            if fname.endswith("_mean_f1_per_feature.csv"):
+                fpath = os.path.join(dirpath, fname)
+                try:
+                    df = pd.read_csv(fpath)
+                    df["model"] = os.path.basename(dirpath)
+                    frames.append(df)
+                except Exception as e:
+                    print(f"[FIG2-overall] Could not read {fpath}: {e}")
+
+    if not frames:
+        print("[FIG2-overall] No per-feature F1 CSVs found — skipping.")
+        return
+
+    all_f1 = pd.concat(frames, ignore_index=True)
+    all_f1.columns = all_f1.columns.str.strip().str.lower()
+
+    if "feature" not in all_f1.columns or "mean_f1" not in all_f1.columns:
+        print("[FIG2-overall] Unexpected columns — skipping.")
+        return
+
+    agg = (
+        all_f1.groupby("feature")["mean_f1"]
+        .agg(mean="mean", std="std", n="count")
+        .reset_index()
+        .sort_values("mean", ascending=True)
+    )
+    agg["std"] = agg["std"].fillna(0)
+
+    # Save CSV
+    csv_path = os.path.join(results_root, "fig2_overall_feature_f1.csv")
+    agg.to_csv(csv_path, index=False)
+
+    # Colour tiers: green ≥ 0.7, amber 0.4–0.7, red < 0.4
+    def _tier_color(v):
+        if v >= 0.7: return "#27ae60"
+        if v >= 0.4: return "#e67e22"
+        return "#c0392b"
+
+    colors = [_tier_color(v) for v in agg["mean"]]
+
+    fig, ax = plt.subplots(figsize=(9, max(6, len(agg) * 0.42)))
+    y_pos = np.arange(len(agg))
+
+    ax.barh(y_pos, agg["mean"], xerr=agg["std"], color=colors,
+            height=0.65, capsize=4, alpha=0.85,
+            error_kw={"elinewidth": 1.2, "ecolor": "gray", "capthick": 1.2})
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(agg["feature"], fontsize=9)
+    ax.set_xlabel("Mean F1 (averaged across all model families)", fontsize=11)
+    ax.set_xlim(0, 1.05)
+    ax.axvline(0.7, color="#27ae60", lw=1, ls="--", alpha=0.5, label="Good (≥ 0.7)")
+    ax.axvline(0.4, color="#e67e22", lw=1, ls="--", alpha=0.5, label="Moderate (≥ 0.4)")
+
+    n_models = agg["n"].max()
+    ax.set_title(
+        f"Overall Feature-Level Detection Performance\n"
+        f"Mean F1 ± SD across {n_models} model families",
+        fontsize=13, fontweight="bold", pad=10,
+    )
+
+    import matplotlib.patches as _mp
+    legend_handles = [
+        _mp.Patch(color="#27ae60", label="Good (≥ 0.7)"),
+        _mp.Patch(color="#e67e22", label="Moderate (0.4 – 0.7)"),
+        _mp.Patch(color="#c0392b", label="Poor (< 0.4)"),
+    ]
+    ax.legend(handles=legend_handles, loc="lower right", fontsize=9)
+    ax.spines[["top", "right"]].set_visible(False)
+    plt.tight_layout()
+
+    out = os.path.join(results_root, "fig2_overall_feature_f1.png")
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[FIG2-overall] Saved → {out}")
+
+
+def _dissertation_fig4_cross_model_regression(results_root: str):
+    """
+    Figure 4 – Cross-model OLS regression: macro_f1 ~ base_model + instr + ctx + leg.
+
+    Pools all *_summary_leaderboard.csv files found under results_root,
+    runs a single OLS with base_model treated as a fixed effect (dummy-coded,
+    reference = first alphabetically), and produces:
+      - fig4_cross_model_regression.csv   (full coefficient table)
+      - fig4_cross_model_regression.png   (forest plot, grouped by factor)
+    """
+    if not _HAS_STATSMODELS:
+        print("[FIG4] statsmodels not installed — skipping cross-model regression.")
+        return
+
+    # ── 1. Pool leaderboard CSVs ───────────────────────────────────────────────
+    frames = []
+    for dirpath, _, filenames in os.walk(results_root):
+        for fname in filenames:
+            if fname.endswith("_summary_leaderboard.csv"):
+                fpath = os.path.join(dirpath, fname)
+                try:
+                    df = pd.read_csv(fpath)
+                    # derive base_model from the folder name
+                    folder = os.path.basename(dirpath)
+                    df["base_model"] = folder
+                    frames.append(df)
+                except Exception as e:
+                    print(f"[FIG4] Could not read {fpath}: {e}")
+
+    if not frames:
+        print("[FIG4] No leaderboard CSVs found — skipping cross-model regression.")
+        return
+
+    lb = pd.concat(frames, ignore_index=True)
+
+    # ── 2. Normalise column names ──────────────────────────────────────────────
+    lb.columns = lb.columns.str.strip().str.lower()
+    needed = {"macro_f1", "instr", "ctx", "leg", "base_model"}
+    if not needed.issubset(lb.columns):
+        missing = needed - set(lb.columns)
+        print(f"[FIG4] Missing columns: {missing}  — skipping cross-model regression.")
+        return
+
+    lb = lb.dropna(subset=list(needed))
+    lb["ctx"] = lb["ctx"].fillna("noCTX")
+
+    # Drop models with < 5 configs (e.g. BERT — encoder-only, incomparable)
+    model_counts = lb["base_model"].value_counts()
+    lb = lb[lb["base_model"].isin(model_counts[model_counts >= 5].index)]
+
+    if len(lb) < 10:
+        print(f"[FIG4] Too few rows ({len(lb)}) for regression — skipping.")
+        return
+
+    # Shorten folder-derived model names for readability
+    def _shorten(name):
+        name = re.sub(r"_Combined$", "", name)
+        name = name.replace("_", " ")
+        return name
+
+    lb["base_model"] = lb["base_model"].apply(_shorten).apply(prettify_model_label)
+
+    # ── 3. Decompose instr into binary predictors + reference levels ──────────
+    lb = _add_prompt_binary_features(lb)
+
+    ref_model = sorted(lb["base_model"].unique())[0]
+    ref_ctx   = "noCTX" if "noCTX" in lb["ctx"].values  else lb["ctx"].iloc[0]
+    ref_leg   = "noLeg" if "noLeg" in lb["leg"].values   else lb["leg"].iloc[0]
+
+    formula = (
+        f"macro_f1 ~ "
+        f"C(base_model, Treatment('{ref_model}')) + "
+        f"has_examples + has_cot + "
+        f"C(ctx,   Treatment('{ref_ctx}')) + "
+        f"C(leg,   Treatment('{ref_leg}'))"
+    )
+
+    try:
+        result = _smf.ols(formula, data=lb).fit()
+    except Exception as e:
+        print(f"[FIG4] Regression failed: {e}")
+        return
+
+    # ── 4. Save coefficient table ──────────────────────────────────────────────
+    tbl = pd.DataFrame({
+        "predictor": result.params.index,
+        "coef":      result.params.values,
+        "se":        result.bse.values,
+        "t":         result.tvalues.values,
+        "p":         result.pvalues.values,
+        "ci_low":    result.conf_int()[0].values,
+        "ci_high":   result.conf_int()[1].values,
+    })
+    tbl_path = os.path.join(results_root, "fig4_cross_model_regression.csv")
+    tbl.to_csv(tbl_path, index=False)
+    print(f"[FIG4] Saved coefficient table → {tbl_path}")
+
+    # ── 5. Forest plot ─────────────────────────────────────────────────────────
+    coef  = result.params.drop("Intercept")
+    ci    = result.conf_int().drop("Intercept")
+    pvals = result.pvalues.drop("Intercept")
+    sig   = pvals < 0.05
+
+    def _factor_group(k):
+        if "base_model"    in k: return "base_model"
+        if k == "has_examples" or k == "has_cot": return "prompting"
+        if "ctx"           in k: return "ctx"
+        return "leg"
+
+    group_colors = {
+        "base_model": "#2980b9",
+        "prompting":  "#8e44ad",
+        "ctx":        "#16a085",
+        "leg":        "#e67e22",
+    }
+    group_labels = {
+        "base_model": "Model family",
+        "prompting":  "Prompting strategy",
+        "ctx":        "Context window",
+        "leg":        "Legitimacy frame",
+    }
+
+    import matplotlib.patches as _mp
+    dot_colors = [group_colors[_factor_group(k)] for k in coef.index]
+
+    _label_map = {
+        "has_examples": "Few-shot examples",
+        "has_cot":      "Chain-of-thought",
+    }
+
+    def _clean(k):
+        if k in _label_map:
+            return _label_map[k]
+        k = re.sub(r"C\(\w+(?:,\s*\w+\('[^']+'\))?\)\[T\.([^\]]+)\]", r"\1", k)
+        return k
+
+    labels = [_clean(k) for k in coef.index]
+
+    # Sort by group then coefficient value for readability
+    order = sorted(
+        range(len(coef)),
+        key=lambda i: (_factor_group(coef.index[i]), -coef.values[i])
+    )
+    coef_vals = coef.values[order]
+    ci_lo     = ci[0].values[order]
+    ci_hi     = ci[1].values[order]
+    colors_o  = [dot_colors[i] for i in order]
+    sig_o     = sig.values[order]
+    labels_o  = [labels[i] for i in order]
+
+    fig, ax = plt.subplots(figsize=(10, max(6, len(coef) * 0.42)))
+    y_pos = np.arange(len(coef))
+
+    for i, (c, lo, hi, col, is_sig) in enumerate(zip(
+        coef_vals, ci_lo, ci_hi, colors_o, sig_o
+    )):
+        err_lo = c - lo
+        err_hi = hi - c
+        ax.plot([lo, hi], [i, i], color=col,
+                lw=2.5 if is_sig else 1.2, alpha=0.9 if is_sig else 0.5)
+        ax.scatter(c, i, color=col, s=120 if is_sig else 55, zorder=5,
+                   edgecolors="white", linewidth=1,
+                   marker="D" if is_sig else "o")
+
+    ax.axvline(0, color="black", lw=1, ls="--", alpha=0.7)
+
+    # Light separator bands between factor groups
+    prev_grp = None
+    band = False
+    for i, idx in enumerate(order):
+        grp = _factor_group(coef.index[idx])
+        if grp != prev_grp:
+            band = not band
+            prev_grp = grp
+        if band:
+            ax.axhspan(i - 0.5, i + 0.5, color="gray", alpha=0.06, zorder=0)
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels_o, fontsize=9)
+    ax.set_xlabel("Regression Coefficient (Δ macro F1 vs. reference level)", fontsize=11)
+    ax.set_title(
+        f"Cross-Model OLS: What Predicts Performance Across All Models?\n"
+        f"n={len(lb)} configs  |  R²={result.rsquared:.3f}  |  "
+        f"Adj. R²={result.rsquared_adj:.3f}  |  "
+        f"Reference: {ref_model} · ZS (no examples, no CoT) · {ref_ctx} · {ref_leg}",
+        fontsize=11, pad=10,
+    )
+
+    legend_handles = [
+        _mp.Patch(color=v, label=group_labels[k])
+        for k, v in group_colors.items()
+    ] + [
+        plt.Line2D([0],[0], marker="D", color="w", markerfacecolor="gray",
+                   markersize=8, label="p < 0.05"),
+        plt.Line2D([0],[0], marker="o", color="w", markerfacecolor="gray",
+                   markersize=6, label="n.s."),
+    ]
+    ax.legend(handles=legend_handles, loc="lower right", fontsize=9)
+    ax.spines[["top", "right"]].set_visible(False)
+    plt.tight_layout()
+
+    out = os.path.join(results_root, "fig4_cross_model_regression.png")
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"[FIG4] Saved cross-model regression → {out}")
 
 
 if __name__ == "__main__":

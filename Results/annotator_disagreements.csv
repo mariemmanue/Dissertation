@@ -1,0 +1,254 @@
+sentence,feature,disagreeing_pairs,label_Gold,label_Razan,label_Tilly
+And my cousin she just moved into a house.,appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"And you gotta imagine me, I'm like fifteen sixteen listening to somebody who's like, forty telling me about the problems that they have.",appositive-pleonastic-pronoun,Gold≠Razan,0,1.0,
+"Derrick Rose, he's gonna help.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"Girl, she's fifteen.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"I mean, I think the- the youth today, I mean, they have the right, I think, um, mindset as far as like, um, not being scared of anything.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"I mean, all the other teams they lost a lot of good players but they gained a lot of good players as well.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"My brother and sister, they do the driving.",appositive-pleonastic-pronoun,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"My sister and her friend, they came with me in here.",appositive-pleonastic-pronoun,Gold≠Tilly,1,,0.0
+"So- and- and m- and me personally I don't think it's for our benefit they building these new developments because if you go down t- Man, I- where- where'd I drive to?",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"Uh, my mother sh- when she was- start working she was a, um, assistant director of housekeeping for Marriott.",appositive-pleonastic-pronoun,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"We stayed down there, and her son, he was young.",appositive-pleonastic-pronoun,Gold≠Tilly,1,,0.0
+"Whereas though New York, everybody, their whole offense was based off one on one playing, one on one, um, when they got the ball.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"Whereas though back then the older guys, they'll see us, the ones- the guys- the younger guys, you know, that- they know we into sports and we don't deal in that type of activity.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"Yeah, us as kids, they saw us- they'll see us, especially the ones that, you know, they knew it wasn't their lifestyle, we'll be in their area, hey y'all need to go.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+"and the average person in the city, some of 'em don't have a car to take their kid to like a- uh, a private school or something like that.",appositive-pleonastic-pronoun,Gold≠Razan,1,0.0,
+And I got a- a stationary bicycle right now.,bare-got,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+And then I got a brother in Norfolk.,bare-got,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+Got a niece there.,bare-got,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"It was community college then, and got my GED.",bare-got,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+"Um, involved in interaction with other individuals yeah, where as though now, you got your phone, or computer or laptop, you fine as a child.",bare-got,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"Um, yeah but the funny thing is I never- I never got a beating and I never got a punish.",bare-got,Gold≠Razan,1,0.0,
+"Whereas though New York, everybody, their whole offense was based off one on one playing, one on one, um, when they got the ball.",bare-got,Gold≠Razan,0,1.0,
+"Yeah, I got nieces and nephews.",bare-got,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"But I- I don't just give her stuff just to be giving her- I mean, I explain to her, you know, why I'm doing it.",be-construction,Gold≠Razan,0,1.0,
+"I mean, cause I could draw, really really good, and I wanted to be like a artist, engineer, or I be on TV playing sports.",be-construction,Gold≠Razan,1,0.0,
+Yeah cause they b- be down here.,be-construction,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"And it was instances where after we been there for a while, we were one on one with individuals probably twice my age.",bin,Gold≠Razan,1,0.0,
+"And that was my first time tasting it, I been buying it every since.",bin,Gold≠Razan,1,0.0,
+"And that's how I always been, put yours to the side to try and help them.",bin,Gold≠Razan,1,0.0,
+"And, um, my mentor a guy named RD-NAME-5 and I- I ran into him like a couple years ago I been friends with him ever since.",bin,Gold≠Razan,1,0.0,
+"I mean, she was- you could tell she been crying all night, she didn't sleep when I was talking to her.",bin,Gold≠Razan,1,0.0,
+"I went over there, course we had fun, we exchanged numbers, we been talking every since.",bin,Gold≠Razan,1,0.0,
+"My brother and sister, they do the driving.",bin,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"My closest friend is my barber and I been knowing him ever since we- I was like, ten years old.",bin,Gold≠Razan,1,0.0,
+"My sister and her friend, they came with me in here.",bin,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+Other people started finding out I can cook so I been doing it for like the last four years.,bin,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+"Um, sh- I been knowing her since like, the nineties.",bin,Gold≠Razan,1,0.0,
+"We stayed down there, and her son, he was young.",bin,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"Yeah, I mean, all of my friends- I have- really don't have- of course the p- other than the people here, but like close- close friends, I been knowing for decades.",bin,Gold≠Razan,1,0.0,
+It was something going on.,demonstrative-them,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"And she said, I'm tryna cook me something to eat.",double-object,Gold≠Tilly,1,,0.0
+And she work for Miss RD-NAME-4 for year with her and her children and her husband.,double-object,Gold≠Tilly,0,,1.0
+Sometime seven day.,double-object,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+Two brother.,double-object,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"And so my sister didn't have a car then and she said, what we gonna do?",double-tense,Gold≠Tilly,0,,1.0
+It gonna bust.,double-tense,Gold≠Tilly,0,,1.0
+"Not that I'm a mumbo sauce connoisseur, it's two different kinds.",double-tense,Gold≠Razan,1,0.0,
+Then she told her this not no tumor.,double-tense,Gold≠Tilly,0,,1.0
+"You talking about the brother and si- They stay on the next street, Beasley.",double-tense,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"Dad was if it was a title, Jack of all trades.",existential-it,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+"I knew it was more, had to be more that, um- From then on, I always took a liking to like, kids.",existential-it,Gold≠Razan,0,1.0,
+"I mean, I ain't- it wasn't really no big issue at the time, but now that I look at it- but I'm starting to learn more.",existential-it,Gold≠Razan,0,1.0,
+"I mean, I t- that was enough for me.",existential-it,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+"I mean, because I ran into problems when I was coaching whereas though it was a single mother, child's really really really spoiled.",existential-it,Gold≠Razan,0,1.0,
+"I mean, it's nothing really that we could have possibly done to change it because she didn't know and neither we- I mean, we didn't know either I guess he was sick, so.",existential-it,Gold≠Razan,1,0.0,
+It was something going on.,existential-it,Gold≠Tilly,1,,0.0
+It's a lot of stuff I learned from him that we never got taught in school.,existential-it,Gold≠Razan,0,1.0,
+"It's nothing to fall back on, and I mean, not to say that every, um- Cause I- I- like I said, I didn't think my neighborhood was bad, I mean, you j- I'm- I'm never gonna be a person- and I preach this to my daughter, you never be a product of your environment.",existential-it,Gold≠Razan,0,1.0,
+"No, unless it's a drastic change.",existential-it,Gold≠Razan,0,1.0,
+"Not that I'm a mumbo sauce connoisseur, it's two different kinds.",existential-it,Gold≠Razan,0,1.0,
+Well at that time it was Carolina Enterprise but it done changed names.,finna,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+All us was born here in Princeville.,is-was-gen,Gold≠Tilly,1,,0.0
+"And somebody said, well wait til the mayor come.",is-was-gen,Gold≠Tilly,0,,1.0
+And the choir sung and the ushers was there too.,is-was-gen,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+Cause it's Saturday morning.,is-was-gen,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+"Cause they- they was from- I can't- forgot what city they was from, but it was nowhere near DC of course.",is-was-gen,Gold≠Razan,1,0.0,
+"I mean, it's nothing really that we could have possibly done to change it because she didn't know and neither we- I mean, we didn't know either I guess he was sick, so.",is-was-gen,Gold≠Razan,0,1.0,
+Junior high school I think was my best years.,is-was-gen,Gold≠Razan,1,0.0,
+"My closest friend is my barber and I been knowing him ever since we- I was like, ten years old.",is-was-gen,Gold≠Razan,1,0.0,
+She stay in Tarboro.,is-was-gen,Gold≠Tilly,0,,1.0
+They stayed for like another day.,is-was-gen,Gold≠Razan,0,1.0,
+They was real nice.,is-was-gen,Gold≠Tilly,1,,0.0
+"Uh-huh cause some of 'em was down to the town hall, the old town hall.",is-was-gen,Gold≠Tilly,1,,0.0
+"Um, I would say it's nothing we coulda done, we did everything we could.",is-was-gen,Gold≠Razan,0,1.0,
+"Um, what makes it unique is the fact that there's four or five instruments, um, coming together, at one time to play one song.",is-was-gen,Gold≠Razan,0,1.0,
+And cigarette butts and I don't smoke nothing.,multiple-neg,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+And then she didn't have no more children til she had this girl.,multiple-neg,Gold≠Tilly,1,,0.0
+And then she had RD-NAME-2 and she told me said she wasn't gonna have no more children.,multiple-neg,Gold≠Tilly,1,,0.0
+But it wasn't one in my house either.,multiple-neg,Gold≠Razan,1,0.0,
+"Cause one thing I would like to go on and out, we couldn't get no news.",multiple-neg,Gold≠Tilly,1,,0.0
+I think I'm more health conscious now because I'm getting older.,multiple-neg,Gold≠Razan,0,1.0,
+"I'm saying to myself, I didn't do no report yesterday.",multiple-neg,Gold≠Razan,0,1.0,
+It don't exist no more though.,multiple-neg,Gold≠Razan,1,0.0,
+"Said cause she did different with RD-NAME-2 than she did with the other child, sure enough she didn't have no more.",multiple-neg,Gold≠Tilly,1,,0.0
+Then she told her this not no tumor.,multiple-neg,Gold≠Tilly,1,,0.0
+"You is like, you don't want nobody messing with your brother and sister, I mean, because that's your brother and sister.",multiple-neg,Gold≠Razan,1,0.0,
+"And when he saw me, he was like, man why you ain't try out for the team?",n-inv-neg-concord,Gold≠Razan,0,1.0,
+"I mean, just- Yeah he was sick and ain't nobody knew it.",n-inv-neg-concord,Gold≠Razan,1,0.0,
+And cigarette butts and I don't smoke nothing.,neg-inversion,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+And then she didn't have no more children til she had this girl.,neg-inversion,Gold≠Tilly,0,,1.0
+And then she had RD-NAME-2 and she told me said she wasn't gonna have no more children.,neg-inversion,Gold≠Tilly,0,,1.0
+"Cause one thing I would like to go on and out, we couldn't get no news.",neg-inversion,Gold≠Tilly,0,,1.0
+Didn't know nobody.,neg-inversion,Gold≠Razan,1,0.0,
+"I'm not gonna punish him that much, he- he doesn't never get in trouble and he does well in school.",neg-inversion,Gold≠Razan,0,1.0,
+"Said cause she did different with RD-NAME-2 than she did with the other child, sure enough she didn't have no more.",neg-inversion,Gold≠Tilly,0,,1.0
+Then she told her this not no tumor.,neg-inversion,Gold≠Tilly,0,,1.0
+And I always wanted a sister.,past-tense-swap,Gold≠Tilly,1,,0.0
+"And I saw how- in general how it brung like, a lot of us like, together.",past-tense-swap,Gold≠Razan,1,0.0,
+And one say she was waiting on her son.,past-tense-swap,Gold≠Tilly,0,,1.0
+And she work for Miss RD-NAME-4 for year with her and her children and her husband.,past-tense-swap,Gold≠Tilly,0,,1.0
+And the choir sung and the ushers was there too.,past-tense-swap,Gold≠Tilly,1,,0.0
+"And when he saw me, he was like, man why you ain't try out for the team?",past-tense-swap,Gold≠Razan,1,0.0,
+But then my health went to failing me.,past-tense-swap,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+"I mean, it's nothing really that we could have possibly done to change it because she didn't know and neither we- I mean, we didn't know either I guess he was sick, so.",past-tense-swap,Gold≠Razan,0,1.0,
+"I said, you haven't ate?",past-tense-swap,Gold≠Tilly,1,,0.0
+"It being so fair, I just know the water was going down.",past-tense-swap,Gold≠Tilly,0,,1.0
+It depend on how sick the person was.,past-tense-swap,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"Now they building these condos, um, new developments, and they moving a majority of the black people that was living in the area to PG.",past-tense-swap,Gold≠Razan,1,0.0,
+Other people started finding out I can cook so I been doing it for like the last four years.,past-tense-swap,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"RD-NAME-2 say, we can't stay here.",past-tense-swap,Gold≠Tilly,0,,1.0
+"Said cause she did different with RD-NAME-2 than she did with the other child, sure enough she didn't have no more.",past-tense-swap,Gold≠Tilly,1,,0.0
+Say cause they had then called and see what the water was gonna do.,past-tense-swap,Gold≠Tilly,0,,1.0
+"She hadn't been uh, got here from Seattle, Washington.",past-tense-swap,Gold≠Tilly,1,,0.0
+"The water had did it, so I didn't even recognize it.",past-tense-swap,Gold≠Tilly,1,,0.0
+They coulda beat 'em last year I think.,past-tense-swap,Gold≠Razan,1,0.0,
+They say we gonna need nurse's aid one.,past-tense-swap,Gold≠Tilly,0,,1.0
+"Uh, throwing snowballs at the bus when it droves past, I mean.",past-tense-swap,Gold≠Razan,1,0.0,
+"Uh, we used to, we haven't done that lately.",past-tense-swap,Gold≠Razan,0,1.0,
+"Um, I would say it's nothing we coulda done, we did everything we could.",past-tense-swap,Gold≠Razan,1,0.0,
+"Um, yeah but the funny thing is I never- I never got a beating and I never got a punish.",past-tense-swap,Gold≠Razan,1,0.0,
+And I had come home but I went back to take her and she was so happy.,preterite-had,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+And they had cut my hours to one or two.,preterite-had,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+And this was something I had never really initially wanted to do on my own.,preterite-had,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+Say cause they had then called and see what the water was gonna do.,preterite-had,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"The water had did it, so I didn't even recognize it.",preterite-had,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+Well at that time it was Carolina Enterprise but it done changed names.,resultant-done,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+Yeah cause they b- be down here.,resultant-done,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+And I had come home but I went back to take her and she was so happy.,verb-stem,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+And I just enjoy the fact that we can go somewhere and listen to music for free.,verb-stem,Gold≠Razan,0,1.0,
+And I think back then it was a lot of rec centers we can go to.,verb-stem,"Gold≠Razan, Gold≠Tilly",0,1.0,1.0
+And my sister went but I didn't know nothing about it.,verb-stem,Gold≠Razan,0,1.0,
+And one say she was waiting on her son.,verb-stem,Gold≠Tilly,1,,0.0
+And she work for Miss RD-NAME-4 for year with her and her children and her husband.,verb-stem,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"Anywhere you go, I could see water.",verb-stem,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+"Because it was nobody to follow behind because you don't- you don't know nobody, nah.",verb-stem,Gold≠Razan,0,1.0,
+But the last couple years we have it at- we had it at Myrtle Beach one year.,verb-stem,Gold≠Razan,0,1.0,
+"Cause I watch what- like I said what my older brother and my older sister all the trouble they got into, I was like, nah I'm'a do the exact opposite.",verb-stem,Gold≠Razan,0,1.0,
+"I know times are different then, but I- I know mothers and parents are younger now, but in my household, it was just my mother.",verb-stem,Gold≠Razan,0,1.0,
+I said but I haven't did that work.,verb-stem,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+"It being so fair, I just know the water was going down.",verb-stem,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"RD-NAME-2 say, we can't stay here.",verb-stem,Gold≠Tilly,1,,0.0
+Say cause they had then called and see what the water was gonna do.,verb-stem,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+She stay in Tarboro.,verb-stem,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+"So the more I start to like it, I switched from part time to full time.",verb-stem,Gold≠Razan,0,1.0,
+"Stanton Road, Bruce Place, and, um, like Congress Park, too, which is like further down, went to RD-SCHOOL-2 rec center cause every Friday we skated, or the rec center have some type of activities there whether it was sports, or anything, like, cheerleading competition for girls.",verb-stem,Gold≠Razan,0,1.0,
+"The craziest thing, and I- I still- I don't still think about it but when I go past the hotel that cross my mind, it was a instance where it was a, um- And I was assistant director when this happened.",verb-stem,Gold≠Razan,1,0.0,
+They coulda beat 'em last year I think.,verb-stem,Gold≠Razan,1,0.0,
+They say we gonna need nurse's aid one.,verb-stem,Gold≠Tilly,1,,0.0
+"And I think that's learned behavior because if you- you- growing up, I mean, everybody don't have that personality.",zero-3sg-pres-s,Gold≠Razan,1,0.0,
+And one say she was waiting on her son.,zero-3sg-pres-s,Gold≠Tilly,1,,0.0
+And she work for Miss RD-NAME-4 for year with her and her children and her husband.,zero-3sg-pres-s,Gold≠Tilly,1,,0.0
+"And somebody said, well wait til the mayor come.",zero-3sg-pres-s,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+Have no guidance.,zero-3sg-pres-s,Gold≠Razan,1,0.0,
+It depend on how sick the person was.,zero-3sg-pres-s,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+It don't exist no more though.,zero-3sg-pres-s,Gold≠Razan,0,1.0,
+"No, because before you look up, DC will look totally di- it's- it look totally different now but it's gonna get way totally different than what it is now.",zero-3sg-pres-s,Gold≠Razan,0,1.0,
+"RD-NAME-2 say, we can't stay here.",zero-3sg-pres-s,Gold≠Tilly,1,,0.0
+She stay in Tarboro.,zero-3sg-pres-s,Gold≠Tilly,1,,0.0
+"Stanton Road, Bruce Place, and, um, like Congress Park, too, which is like further down, went to RD-SCHOOL-2 rec center cause every Friday we skated, or the rec center have some type of activities there whether it was sports, or anything, like, cheerleading competition for girls.",zero-3sg-pres-s,Gold≠Razan,1,0.0,
+"Um, l- looking at it I'll just say from other individuals from the outside, I mean, to them, it look- they I guess would see that as a bad neighborhood.",zero-3sg-pres-s,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+"A guest walk past, how you doing?",zero-copula,Gold≠Razan,1,0.0,
+"And I think that's learned behavior because if you- you- growing up, I mean, everybody don't have that personality.",zero-copula,Gold≠Razan,1,0.0,
+"And I went by there and she was a-standing over the stove, and I said, whatchu doing?",zero-copula,Gold≠Tilly,1,,0.0
+And she worked for they s- their son and his wife.,zero-copula,Gold≠Tilly,0,,1.0
+"And so my sister didn't have a car then and she said, what we gonna do?",zero-copula,Gold≠Tilly,1,,0.0
+But truly misguided.,zero-copula,Gold≠Razan,1,0.0,
+"Cause everybody's in tune with ev- Cause of course, you know, in go go people do some of the same songs.",zero-copula,Gold≠Razan,0,1.0,
+Do I think they gonna go far with the team they got?,zero-copula,Gold≠Razan,0,1.0,
+"I mean, because I ran into problems when I was coaching whereas though it was a single mother, child's really really really spoiled.",zero-copula,Gold≠Razan,0,1.0,
+It gonna bust.,zero-copula,Gold≠Tilly,1,,0.0
+Like I said the program called OSAY.,zero-copula,Gold≠Razan,1,0.0,
+"Like kids her age, uh, fifteen acting like eighteen, twenty-one, twenty-six, and- or older.",zero-copula,Gold≠Razan,0,1.0,
+"Safety- And the reason I- um, I got into it because when I was in school, I started doing security part time for RD-WORK-5.",zero-copula,Gold≠Razan,0,1.0,
+"Sister hated it when they used to come over like, where your brother at?",zero-copula,Gold≠Razan,1,0.0,
+That's what happening a lot.,zero-copula,Gold≠Razan,0,1.0,
+"The first expression on your face like, ew, why- why you wanna, um, get involved with my brother and sister?",zero-copula,Gold≠Razan,0,1.0,
+Then she told her this not no tumor.,zero-copula,Gold≠Tilly,1,,0.0
+They say we gonna need nurse's aid one.,zero-copula,Gold≠Tilly,1,,0.0
+"Um, just- I mean, and- and you gotta figure you go to a go go, you gonna be there for a couple of hours.",zero-copula,Gold≠Razan,0,1.0,
+Why you not playing sports?,zero-copula,Gold≠Razan,1,0.0,
+"You is like, you don't want nobody messing with your brother and sister, I mean, because that's your brother and sister.",zero-copula,Gold≠Razan,0,1.0,
+"You talking about the brother and si- They stay on the next street, Beasley.",zero-copula,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+All us was born here in Princeville.,zero-pl-s,Gold≠Tilly,0,,1.0
+And she work for Miss RD-NAME-4 for year with her and her children and her husband.,zero-pl-s,Gold≠Tilly,1,,0.0
+And the choir sung and the ushers was there too.,zero-pl-s,Gold≠Tilly,0,,1.0
+"I- I prefer to watch- I- I went to the- um, the Redskin game when they played Oakland, like two weeks ago.",zero-pl-s,Gold≠Razan,0,1.0,
+"Looking at it now I was like, dang I was fifteen years old, listen to somebody- somebody's problem, giving them guidance or what I think they should do, or some resources they should reach out to.",zero-pl-s,Gold≠Razan,0,1.0,
+"No father figure in his life, um, really really good at a sport but had no guidance.",zero-pl-s,Gold≠Razan,0,1.0,
+Sometime seven day.,zero-pl-s,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"Stanton Road, Bruce Place, and, um, like Congress Park, too, which is like further down, went to RD-SCHOOL-2 rec center cause every Friday we skated, or the rec center have some type of activities there whether it was sports, or anything, like, cheerleading competition for girls.",zero-pl-s,Gold≠Razan,0,1.0,
+They was real nice.,zero-pl-s,Gold≠Tilly,0,,1.0
+Two brother.,zero-pl-s,"Gold≠Tilly, Razan≠Tilly",1,1.0,0.0
+"Uh-huh cause some of 'em was down to the town hall, the old town hall.",zero-pl-s,Gold≠Tilly,0,,1.0
+And I guess before he came to our program- And cause I used to coach at number eleven boys club.,zero-poss,Gold≠Razan,1,0.0,
+And she worked for they s- their son and his wife.,zero-poss,Gold≠Razan,0,1.0,
+Birthday is December the first.,zero-poss,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+A variety of songs you will hear one time from other artists that you'll- And then it's- and they do songs that they know you will like.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+All I did was draw.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+And I think back then it was a lot of rec centers we can go to.,zero-rel-pronoun,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+And I think the coach that I had there we didn't really s- I guess see eye to eye on certain things because he wanted me to play a position I didn't wanna play.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"And cause you, I guess, figure you- you have the mindset it's no consequences for your actions at all.",zero-rel-pronoun,Gold≠Razan,0,1.0,
+"And he saw her and he was like, good job on the report you did yesterday.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"And it was instances where after we been there for a while, we were one on one with individuals probably twice my age.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"And so my sister didn't have a car then and she said, what we gonna do?",zero-rel-pronoun,Gold≠Tilly,1,,0.0
+And the choir sung and the ushers was there too.,zero-rel-pronoun,Gold≠Tilly,0,,1.0
+"And they had a rec center, RD-SCHOOL-2 rec that like all the surrounding neighborhoods went to.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+And this was something I had never really initially wanted to do on my own.,zero-rel-pronoun,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+And those just the ones I came in contact with.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+Because everybody I knew from junior high school and everybody in my neighborhood went to RD-SCHOOL-2 because it was closer.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Because of course now, the height I'm at now, if I was going to the NBA I'm considered short.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Because the neighborhood I grew up in, looking at it now, now that I'm older, yeah it was, uh, pretty rough.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"But I think- And after that I was- Cause m- m- I- I can say RD-WORK-3 was like, one of the best jobs I ever had.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+But I was- this was like the third year I was there.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"But after a while, I- I guess the performance- um, my performance, uh, he took a liking to.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+But how you feel don't matter at the time because you gotta figure the decisions you make is gonna affect other people and the business.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+But one thing I wanted to mention though.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+But then my health went to failing me.,zero-rel-pronoun,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"Cause I watch what- like I said what my older brother and my older sister all the trouble they got into, I was like, nah I'm'a do the exact opposite.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Cause they- they was from- I can't- forgot what city they was from, but it was nowhere near DC of course.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+Do I think they gonna go far with the team they got?,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Every decision you make, you gotta be, how would it benefit the organization I'm working for?",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Every little instance we had during practice, temper tantrum.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+Game like that they should be dominate- And it's good that they have a bye this week all the injuries they got.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"I feel it is because- Of course some of the songs they do are like, cover songs of other artists.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"I heard a call over the radio about a- um, a guest needs assistance.",zero-rel-pronoun,Gold≠Razan,0,1.0,
+"I mean, and as far as activities we played tag, football, basketball.",zero-rel-pronoun,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+"I mean, cause you don't wanna get to a point where your- um, your wedding is about how many people you bring to the wedding.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"I mean, that's the first time I ever- um, first and only time actually I ever had to, um, perform CPR.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"I mean, that's the only thing I can say he ever taught me was- All the wrong he done I didn't wanna dabble in it.",zero-rel-pronoun,"Gold≠Razan, Gold≠Tilly",1,0.0,0.0
+I said but I haven't did that work.,zero-rel-pronoun,"Gold≠Tilly, Razan≠Tilly",0,0.0,1.0
+"I said, you haven't ate?",zero-rel-pronoun,Gold≠Tilly,0,,1.0
+"It was like a wooded area we went up, it was like on a hill.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+Not as much I was as a child.,zero-rel-pronoun,Gold≠Razan,0,1.0,
+Only thing you putting in there carry outs and liquor stores.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+Other people started finding out I can cook so I been doing it for like the last four years.,zero-rel-pronoun,"Gold≠Razan, Razan≠Tilly",0,1.0,0.0
+"She hadn't been uh, got here from Seattle, Washington.",zero-rel-pronoun,Gold≠Tilly,0,,1.0
+"So I aksed her, I was like, well, um, if there's anything we can do to help, just let me know.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"So any little thing he done did, she was on top of 'em.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+So whatever guidelines the organization has those what you gotta follow.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"So, that little shell you in, you quickly come out of it.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"So- and- and m- and me personally I don't think it's for our benefit they building these new developments because if you go down t- Man, I- where- where'd I drive to?",zero-rel-pronoun,Gold≠Razan,0,1.0,
+"That was one of the most positive people I've ever met, man.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"The ones I do, we're really close.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"The water had did it, so I didn't even recognize it.",zero-rel-pronoun,Gold≠Tilly,0,,1.0
+The- RD-NAME-2 the c- the circle I hung around and still hang around I really never hung around nobody that was- that I'm close to that got into like situations like that or put theirself in position to be in- in that situation.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Uh, it's one 'em got a more tangy like, tastes like barbecue- close to barbecue type flavor.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Uh, y- know what, you're absolutely right because it g- it might get to a point your team has no identity at all.",zero-rel-pronoun,Gold≠Razan,0,1.0,
+"Uh-huh cause some of 'em was down to the town hall, the old town hall.",zero-rel-pronoun,Gold≠Tilly,0,,1.0
+"Um, I mean, the most fun I ever had was in junior high school, I mean because in elementary school I was kind of quiet, laid back.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Um, initially, I mean, I- I di- I'm not gonna say I was a expert, but he- the guy I was working for thought I was.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Um, telling me about their problems they had with drug addiction, uh, with they kids.",zero-rel-pronoun,Gold≠Razan,1,0.0,
+Well I didn't- that's the number I didn't wanna go over.,zero-rel-pronoun,Gold≠Razan,1,0.0,
+"Yeah it was, um, at- um, directly across the street was the junior high school I went to, it's RD-SCHOOL-5.",zero-rel-pronoun,Gold≠Razan,1,0.0,
