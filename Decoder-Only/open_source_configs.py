@@ -2072,6 +2072,10 @@ def query_model(
                 f"Running total: {tracker.total_input_tokens + tracker.total_output_tokens}"
             )
 
+            # Free any residual VRAM allocations before next sentence
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
             return output_text, arm_used
 
         except Exception as e:
@@ -2079,8 +2083,16 @@ def query_model(
             is_last = (attempt == max_retries - 1)
 
             if "cuda out of memory" in msg or "oom" in msg:
-                print(f"OOM error on sentence {sentence_idx}. Cannot retry. Skipping.")
-                return None, arm_used
+                import gc
+                gc.collect()
+                torch.cuda.empty_cache()
+                if not is_last:
+                    print(f"OOM on sentence {sentence_idx} (attempt {attempt + 1}). "
+                          f"Cache cleared, retrying in 5s...")
+                    time.sleep(5)
+                else:
+                    print(f"OOM error on sentence {sentence_idx}. Cannot retry. Skipping.")
+                    return None, arm_used
 
             wait_time = base_delay * (2 ** attempt)
             print(f"Error (attempt {attempt + 1}/{max_retries}): {str(e)[:150]}")
