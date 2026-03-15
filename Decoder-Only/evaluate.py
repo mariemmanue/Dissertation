@@ -2833,13 +2833,11 @@ def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.Data
         print("  These occur on rare/hard features where model agreement with humans")
         print("  is at chance level for that feature × config combination.")
 
-    # ── Sort all entities by mean κ descending ────────────────────────────────
-    order = (
-        combined.groupby("label")["cohens_kappa"]
-        .mean()
-        .sort_values(ascending=False)
-        .index.tolist()
-    )
+    # ── Sort: humans left (sorted by mean κ desc), models right (sorted by mean κ desc) ──
+    mean_k = combined.groupby("label")["cohens_kappa"].mean()
+    human_order = mean_k[mean_k.index.isin(human_labels)].sort_values(ascending=False).index.tolist()
+    model_order  = mean_k[~mean_k.index.isin(human_labels)].sort_values(ascending=False).index.tolist()
+    order = human_order + model_order
 
     # ── Color maps ────────────────────────────────────────────────────────────
     h_colors = {"Gold": "#c0392b", "Razan": "#e67e22", "Tilly": "#8e44ad"}
@@ -2873,12 +2871,12 @@ def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.Data
         if is_human:
             color = h_colors.get(label, h_fallback[h_idx % len(h_fallback)])
             h_idx += 1
-            box_lw, box_ls = 2.5, "--"
+            box_lw, box_ls, hatch = 2.0, "-", "////"
         else:
             color = m_color_map.get(label, m_palette[0])
-            box_lw, box_ls = 1.2, "-"
+            box_lw, box_ls, hatch = 1.2, "-", ""
 
-        ax.boxplot(
+        bp = ax.boxplot(
             data, positions=[i], widths=0.45, patch_artist=True,
             medianprops=dict(color="white", lw=2.5),
             boxprops=dict(facecolor=color, alpha=0.78,
@@ -2888,6 +2886,10 @@ def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.Data
             flierprops=dict(marker="o", markerfacecolor=color,
                             alpha=0.35, markersize=3, linestyle="none"),
         )
+        if hatch:
+            for patch in bp["boxes"]:
+                patch.set_hatch(hatch)
+                patch.set_edgecolor("white")
         mean_k = float(data.mean())
         ax.plot(i, mean_k, marker="D", color="white",
                 markeredgecolor=color, markeredgewidth=1.5, markersize=7, zorder=5)
@@ -2896,12 +2898,14 @@ def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.Data
                 ha="center", va="bottom", fontsize=9,
                 color=color, fontweight="bold")
 
-    # ── Vertical separator between humans and models ──────────────────────────
-    human_pos = [i for i, l in enumerate(order) if l in human_labels]
-    model_pos  = [i for i, l in enumerate(order) if l not in human_labels]
-    if human_pos and model_pos:
-        sep = (max(human_pos) + min(model_pos)) / 2
-        ax.axvline(sep, color="black", lw=1, ls=":", alpha=0.45)
+    # ── Vertical separator between human group (left) and model group (right) ──
+    if human_order and model_order:
+        sep = len(human_order) - 0.5
+        ax.axvline(sep, color="black", lw=1.5, ls="--", alpha=0.6)
+        ax.text(sep - 0.1, 1.10, "Human Raters", ha="right", va="top",
+                fontsize=10, color="#555555", fontstyle="italic")
+        ax.text(sep + 0.1, 1.10, "LLM Models", ha="left", va="top",
+                fontsize=10, color="#555555", fontstyle="italic")
 
     # ── Axes formatting ───────────────────────────────────────────────────────
     ax.set_xticks(range(n_entities))
@@ -2922,8 +2926,8 @@ def _dissertation_fig1_irr(human_kappas: pd.DataFrame, all_model_kappas: pd.Data
                        label=f"Human range  ({h_min:.2f} – {h_max:.2f})"),
             _ml.Line2D([0], [0], color="#7f8c8d", lw=1.4, ls="--",
                        label=f"Human mean  κ = {h_avg:.2f}"),
-            _mp2.Patch(facecolor="gray", edgecolor="black", linewidth=2,
-                       linestyle="--", alpha=0.78, label="Human rater (box = across features)"),
+            _mp2.Patch(facecolor="gray", edgecolor="white", linewidth=2,
+                       hatch="////", alpha=0.78, label="Human rater (box = across features)"),
             _mp2.Patch(facecolor="gray", edgecolor="black", linewidth=1.2,
                        linestyle="-", alpha=0.78, label="LLM model (box = features × configs)"),
         ]
@@ -3244,7 +3248,7 @@ def _dissertation_fig2_overall_feature_f1(results_root: str):
     n_models = agg["n"].max()
     ax.set_title(
         f"Overall Feature-Level Detection Performance\n"
-        f"Mean F1 ± SD across {n_models} model families",
+        f"Mean F1 ± SEM across {n_models} model families",
         fontsize=13, fontweight="bold", pad=10,
     )
 
